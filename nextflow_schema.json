@@ -1,0 +1,261 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "https://github.com/h3abionet/chipimputation/blob/master/nextflow_schema.json",
+  "title": "H3ABionet Chipimputation Pipeline",
+  "description": "Genotype imputation pipeline for H3Africa",
+  "type": "object",
+  "definitions": {
+    "input_output_options": {
+      "title": "Input/Output Options",
+      "type": "object",
+      "fa_icon": "fas fa-terminal",
+      "description": "Define where the pipeline should find input data and save output data.",
+      "required": ["outDir"],
+      "properties": {
+        "outDir": {
+          "type": "string",
+          "format": "directory-path",
+          "description": "The output directory where the results will be saved.",
+          "help_text": "This directory will store all pipeline outputs including reports.",
+          "default": "./output",
+          "fa_icon": "fas fa-folder-open"
+        },
+        "project_name": {
+          "type": "string",
+          "description": "Project name used for output naming.",
+          "help_text": "This name will be used for output directory naming and report generation.",
+          "default": "h3achipimputation",
+          "fa_icon": "fas fa-file-signature"
+        }
+      }
+    },
+    "reference_options": {
+      "title": "Reference Options",
+      "type": "object",
+      "fa_icon": "fas fa-book",
+      "description": "Reference genomes, panels, and genetic maps.",
+      "properties": {
+        "reference_genome": {
+          "type": "string",
+          "format": "file-path",
+          "description": "Reference genome FASTA file.",
+          "help_text": "Reference genome used for QC and alignment. Must include .fai index.",
+          "fa_icon": "fas fa-dna"
+        },
+        "eagle_genetic_map": {
+          "type": "string",
+          "format": "file-path",
+          "description": "Genetic map file for Eagle phasing.",
+          "help_text": "Required for Eagle phasing. Format should be compatible with Eagle2.",
+          "fa_icon": "fas fa-map"
+        },
+        "ref_panels": {
+          "type": "array",
+          "description": "Reference panels for imputation.",
+          "help_text": "List of reference panels with name, m3vcf, and vcf paths.",
+          "fa_icon": "fas fa-layer-group"
+        }
+      }
+    },
+    "input_data_options": {
+      "title": "Input Data Options",
+      "type": "object",
+      "fa_icon": "fas fa-table",
+      "description": "Input files and parameters.",
+      "properties": {
+        "target_datasets": {
+          "type": "array",
+          "description": "Target datasets to impute.",
+          "help_text": "List of datasets with name and VCF path.",
+          "fa_icon": "fas fa-file-medical-alt"
+        },
+        "chromosomes": {
+          "type": "string",
+          "description": "Chromosomes to impute.",
+          "help_text": "Comma-separated list of chromosomes to impute. Use 'ALL' for all chromosomes.",
+          "default": "ALL",
+          "fa_icon": "fas fa-dna"
+        }
+      }
+    },
+    "imputation_options": {
+      "title": "Imputation Options",
+      "type": "object",
+      "fa_icon": "fas fa-project-diagram",
+      "description": "Parameters for imputation.",
+      "properties": {
+        "phasing_method": {
+          "type": "string",
+          "description": "Phasing method to use.",
+          "help_text": "Method used for phasing. Supported options: eagle, shapeit.",
+          "enum": ["eagle", "shapeit"],
+          "default": "eagle",
+          "fa_icon": "fas fa-wave-square"
+        },
+        "impute_method": {
+          "type": "string",
+          "description": "Imputation method to use.",
+          "help_text": "Method used for imputation. Supported options: minimac4, IMPUTE2.",
+          "enum": ["minimac4", "IMPUTE2"],
+          "default": "minimac4",
+          "fa_icon": "fas fa-magic"
+        },
+        "chunk_size": {
+          "type": "string",
+          "description": "Size of chunks for imputation in base pairs.",
+          "help_text": "Chromosomes will be split into chunks of this size for imputation.",
+          "default": "20000000",
+          "fa_icon": "fas fa-puzzle-piece"
+        },
+        "buffer_size": {
+          "type": "string",
+          "description": "Size of buffer regions in base pairs.",
+          "help_text": "Buffer size around chunks to avoid edge effects.",
+          "default": "1000000",
+          "fa_icon": "fas fa-expand-arrows-alt"
+        },
+        "NE": {
+          "type": "string",
+          "description": "Effective population size.",
+          "help_text": "Effective population size parameter for imputation.",
+          "default": "20000",
+          "fa_icon": "fas fa-users"
+        },
+        "impute_iter": {
+          "type": "string",
+          "description": "Number of iterations for imputation.",
+          "help_text": "Number of MCMC iterations for imputation methods that use it.",
+          "default": "10",
+          "fa_icon": "fas fa-redo"
+        },
+        "impute_burnin": {
+          "type": "string",
+          "description": "Number of burn-in iterations.",
+          "help_text": "Number of burn-in iterations for imputation methods that use MCMC.",
+          "default": "2",
+          "fa_icon": "fas fa-fire"
+        },
+        "impute_info_cutoff": {
+          "type": "string",
+          "description": "Info score cutoff for filtering imputed variants.",
+          "help_text": "Variants with info score below this threshold will be filtered out.",
+          "default": "0.3",
+          "fa_icon": "fas fa-filter"
+        },
+        "minRatio": {
+          "type": "string",
+          "description": "Minimum ratio parameter for Minimac4.",
+          "help_text": "Minimac4 specific parameter. See Minimac4 documentation for details.",
+          "default": "0.01",
+          "fa_icon": "fas fa-percentage"
+        }
+      }
+    },
+    "qc_options": {
+      "title": "Quality Control Options",
+      "type": "object",
+      "fa_icon": "fas fa-check-square",
+      "description": "Parameters for quality control.",
+      "properties": {
+        "site_miss": {
+          "type": "string",
+          "description": "Maximum site missingness rate.",
+          "help_text": "Sites with missingness rate above this threshold will be filtered out.",
+          "default": "0.05",
+          "fa_icon": "fas fa-percent"
+        },
+        "hwe": {
+          "type": "string",
+          "description": "Hardy-Weinberg equilibrium p-value threshold.",
+          "help_text": "Sites with HWE p-value below this threshold will be filtered out.",
+          "default": "0.00001",
+          "fa_icon": "fas fa-balance-scale"
+        },
+        "mac": {
+          "type": "string",
+          "description": "Minimum minor allele count.",
+          "help_text": "Sites with minor allele count below this threshold will be filtered out.",
+          "default": "1",
+          "fa_icon": "fas fa-calculator"
+        },
+        "min_ac": {
+          "type": "string",
+          "description": "Minimum allele count.",
+          "help_text": "Sites with allele count below this threshold will be filtered out.",
+          "default": "2",
+          "fa_icon": "fas fa-calculator"
+        },
+        "min_alleles": {
+          "type": "string",
+          "description": "Minimum number of alleles per site.",
+          "help_text": "Sites with fewer alleles than this threshold will be filtered out.",
+          "default": "2",
+          "fa_icon": "fas fa-dna"
+        },
+        "max_alleles": {
+          "type": "string",
+          "description": "Maximum number of alleles per site.",
+          "help_text": "Sites with more alleles than this threshold will be filtered out.",
+          "default": "2",
+          "fa_icon": "fas fa-dna"
+        },
+        "maf_thresh": {
+          "type": "string",
+          "description": "Minor allele frequency threshold.",
+          "help_text": "Sites with minor allele frequency below this threshold will be filtered out.",
+          "default": "0.1",
+          "fa_icon": "fas fa-percentage"
+        }
+      }
+    },
+    "resource_options": {
+      "title": "Resource Options",
+      "type": "object",
+      "fa_icon": "fas fa-microchip",
+      "description": "Pipeline resource limits.",
+      "properties": {
+        "max_memory": {
+          "type": "string",
+          "description": "Maximum memory that can be used by a single process.",
+          "help_text": "Memory units can be specified using GB (gigabytes) or MB (megabytes).",
+          "default": "2.GB",
+          "fa_icon": "fas fa-memory"
+        },
+        "max_cpus": {
+          "type": "integer",
+          "description": "Maximum number of CPUs that can be used by a single process.",
+          "help_text": "Should not exceed the number of CPUs available on your system.",
+          "default": 2,
+          "fa_icon": "fas fa-microchip"
+        },
+        "max_time": {
+          "type": "string",
+          "description": "Maximum time that can be used by a single process.",
+          "help_text": "Time units can be specified using h (hours), m (minutes), or s (seconds).",
+          "default": "48.h",
+          "fa_icon": "fas fa-clock"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "$ref": "#/definitions/input_output_options"
+    },
+    {
+      "$ref": "#/definitions/reference_options"
+    },
+    {
+      "$ref": "#/definitions/input_data_options"
+    },
+    {
+      "$ref": "#/definitions/imputation_options"
+    },
+    {
+      "$ref": "#/definitions/qc_options"
+    },
+    {
+      "$ref": "#/definitions/resource_options"
+    }
+  ]
+} 
