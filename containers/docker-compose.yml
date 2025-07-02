@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  # VCF Processing Container - Stage 1: QC and VCF Operations
+  vcf-processing:
+    build:
+      context: ./vcf-processing
+      dockerfile: Dockerfile
+    image: afrigen-d/vcf-processing:latest
+    container_name: chipimputation-vcf-processing
+    volumes:
+      - ../data:/data
+      - ../input:/input
+      - ../output:/output
+    working_dir: /data
+    command: tail -f /dev/null  # Keep container running
+    
+  # Phasing Container - Stage 2: Haplotype Phasing
+  phasing:
+    build:
+      context: ./phasing
+      dockerfile: Dockerfile
+    image: afrigen-d/phasing:latest
+    container_name: chipimputation-phasing
+    volumes:
+      - ../data:/data
+      - ../input:/input
+      - ../output:/output
+    working_dir: /data
+    command: tail -f /dev/null
+    
+  # Imputation Container - Stage 3: Genotype Imputation
+  imputation:
+    build:
+      context: ./imputation
+      dockerfile: Dockerfile
+    image: afrigen-d/imputation:latest
+    container_name: chipimputation-imputation
+    volumes:
+      - ../data:/data
+      - ../input:/input
+      - ../output:/output
+    working_dir: /data
+    command: tail -f /dev/null
+    
+  # Analysis Container - Stage 4: Analysis and Reporting
+  analysis:
+    build:
+      context: ./analysis
+      dockerfile: Dockerfile
+    image: afrigen-d/analysis:latest
+    container_name: chipimputation-analysis
+    volumes:
+      - ../data:/data
+      - ../input:/input
+      - ../output:/output
+    working_dir: /data
+    command: tail -f /dev/null
+    
+  # All-in-One Container - Complete environment
+  all-in-one:
+    build:
+      context: ./all-in-one
+      dockerfile: Dockerfile
+    image: afrigen-d/genotype-imputation:latest
+    container_name: chipimputation-all-in-one
+    volumes:
+      - ../data:/data
+      - ../input:/input
+      - ../output:/output
+    working_dir: /data
+    command: tail -f /dev/null
+
+volumes:
+  data:
+  input:
+  output:
+
+networks:
+  default:
+    name: chipimputation-network 
