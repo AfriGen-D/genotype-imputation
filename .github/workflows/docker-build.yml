@@ -129,7 +129,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: containers/${{ matrix.container }}
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: ${{ needs.prepare.outputs.should_push }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -293,6 +293,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Tag:** \`${{ needs.prepare.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Registry:** \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Platform:** linux/amd64 (HPC optimized)" >> $GITHUB_STEP_SUMMARY
           echo "**Push to registry:** ${{ needs.prepare.outputs.should_push }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           

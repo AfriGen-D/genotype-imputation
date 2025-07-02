@@ -55,8 +55,9 @@ build_container() {
         return 1
     fi
     
-    # Build the container
+    # Build the container (x86_64/amd64 only for HPC compatibility)
     if docker build \
+        --platform linux/amd64 \
         --tag "${REGISTRY}/${container}:${tag}" \
         --tag "${REGISTRY}/${container}:latest" \
         "./${container}"; then
@@ -115,7 +116,7 @@ build_parallel() {
     local pids=()
     local failed_containers=()
     
-    print_step "Building custom containers in parallel..."
+    print_step "Building custom containers in parallel (linux/amd64)..."
     
     # Start builds in background
     for container in "${CUSTOM_CONTAINERS[@]}"; do
@@ -151,7 +152,7 @@ build_sequential() {
     local tag=$1
     local failed_containers=()
     
-    print_step "Building custom containers sequentially..."
+    print_step "Building custom containers sequentially (linux/amd64)..."
     
     for container in "${CUSTOM_CONTAINERS[@]}"; do
         if build_container "$container" "$tag"; then
@@ -179,6 +180,7 @@ Usage: $0 [TAG] [OPTIONS]
 
 Build custom containers for genotype imputation workflow.
 Uses existing containers where available, builds only missing tools.
+Optimized for HPC environments (linux/amd64 only).
 
 Arguments:
   TAG           Docker tag to use (default: latest)
@@ -192,7 +194,7 @@ Examples:
   $0 v1.0.0            # Build with specific tag
   PARALLEL=false $0    # Build sequentially
   
-Custom containers built:
+Custom containers built (linux/amd64):
   - eagle-phasing      (Eagle 2.4.1 for haplotype phasing)
   - minimac4          (Minimac4 1.0.2 for genotype imputation)
   - plink2            (PLINK 2.0 for genetic analysis)
@@ -216,6 +218,7 @@ main() {
     fi
     
     print_step "Starting genotype imputation custom container builds..."
+    print_step "Platform: linux/amd64 (HPC optimized)"
     print_step "Registry: $REGISTRY"
     print_step "Tag: $TAG"
     print_step "Parallel: $PARALLEL"
@@ -255,7 +258,7 @@ main() {
     
     # Show final status
     print_step "Container build summary:"
-    echo "Custom containers (built locally):"
+    echo "Custom containers (built locally, linux/amd64):"
     for container in "${CUSTOM_CONTAINERS[@]}"; do
         echo "  ✓ ${REGISTRY}/${container}:${TAG}"
     done

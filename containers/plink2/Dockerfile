@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-# Download and install PLINK 2.0
+# Download and install PLINK 2.0 (x86_64 only)
 WORKDIR /tmp
 RUN wget https://s3.amazonaws.com/plink2-assets/alpha6/plink2_linux_x86_64_20240804.zip \
     && unzip plink2_linux_x86_64_20240804.zip \
