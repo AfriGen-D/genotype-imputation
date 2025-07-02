@@ -14,12 +14,16 @@ LABEL description="Phasing tools for genotype imputation workflow"
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=UTC
 
-# Install system dependencies
+# Install system dependencies with additional build tools
 RUN apt-get update && apt-get install -y \
     build-essential \
-    zlib1g-dev \
+    pkg-config \
     libbz2-dev \
     liblzma-dev \
+    libcurl4-gnutls-dev \
+    libssl-dev \
+    libncurses5-dev \
+    zlib1g-dev \
     curl \
     wget \
     unzip \
@@ -30,11 +34,14 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /opt/tools
 
-# HTSlib for tabix (needed for VCF indexing in phasing processes)
+# HTSlib for tabix (with proper configuration for cross-compilation)
 RUN wget https://github.com/samtools/htslib/releases/download/1.22/htslib-1.22.tar.bz2 \
     && tar -xjf htslib-1.22.tar.bz2 \
     && cd htslib-1.22 \
-    && make && make install \
+    && ./configure --prefix=/usr/local --enable-libcurl --enable-gcs --enable-s3 \
+    && make -j$(nproc) \
+    && make install \
+    && ldconfig \
     && cd .. && rm -rf htslib-1.22*
 
 # Eagle 2.4.1 (primary phasing tool)

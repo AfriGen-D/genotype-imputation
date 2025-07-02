@@ -29,13 +29,14 @@ RUN apt-get update && apt-get install -y \
     automake \
     libtool \
     pkg-config \
-    # System libraries
+    # System libraries for cross-compilation
     zlib1g-dev \
     libbz2-dev \
     liblzma-dev \
-    libcurl4-openssl-dev \
+    libcurl4-gnutls-dev \
     libssl-dev \
     libncurses5-dev \
+    libncursesw5-dev \
     libdeflate-dev \
     # Python and R
     python3 \
@@ -47,11 +48,11 @@ RUN apt-get update && apt-get install -y \
     wget \
     curl \
     unzip \
+    bzip2 \
     git \
     vim \
     less \
     tabix \
-    bcftools \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
@@ -73,9 +74,10 @@ ENV EAGLE_VERSION=2.4.1
 RUN wget https://github.com/samtools/htslib/releases/download/${HTSLIB_VERSION}/htslib-${HTSLIB_VERSION}.tar.bz2 && \
     tar -xjf htslib-${HTSLIB_VERSION}.tar.bz2 && \
     cd htslib-${HTSLIB_VERSION} && \
-    ./configure --prefix=/usr/local && \
+    ./configure --prefix=/usr/local --enable-libcurl --enable-gcs --enable-s3 && \
     make -j$(nproc) && \
     make install && \
+    ldconfig && \
     cd .. && \
     rm -rf htslib-${HTSLIB_VERSION}*
 
@@ -85,15 +87,17 @@ RUN wget https://github.com/samtools/samtools/releases/download/${SAMTOOLS_VERSI
     ./configure --prefix=/usr/local && \
     make -j$(nproc) && \
     make install && \
+    ldconfig && \
     cd .. && \
     rm -rf samtools-${SAMTOOLS_VERSION}*
 
 RUN wget https://github.com/samtools/bcftools/releases/download/${BCFTOOLS_VERSION}/bcftools-${BCFTOOLS_VERSION}.tar.bz2 && \
     tar -xjf bcftools-${BCFTOOLS_VERSION}.tar.bz2 && \
     cd bcftools-${BCFTOOLS_VERSION} && \
-    ./configure --prefix=/usr/local && \
+    ./configure --prefix=/usr/local --enable-libgsl && \
     make -j$(nproc) && \
     make install && \
+    ldconfig && \
     cd .. && \
     rm -rf bcftools-${BCFTOOLS_VERSION}*
 
@@ -106,9 +110,11 @@ RUN wget https://github.com/arq5x/bedtools2/releases/download/v${BEDTOOLS_VERSIO
 RUN wget https://github.com/vcftools/vcftools/releases/download/v${VCFTOOLS_VERSION}/vcftools-${VCFTOOLS_VERSION}.tar.gz && \
     tar -xzf vcftools-${VCFTOOLS_VERSION}.tar.gz && \
     cd vcftools-${VCFTOOLS_VERSION} && \
+    ./autogen.sh && \
     ./configure --prefix=/usr/local && \
     make -j$(nproc) && \
     make install && \
+    ldconfig && \
     cd .. && \
     rm -rf vcftools-${VCFTOOLS_VERSION}*
 

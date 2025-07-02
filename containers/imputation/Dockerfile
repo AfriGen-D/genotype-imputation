@@ -13,7 +13,7 @@ LABEL description="Imputation tools for genotype imputation workflow"
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=UTC
 
-# Install system dependencies
+# Install system dependencies with all required development libraries
 RUN apt-get update && apt-get install -y \
     build-essential \
     autoconf \
@@ -21,12 +21,15 @@ RUN apt-get update && apt-get install -y \
     make \
     gcc \
     g++ \
+    pkg-config \
+    libtool \
     zlib1g-dev \
     libbz2-dev \
     liblzma-dev \
     libcurl4-gnutls-dev \
     libssl-dev \
     libncurses5-dev \
+    libncursesw5-dev \
     curl \
     wget \
     unzip \
@@ -41,14 +44,20 @@ WORKDIR /opt/tools
 RUN wget https://github.com/samtools/htslib/releases/download/1.22/htslib-1.22.tar.bz2 \
     && tar -xjf htslib-1.22.tar.bz2 \
     && cd htslib-1.22 \
-    && make && make install \
+    && ./configure --prefix=/usr/local --enable-libcurl --enable-gcs --enable-s3 \
+    && make -j$(nproc) \
+    && make install \
+    && ldconfig \
     && cd .. && rm -rf htslib-1.22*
 
 # BCFtools (used for pre/post-processing in imputation)
 RUN wget https://github.com/samtools/bcftools/releases/download/1.22/bcftools-1.22.tar.bz2 \
     && tar -xjf bcftools-1.22.tar.bz2 \
     && cd bcftools-1.22 \
-    && make && make install \
+    && ./configure --prefix=/usr/local --enable-libgsl \
+    && make -j$(nproc) \
+    && make install \
+    && ldconfig \
     && cd .. && rm -rf bcftools-1.22*
 
 # VCFtools (used in impute_minimac4_1 process)
@@ -57,7 +66,9 @@ RUN wget https://github.com/vcftools/vcftools/releases/download/v0.1.16/vcftools
     && cd vcftools-0.1.16 \
     && ./autogen.sh \
     && ./configure --prefix=/usr/local \
-    && make && make install \
+    && make -j$(nproc) \
+    && make install \
+    && ldconfig \
     && cd .. && rm -rf vcftools-0.1.16*
 
 # Minimac4 (primary imputation tool)
