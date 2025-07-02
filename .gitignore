@@ -1,2 +1,58 @@
+# Nextflow runtime files
+.nextflow/
+.nextflow.log*
+work/
+output/
+singularity_cache/
+
+# Container cache
+.docker/
+*.img
+*.sif
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Logs
+*.log
+logs/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
 .env
-.history/*
+.venv
+
+# R
+.Rhistory
+.RData
+.Ruserdata
+
+# Documentation builds
+_build/
+site/
+
+# Test data (if not needed in repo)
+test_data/
+sample_data/
+
+# SpecStory history (if not needed)
+.specstory/
