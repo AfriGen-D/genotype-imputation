@@ -1,81 +1,114 @@
 version: '3.8'
 
 services:
-  # VCF Processing Container - Stage 1: QC and VCF Operations
-  vcf-processing:
-    build:
-      context: ./vcf-processing
-      dockerfile: Dockerfile
-    image: afrigen-d/vcf-processing:latest
-    container_name: chipimputation-vcf-processing
+  # ========================================
+  # EXISTING CONTAINERS (Pull from Registry)
+  # ========================================
+  
+  # WTSI Samtools - BCFtools, SAMtools, HTSlib, tabix
+  bcftools:
+    image: ghcr.io/wtsi-npg/samtools:latest
     volumes:
-      - ../data:/data
-      - ../input:/input
-      - ../output:/output
+      - ./data:/data
+      - ./input:/input
+      - ./output:/output
     working_dir: /data
-    command: tail -f /dev/null  # Keep container running
-    
-  # Phasing Container - Stage 2: Haplotype Phasing
-  phasing:
-    build:
-      context: ./phasing
-      dockerfile: Dockerfile
-    image: afrigen-d/phasing:latest
-    container_name: chipimputation-phasing
+    profiles: ["existing", "all"]
+
+  # BioContainers VCFtools  
+  vcftools:
+    image: quay.io/biocontainers/vcftools:latest
     volumes:
-      - ../data:/data
-      - ../input:/input
-      - ../output:/output
+      - ./data:/data
+      - ./input:/input
+      - ./output:/output
     working_dir: /data
-    command: tail -f /dev/null
-    
-  # Imputation Container - Stage 3: Genotype Imputation
-  imputation:
-    build:
-      context: ./imputation
-      dockerfile: Dockerfile
-    image: afrigen-d/imputation:latest
-    container_name: chipimputation-imputation
+    profiles: ["existing", "all"]
+
+  # Python environment for analysis
+  python-analysis:
+    image: python:3.11-slim
     volumes:
-      - ../data:/data
-      - ../input:/input
-      - ../output:/output
+      - ./data:/data
+      - ./scripts:/scripts
     working_dir: /data
-    command: tail -f /dev/null
-    
-  # Analysis Container - Stage 4: Analysis and Reporting
-  analysis:
-    build:
-      context: ./analysis
-      dockerfile: Dockerfile
-    image: afrigen-d/analysis:latest
-    container_name: chipimputation-analysis
+    command: python --version
+    profiles: ["existing", "all"]
+
+  # R environment for statistical analysis
+  r-analysis:
+    image: bioconductor/bioconductor_docker:latest
     volumes:
-      - ../data:/data
-      - ../input:/input
-      - ../output:/output
+      - ./data:/data
+      - ./scripts:/scripts
     working_dir: /data
-    command: tail -f /dev/null
-    
-  # All-in-One Container - Complete environment
+    command: R --version
+    profiles: ["existing", "all"]
+
+  # ========================================
+  # CUSTOM CONTAINERS (Build Locally)
+  # ========================================
+
+  # Eagle phasing
+  eagle-phasing:
+    build:
+      context: ./eagle-phasing
+      dockerfile: Dockerfile
+    image: ghcr.io/afrigen-d/eagle-phasing:latest
+    volumes:
+      - ./data:/data
+      - ./input:/input
+      - ./output:/output
+    working_dir: /data
+    profiles: ["custom", "all"]
+
+  # Minimac4 imputation
+  minimac4:
+    build:
+      context: ./minimac4
+      dockerfile: Dockerfile
+    image: ghcr.io/afrigen-d/minimac4:latest
+    volumes:
+      - ./data:/data
+      - ./input:/input
+      - ./output:/output
+    working_dir: /data
+    profiles: ["custom", "all"]
+
+  # PLINK 2.0
+  plink2:
+    build:
+      context: ./plink2
+      dockerfile: Dockerfile
+    image: ghcr.io/afrigen-d/plink2:latest
+    volumes:
+      - ./data:/data
+      - ./input:/input
+      - ./output:/output
+    working_dir: /data
+    profiles: ["custom", "all"]
+
+  # All-in-one container (includes everything)
   all-in-one:
     build:
       context: ./all-in-one
       dockerfile: Dockerfile
-    image: afrigen-d/genotype-imputation:latest
-    container_name: chipimputation-all-in-one
+    image: ghcr.io/afrigen-d/genotype-imputation:latest
     volumes:
-      - ../data:/data
-      - ../input:/input
-      - ../output:/output
+      - ./data:/data
+      - ./input:/input
+      - ./output:/output
+      - ./scripts:/scripts
     working_dir: /data
-    command: tail -f /dev/null
+    profiles: ["custom", "all"]
 
+# Named volumes for persistent data
 volumes:
   data:
   input:
   output:
 
+# Networks
 networks:
   default:
-    name: chipimputation-network 
+    name: genotype-imputation 

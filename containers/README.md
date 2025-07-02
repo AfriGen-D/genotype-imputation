@@ -1,331 +1,144 @@
 # Genotype Imputation Containers
 
-This directory contains a modular container architecture for the chipimputation workflow, optimized based on actual tool usage patterns in Nextflow processes.
+This directory contains Docker containers optimized for genotype imputation workflows, leveraging existing containers where possible and only building custom containers for missing tools.
 
-## 🏗️ Container Architecture
+## 🐳 Container Architecture
 
-### **Process-Based Tool Groupings**
+### Existing Containers (Ready to Use)
+- **BCFtools/SAMtools/HTSlib**: `ghcr.io/wtsi-npg/samtools:latest`
+- **VCFtools**: `quay.io/biocontainers/vcftools:latest`
+- **Python Environment**: `python:3.11-slim`
+- **R Environment**: `bioconductor/bioconductor_docker:latest`
 
-Our containers are organized by **how tools are actually used together** in workflow processes:
+### Custom Containers (We Build)
+- **Eagle Phasing**: `ghcr.io/afrigen-d/eagle-phasing:latest`
+- **Minimac4**: `ghcr.io/afrigen-d/minimac4:latest`
+- **PLINK 2.0**: `ghcr.io/afrigen-d/plink2:latest`
+- **All-in-One**: `ghcr.io/afrigen-d/genotype-imputation:latest`
 
-```
-containers/
-├── vcf-processing/     # BCFtools + tabix + VCFtools
-├── phasing/           # Eagle + tabix  
-├── imputation/        # Minimac4 + BCFtools + VCFtools
-├── analysis/          # BCFtools + Python + R
-├── all-in-one/        # Complete environment (original Dockerfile)
-├── legacy/            # Original containers (crossmap, impute5, etc.)
-└── docker-compose.yml # Container orchestration
-```
+## 🔧 Usage Examples
 
----
-
-## 📋 Container Details
-
-### **1. VCF Processing Container** (`vcf-processing/`)
-**Tools:** BCFtools 1.22, HTSlib 1.22, VCFtools 0.1.16, tabix  
-**Used in processes:**
-- `qc_dupl` - Remove duplicate variants
-- `split_multi_allelic` - Split multi-allelic sites
-- `fill_tags_vcf` - Add allele frequency tags
-- `filter_min_ac` - Filter by allele count
-- `sites_only` - Extract sites-only VCF
-- `combine_vcfs` - Concatenate VCF files
-
-**Usage:**
+### Using Existing Containers
 ```bash
-# Build container
-docker build -t afrigen-d/vcf-processing ./vcf-processing
+# VCF processing with BCFtools
+docker run --rm -v $(pwd):/data ghcr.io/wtsi-npg/samtools:latest \
+  bcftools view -H /data/input.vcf.gz | wc -l
 
-# Run interactively
-docker run -it -v $(pwd)/data:/data afrigen-d/vcf-processing
-
-# Example process
-bcftools norm --rm-dup both input.vcf.gz -Ob -o output.bcf
-tabix output.bcf
+# VCF filtering with VCFtools
+docker run --rm -v $(pwd):/data quay.io/biocontainers/vcftools:latest \
+  vcftools --gzvcf /data/input.vcf.gz --maf 0.05 --recode --stdout
 ```
 
-### **2. Phasing Container** (`phasing/`)
-**Tools:** Eagle 2.4.1, tabix  
-**Used in processes:**
-- `minimac4_phasing_eagle` - Phase with reference panel
-- `impute5_phasing_eagle` - Phase for IMPUTE5
-- `phasing_vcf_no_ref_chunk` - Phase without reference
-
-**Usage:**
+### Using Custom Containers
 ```bash
-# Build container
-docker build -t afrigen-d/phasing ./phasing
+# Eagle phasing
+docker run --rm -v $(pwd):/data ghcr.io/afrigen-d/eagle-phasing:latest \
+  eagle --vcf=/data/input.vcf.gz --geneticMap=/data/genetic_map.txt
 
-# Example process
-eagle --vcfTarget=target.vcf.gz --vcfRef=ref.vcf.gz --geneticMapFile=map.txt --outPrefix=phased
+# Minimac4 imputation
+docker run --rm -v $(pwd):/data ghcr.io/afrigen-d/minimac4:latest \
+  minimac4 --refHaps /data/reference.m3vcf.gz --haps /data/target.vcf.gz
 ```
 
-### **3. Imputation Container** (`imputation/`)
-**Tools:** Minimac4 1.0.2, BCFtools 1.22, VCFtools 0.1.16  
-**Used in processes:**
-- `impute_minimac4` - Main imputation process
-- `impute_minimac4_1` - Alternative imputation process
-- `combineImpute` - Combine imputed chunks
+## 📊 Container Comparison
 
-**Usage:**
-```bash
-# Build container  
-docker build -t afrigen-d/imputation ./imputation
-
-# Example process
-minimac4 --refHaps ref.m3vcf.gz --haps phased.vcf.gz --format GT,DS --prefix imputed
-```
-
-### **4. Analysis Container** (`analysis/`)
-**Tools:** BCFtools 1.22, Python 3, R, statistical packages  
-**Used in processes:**
-- `generate_frequency` - Calculate allele frequencies
-- `plot_freq_comparison` - Compare frequencies
-- `filter_info_by_target` - Filter imputation info
-- All reporting and plotting processes
-
-**Usage:**
-```bash
-# Build container
-docker build -t afrigen-d/analysis ./analysis
-
-# Example process
-bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t%INFO/AF\n' imputed.vcf.gz > frequencies.txt
-Rscript plot_results.R
-```
-
-### **5. All-in-One Container** (`all-in-one/`)
-**Tools:** All tools in one comprehensive environment  
-**Used for:** Complete workflows, testing, development
-
-**Usage:**
-```bash
-# Build container
-docker build -t afrigen-d/genotype-imputation ./all-in-one
-
-# Run Nextflow pipeline
-docker run -it -v $(pwd):/workspace afrigen-d/genotype-imputation
-```
-
----
+| Container | Size | Build Time | Use Case |
+|-----------|------|------------|----------|
+| WTSI Samtools | ~200MB | 0min (pull) | VCF processing |
+| BioContainers VCFtools | ~150MB | 0min (pull) | VCF analysis |
+| Custom Eagle | ~300MB | 15min | Phasing |
+| Custom Minimac4 | ~250MB | 20min | Imputation |
+| Custom All-in-One | ~800MB | 35min | Complete workflow |
 
 ## 🚀 Quick Start
 
-### **Option 1: Use Pre-built Containers from GitHub Actions (Recommended)**
+### 1. Use Docker Compose
 ```bash
-# Pull pre-built containers from GitHub Container Registry
-docker pull ghcr.io/afrigen-d/vcf-processing:latest
-docker pull ghcr.io/afrigen-d/phasing:latest
-docker pull ghcr.io/afrigen-d/imputation:latest
-docker pull ghcr.io/afrigen-d/analysis:latest
-docker pull ghcr.io/afrigen-d/genotype-imputation:latest
-
-# Run directly
-docker run -it -v $(pwd)/data:/data ghcr.io/afrigen-d/vcf-processing:latest
-```
-
-### **Option 2: Use Docker Compose**
-```bash
-# Build all containers locally
-cd containers/
-docker-compose build
-
-# Start specific container
-docker-compose up vcf-processing
-
-# Run command in container
-docker-compose exec vcf-processing bcftools --version
-
-# Stop all containers
-docker-compose down
-```
-
-### **Option 3: Use Build Script (Local Development)**
-```bash
-# Build all containers locally with parallel builds
-cd containers/
-./build-all.sh
-
-# Build with custom tag
-./build-all.sh v1.0.0
-
-# Build sequentially (if parallel fails)
-PARALLEL=false ./build-all.sh
-```
-
-### **Option 2: Use Individual Containers**
-```bash
-# Build specific container
-docker build -t afrigen-d/vcf-processing ./vcf-processing
-
-# Run with data mounting
-docker run -it \
-  -v $(pwd)/data:/data \
-  -v $(pwd)/input:/input \
-  -v $(pwd)/output:/output \
-  afrigen-d/vcf-processing
-```
-
-### **Option 3: Use with Nextflow**
-Update your `nextflow.config`:
-```groovy
-process {
-    withLabel: 'vcf_processing' {
-        container = 'afrigen-d/vcf-processing:latest'
-    }
-    withLabel: 'phasing' {
-        container = 'afrigen-d/phasing:latest'  
-    }
-    withLabel: 'imputation' {
-        container = 'afrigen-d/imputation:latest'
-    }
-    withLabel: 'analysis' {
-        container = 'afrigen-d/analysis:latest'
-    }
-}
-```
-
----
-
-## 🔄 Workflow Integration
-
-### **Process Labels**
-Add these labels to your Nextflow processes:
-
-```groovy
-process qc_dupl {
-    label 'vcf_processing'
-    // ... 
-}
-
-process minimac4_phasing_eagle {
-    label 'phasing'
-    // ...
-}
-
-process impute_minimac4 {
-    label 'imputation' 
-    // ...
-}
-
-process generate_frequency {
-    label 'analysis'
-    // ...
-}
-```
-
----
-
-## 📊 Benefits of Modular Architecture
-
-1. **🚀 Faster Builds**: Smaller, focused containers build quicker
-2. **💾 Efficient Storage**: Avoid downloading unused tools
-3. **🔧 Easy Maintenance**: Update tools independently  
-4. **📈 Better Caching**: Docker layers cache more effectively
-5. **🧪 Easier Testing**: Test individual workflow stages
-6. **⚡ Parallel Builds**: Build containers simultaneously
-
----
-
-## 🤖 GitHub Actions CI/CD
-
-### **Automated Builds**
-All containers are automatically built and pushed to GitHub Container Registry on:
-- **Push to main/master**: Builds `latest` and `YYYY-MM-DD` tags
-- **Pull Requests**: Builds for testing (not pushed)
-- **Releases**: Builds with semantic version tags (`v1.0.0`, `v1.0`, `v1`)
-- **Weekly Schedule**: Keeps containers updated (Sundays 2 AM UTC)
-
-### **Available Images**
-```bash
-# Latest versions (updated on every push)
-ghcr.io/afrigen-d/vcf-processing:latest
-ghcr.io/afrigen-d/phasing:latest
-ghcr.io/afrigen-d/imputation:latest
-ghcr.io/afrigen-d/analysis:latest
-ghcr.io/afrigen-d/genotype-imputation:latest
-
-# Date-tagged versions (for reproducibility)
-ghcr.io/afrigen-d/vcf-processing:2025-01-02
-ghcr.io/afrigen-d/phasing:2025-01-02
-# ... etc
-```
-
-### **Monitoring Builds**
-- Check build status: `https://github.com/AfriGen-D/genotype-imputation/actions`
-- Build matrix creates 5 containers in parallel
-- Each container supports `linux/amd64` and `linux/arm64` platforms
-- Artifacts include security attestations and SBOM
-
----
-
-## 🛠️ Development
-
-### **Adding New Tools**
-1. Identify which processes use the tool together
-2. Add to appropriate existing container, or create new one
-3. Update Docker Compose and documentation
-
-### **Testing Containers**
-```bash
-# Test individual container
-docker build -t test-container ./vcf-processing
-docker run --rm test-container bcftools --version
-
-# Test full orchestration
-docker-compose build --parallel
+# Start all services
 docker-compose up -d
+
+# Run specific workflow
+docker-compose run --rm eagle-phasing \
+  eagle --vcf=/data/input.vcf.gz --out=/data/phased
 ```
 
-### **Building for Production**
+### 2. Build Custom Containers Only
 ```bash
-# Build optimized images
-docker-compose build --parallel --no-cache
+# Build only what we need
+./build-custom.sh
 
-# Tag for registry
-docker tag afrigen-d/vcf-processing:latest ghcr.io/afrigen-d/vcf-processing:latest
-
-# Push to registry
-docker push ghcr.io/afrigen-d/vcf-processing:latest
+# Or build specific container
+docker build -t genotype-imputation/eagle-phasing eagle-phasing/
 ```
 
----
+### 3. Use in Nextflow
+```nextflow
+process EAGLE_PHASING {
+    container 'ghcr.io/afrigen-d/eagle-phasing:latest'
+    
+    input:
+    path vcf
+    
+    output:
+    path "*.phased.vcf.gz"
+    
+    script:
+    """
+    eagle --vcf=${vcf} --geneticMap=genetic_map.txt --outPrefix=phased
+    """
+}
+```
 
-## 🏷️ Container Size Comparison
+## 🔄 Migration from Monolithic
 
-| Container | Tools | Estimated Size | Use Case |
-|-----------|-------|----------------|----------|
-| **vcf-processing** | BCFtools + VCFtools | ~200MB | QC workflows |
-| **phasing** | Eagle + tabix | ~150MB | Phasing only |
-| **imputation** | Minimac4 + BCFtools | ~250MB | Imputation workflows |
-| **analysis** | R + Python + BCFtools | ~800MB | Analysis/plotting |
-| **all-in-one** | Everything | ~1.2GB | Complete workflows |
+If migrating from the original monolithic container:
+1. **VCF Processing**: Replace with `ghcr.io/wtsi-npg/samtools:latest`
+2. **VCF Analysis**: Replace with `quay.io/biocontainers/vcftools:latest`
+3. **Phasing**: Use new `ghcr.io/afrigen-d/eagle-phasing:latest`
+4. **Imputation**: Use new `ghcr.io/afrigen-d/minimac4:latest`
 
----
+## 🏗️ Development
 
-## 📝 Legacy Containers
+### Adding New Tools
+1. Check if container already exists in:
+   - [BioContainers](https://biocontainers.pro)
+   - [WTSI Containers](https://github.com/wtsi-npg)
+   - [Docker Hub](https://hub.docker.com)
+2. If not available, create new container in appropriate directory
+3. Update CI/CD pipeline to build new container
 
-The `legacy/` directory contains the original containers:
-- `bcftools/` - Original BCFtools container
-- `crossmap/` - CrossMap container  
-- `impute5/` - IMPUTE5 container
-- `imputation_tools/` - Original comprehensive container
+### Testing
+```bash
+# Test existing containers
+./test-existing.sh
 
-These are preserved for backward compatibility but should be migrated to the new modular architecture.
+# Test custom containers
+./test-custom.sh
 
----
+# Run full integration test
+./test-integration.sh
+```
+
+## 📈 Performance Benefits
+
+Using existing containers provides:
+- **Faster deployment**: No compilation time for existing tools
+- **Smaller total size**: Avoid duplicate dependencies
+- **Better maintenance**: Upstream updates handled by maintainers
+- **Proven stability**: Widely tested containers
 
 ## 🤝 Contributing
 
-1. Analyze tool usage in Nextflow processes
-2. Group tools by actual co-usage patterns
-3. Create focused, minimal containers
-4. Update Docker Compose configuration  
-5. Test with real workflows
-6. Update documentation
+When contributing new containers:
+1. First check if tool already exists in container registries
+2. If building custom, optimize for size and build time
+3. Use multi-stage builds where possible
+4. Include comprehensive tests
+5. Document usage examples
 
----
+## 📚 References
 
-For questions or issues, please contact the AfriGen-D development team. 
+- [WTSI Samtools Container](https://github.com/wtsi-npg/samtools_container)
+- [BioContainers Registry](https://biocontainers.pro)
+- [Eagle Phasing Documentation](https://alkesgroup.broadinstitute.org/Eagle/)
+- [Minimac4 Documentation](https://genome.sph.umich.edu/wiki/Minimac4) 

@@ -1,117 +1,341 @@
-name: Build and Push Modular Docker Images
+name: Build Custom Docker Containers
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, develop ]
+    paths:
+      - 'containers/**'
+      - '.github/workflows/docker-build.yml'
   pull_request:
     branches: [ main, master ]
+    paths:
+      - 'containers/**'
+      - '.github/workflows/docker-build.yml'
   release:
-    types: [ published ]
-  # Optional: Build weekly to keep images updated
+    types: [published]
   schedule:
-    - cron: '0 2 * * 0'  # Every Sunday at 2 AM UTC
+    # Weekly build every Sunday at 2 AM UTC to get latest tool updates
+    - cron: '0 2 * * 0'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Docker tag to use'
+        required: false
+        default: 'latest'
 
 env:
   REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository_owner }}
 
 jobs:
-  build-modular:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      containers: ${{ steps.containers.outputs.containers }}
+      tag: ${{ steps.tag.outputs.tag }}
+      should_push: ${{ steps.push.outputs.should_push }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Determine containers to build
+        id: containers
+        run: |
+          # Only build custom containers (not available externally)
+          CUSTOM_CONTAINERS='["eagle-phasing", "minimac4", "plink2", "all-in-one"]'
+          echo "containers=${CUSTOM_CONTAINERS}" >> $GITHUB_OUTPUT
+
+      - name: Determine tag
+        id: tag
+        run: |
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            TAG="${{ github.event.release.tag_name }}"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            TAG="${{ github.event.inputs.tag }}"
+          elif [[ "${{ github.ref }}" == "refs/heads/main" || "${{ github.ref }}" == "refs/heads/master" ]]; then
+            TAG="latest"
+          else
+            TAG="pr-${{ github.event.number }}"
+          fi
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+
+      - name: Determine if should push
+        id: push
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "should_push=false" >> $GITHUB_OUTPUT
+          else
+            echo "should_push=true" >> $GITHUB_OUTPUT
+          fi
+
+  build-custom:
+    needs: prepare
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-      
+      attestations: write
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        container: ${{ fromJson(needs.prepare.outputs.containers) }}
+    
+    name: Build ${{ matrix.container }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        if: needs.prepare.outputs.should_push == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.container }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ needs.prepare.outputs.tag }}
+            type=schedule,pattern={{date 'YYYY-MM-DD'}}
+
+      - name: Check if container directory exists
+        run: |
+          if [[ ! -d "containers/${{ matrix.container }}" ]]; then
+            echo "Error: Container directory containers/${{ matrix.container }} does not exist"
+            exit 1
+          fi
+          if [[ ! -f "containers/${{ matrix.container }}/Dockerfile" ]]; then
+            echo "Error: Dockerfile not found in containers/${{ matrix.container }}"
+            exit 1
+          fi
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: containers/${{ matrix.container }}
+          platforms: linux/amd64,linux/arm64
+          push: ${{ needs.prepare.outputs.should_push }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.container }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.container }}
+          provenance: true
+          sbom: true
+
+      - name: Generate artifact attestation
+        if: needs.prepare.outputs.should_push == 'true'
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.container }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+  test-containers:
+    needs: [prepare, build-custom]
+    runs-on: ubuntu-latest
+    if: needs.prepare.outputs.should_push == 'true'
     strategy:
       matrix:
-        container:
-          - name: vcf-processing
-            context: ./containers/vcf-processing
-            description: "VCF processing tools (BCFtools, VCFtools, tabix) for genotype imputation QC"
-          - name: phasing
-            context: ./containers/phasing  
-            description: "Haplotype phasing tools (Eagle, tabix) for genotype imputation"
-          - name: imputation
-            context: ./containers/imputation
-            description: "Genotype imputation tools (Minimac4, BCFtools, VCFtools)"
-          - name: analysis
-            context: ./containers/analysis
-            description: "Analysis and reporting tools (BCFtools, Python, R) for imputation results"
-          - name: genotype-imputation
-            context: ./containers/all-in-one
-            description: "Complete genotype imputation environment with all tools"
-      
+        container: ${{ fromJson(needs.prepare.outputs.containers) }}
+    
+    name: Test ${{ matrix.container }}
+    
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-      
-    - name: Log in to GitHub Container Registry
-      if: github.event_name != 'pull_request'
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-        
-    - name: Extract metadata (tags, labels) for Docker
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: |
-          ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.container.name }}
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-          type=semver,pattern={{major}}
-          type=raw,value=latest,enable={{is_default_branch}}
-          type=raw,value={{date 'YYYY-MM-DD'}},enable={{is_default_branch}}
-        labels: |
-          org.opencontainers.image.title=${{ matrix.container.name }}
-          org.opencontainers.image.description=${{ matrix.container.description }}
-          org.opencontainers.image.vendor=AfriGen-D Consortium
-          
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: ${{ matrix.container.context }}
-        platforms: linux/amd64,linux/arm64
-        push: ${{ github.event_name != 'pull_request' }}
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha,scope=${{ matrix.container.name }}
-        cache-to: type=gha,mode=max,scope=${{ matrix.container.name }}
-        
-    - name: Generate artifact attestation
-      if: github.event_name != 'pull_request'
-      uses: actions/attest-build-provenance@v1
-      with:
-        subject-name: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.container.name }}
-        subject-digest: ${{ steps.build.outputs.digest }}
-        push-to-registry: true
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  # Summary job to check if all builds succeeded
-  build-summary:
+      - name: Test container
+        run: |
+          CONTAINER_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.container }}:${{ needs.prepare.outputs.tag }}"
+          
+          echo "Testing container: $CONTAINER_IMAGE"
+          
+          # Pull the container
+          docker pull "$CONTAINER_IMAGE"
+          
+          # Basic functionality tests
+          case "${{ matrix.container }}" in
+            "eagle-phasing")
+              echo "Testing Eagle..."
+              docker run --rm "$CONTAINER_IMAGE" eagle --help
+              # Test that the binary works
+              docker run --rm "$CONTAINER_IMAGE" bash -c "which eagle && eagle --help | head -5"
+              ;;
+            "minimac4")
+              echo "Testing Minimac4..."
+              docker run --rm "$CONTAINER_IMAGE" minimac4 --help
+              # Test that the binary works  
+              docker run --rm "$CONTAINER_IMAGE" bash -c "which minimac4 && minimac4 --help | head -5"
+              ;;
+            "plink2")
+              echo "Testing PLINK2..."
+              docker run --rm "$CONTAINER_IMAGE" plink2 --help
+              # Test that the binary works
+              docker run --rm "$CONTAINER_IMAGE" bash -c "which plink2 && plink2 --help | head -5"
+              ;;
+            "all-in-one")
+              echo "Testing All-in-One container..."
+              docker run --rm "$CONTAINER_IMAGE" bash -c "
+                echo 'Testing BCFtools...' && bcftools --version && 
+                echo 'Testing Eagle...' && eagle --help > /dev/null && echo 'Eagle OK' &&
+                echo 'Testing Minimac4...' && minimac4 --help > /dev/null && echo 'Minimac4 OK' &&
+                echo 'Testing PLINK2...' && plink2 --help > /dev/null && echo 'PLINK2 OK' &&
+                echo 'All tools working!'
+              "
+              ;;
+          esac
+          
+          echo "✅ Container ${{ matrix.container }} passed basic tests"
+
+      - name: Test container size
+        run: |
+          CONTAINER_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.container }}:${{ needs.prepare.outputs.tag }}"
+          SIZE=$(docker image inspect "$CONTAINER_IMAGE" --format='{{.Size}}')
+          SIZE_MB=$((SIZE / 1024 / 1024))
+          echo "📦 Container ${{ matrix.container }} size: ${SIZE_MB} MB"
+          
+          # Set reasonable size limits
+          case "${{ matrix.container }}" in
+            "eagle-phasing")
+              MAX_SIZE=400
+              ;;
+            "minimac4")
+              MAX_SIZE=500
+              ;;
+            "plink2")
+              MAX_SIZE=200
+              ;;
+            "all-in-one")
+              MAX_SIZE=1500
+              ;;
+          esac
+          
+          if [ $SIZE_MB -gt $MAX_SIZE ]; then
+            echo "⚠️ Warning: Container size (${SIZE_MB} MB) exceeds expected maximum (${MAX_SIZE} MB)"
+          else
+            echo "✅ Container size is within expected limits"
+          fi
+
+  security-scan:
+    needs: [prepare, build-custom]
     runs-on: ubuntu-latest
-    needs: build-modular
-    if: always()
+    if: needs.prepare.outputs.should_push == 'true'
+    strategy:
+      matrix:
+        container: ${{ fromJson(needs.prepare.outputs.containers) }}
+    
+    name: Security scan ${{ matrix.container }}
+    
     steps:
-    - name: Check build results
-      run: |
-        echo "Build Summary:"
-        echo "=============="
-        if [ "${{ needs.build-modular.result }}" == "success" ]; then
-          echo "✅ All modular containers built successfully!"
-          echo ""
-          echo "Available containers:"
-          echo "- ghcr.io/${{ github.repository_owner }}/vcf-processing:latest"
-          echo "- ghcr.io/${{ github.repository_owner }}/phasing:latest"
-          echo "- ghcr.io/${{ github.repository_owner }}/imputation:latest"
-          echo "- ghcr.io/${{ github.repository_owner }}/analysis:latest"
-          echo "- ghcr.io/${{ github.repository_owner }}/genotype-imputation:latest"
-        else
-          echo "❌ Some container builds failed"
-          exit 1 
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.container }}:${{ needs.prepare.outputs.tag }}
+          format: 'sarif'
+          output: 'trivy-results-${{ matrix.container }}.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results-${{ matrix.container }}.sarif'
+
+  check-external-containers:
+    runs-on: ubuntu-latest
+    name: Check external containers
+    
+    steps:
+      - name: Check external container availability
+        run: |
+          echo "🔍 Checking availability of external containers..."
+          
+          external_containers=(
+            "ghcr.io/wtsi-npg/samtools:latest"
+            "quay.io/biocontainers/vcftools:latest"
+            "python:3.11-slim"
+            "bioconductor/bioconductor_docker:latest"
+          )
+          
+          for container in "${external_containers[@]}"; do
+            echo "Checking $container..."
+            if docker manifest inspect "$container" >/dev/null 2>&1; then
+              echo "✅ $container is available"
+            else
+              echo "❌ $container is not available"
+            fi
+          done
+
+  summary:
+    needs: [prepare, build-custom, test-containers, check-external-containers]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Build Summary
+        run: |
+          echo "## 🐳 Custom Container Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Tag:** \`${{ needs.prepare.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Registry:** \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Push to registry:** ${{ needs.prepare.outputs.should_push }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Check build status
+          BUILD_STATUS="${{ needs.build-custom.result }}"
+          TEST_STATUS="${{ needs.test-containers.result }}"
+          
+          if [[ "$BUILD_STATUS" == "success" ]]; then
+            echo "### ✅ Built Custom Containers:" >> $GITHUB_STEP_SUMMARY
+            
+            CONTAINERS='${{ needs.prepare.outputs.containers }}'
+            echo "$CONTAINERS" | jq -r '.[]' | while read container; do
+              echo "- ✅ \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${container}:${{ needs.prepare.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
+            done
+          else
+            echo "### ❌ Custom Container Build Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 External Containers (Use Directly):" >> $GITHUB_STEP_SUMMARY
+          echo "- \`ghcr.io/wtsi-npg/samtools:latest\` (BCFtools, SAMtools, HTSlib)" >> $GITHUB_STEP_SUMMARY
+          echo "- \`quay.io/biocontainers/vcftools:latest\` (VCFtools)" >> $GITHUB_STEP_SUMMARY
+          echo "- \`python:3.11-slim\` (Python environment)" >> $GITHUB_STEP_SUMMARY
+          echo "- \`bioconductor/bioconductor_docker:latest\` (R environment)" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "$TEST_STATUS" == "success" ]]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### ✅ All Tests Passed" >> $GITHUB_STEP_SUMMARY
+            echo "All containers built successfully and passed functionality tests." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Failure Summary
+        if: failure()
+        run: |
+          echo "## ❌ Build Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Some containers failed to build or test. Check the individual job logs for details:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build Status:** ${{ needs.build-custom.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Test Status:** ${{ needs.test-containers.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔧 Troubleshooting Tips:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Check individual container build logs" >> $GITHUB_STEP_SUMMARY
+          echo "2. Verify Dockerfile syntax and dependencies" >> $GITHUB_STEP_SUMMARY
+          echo "3. Test builds locally with \`./build-custom.sh\`" >> $GITHUB_STEP_SUMMARY
+          echo "4. Check if base images are accessible" >> $GITHUB_STEP_SUMMARY 
