@@ -10,7 +10,7 @@ FROM alpine:3.18
 
 LABEL maintainer="AfriGen-D Consortium"
 LABEL version="2.0"
-LABEL description="Phasing tools for genotype imputation workflow - Alpine Linux"
+LABEL org.opencontainers.image.description="Phasing toolkit with Eagle v2.4.1 and HTSlib v1.20. Alpine Linux based container for haplotype phasing in genotype imputation workflows."
 
 # Install system dependencies and build tools
 RUN apk add --no-cache \

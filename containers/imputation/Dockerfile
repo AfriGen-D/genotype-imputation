@@ -9,7 +9,7 @@ FROM alpine:3.18
 
 LABEL maintainer="AfriGen-D Consortium"
 LABEL version="2.0"
-LABEL description="Imputation tools for genotype imputation workflow - Alpine Linux"
+LABEL org.opencontainers.image.description="Comprehensive imputation toolkit with Minimac4 v4.1.6, BCFtools v1.20, and VCFtools v0.1.16. Alpine Linux based container for genotype imputation workflows."
 
 # Install system dependencies and build tools
 RUN apk add --no-cache \

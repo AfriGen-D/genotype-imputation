@@ -189,6 +189,21 @@ jobs:
           subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
 
+      - name: Make package public
+        if: needs.prepare.outputs.should_push == 'true'
+        run: |
+          # Make the package public using GitHub CLI
+          # Note: This requires the package to exist first
+          sleep 30  # Wait for package to be fully registered
+          
+          # Try to make package public (works for user repositories)
+          gh api --method PATCH /users/${{ github.repository_owner }}/packages/container/${{ matrix.container }} \
+            -H "Accept: application/vnd.github.v3+json" \
+            -f visibility=public \
+            || echo "⚠️  Could not make package public automatically. Please set to public manually in package settings."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   test-containers:
     needs: [prepare, build-custom]
     runs-on: ubuntu-latest

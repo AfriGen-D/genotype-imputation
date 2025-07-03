@@ -10,7 +10,7 @@ FROM alpine:3.18
 
 LABEL maintainer="AfriGen-D Consortium"
 LABEL version="2.0"
-LABEL description="Analysis and reporting tools for genotype imputation workflow - Alpine Linux"
+LABEL org.opencontainers.image.description="Analysis and reporting toolkit with BCFtools v1.20, Python 3.11, R 4.3.0, and data analysis packages. Alpine Linux based container for genotype imputation analysis workflows."
 
 # Install system dependencies and build tools
 RUN apk add --no-cache \

@@ -3,7 +3,7 @@ FROM alpine:3.18
 # Minimac4 v4.1.6 for genotype imputation
 LABEL maintainer="AfriGen-D <info@afrigen.org>"
 LABEL version="4.1.6"
-LABEL description="Minimac4 genotype imputation software container"
+LABEL org.opencontainers.image.description="Minimac4 v4.1.6 genotype imputation software. Alpine Linux based container with Minimac4 imputation tool."
 
 # Install runtime dependencies
 RUN apk add --no-cache \

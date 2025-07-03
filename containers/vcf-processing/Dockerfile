@@ -10,7 +10,7 @@ FROM alpine:3.18
 
 LABEL maintainer="AfriGen-D Consortium"
 LABEL version="2.0"
-LABEL description="VCF processing tools for genotype imputation workflow - Alpine Linux"
+LABEL org.opencontainers.image.description="VCF processing toolkit with BCFtools v1.20, VCFtools v0.1.16, and HTSlib v1.20. Alpine Linux based container for VCF file processing in genotype imputation workflows."
 
 # Install system dependencies and build tools
 RUN apk add --no-cache \

@@ -2,7 +2,7 @@ FROM alpine:3.19 AS builder
 
 LABEL maintainer="AfriGen-D <info@afrigen.org>"
 LABEL version="2.00a6LM"
-LABEL description="PLINK 2.0 genetic data analysis software container"
+LABEL org.opencontainers.image.description="PLINK 2.0 genetic data analysis software for association studies and data management. Alpine Linux based container with prebuilt PLINK2 binary."
 
 # Install dependencies for downloading and extracting
 RUN apk add --no-cache \

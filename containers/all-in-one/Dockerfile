@@ -8,7 +8,7 @@ FROM debian:bookworm
 
 LABEL maintainer="Genotype Imputation Team"
 LABEL version="2.0"
-LABEL description="Comprehensive environment for genotype imputation analysis"
+LABEL org.opencontainers.image.description="Comprehensive genotype imputation analysis environment with BCFtools v1.22, SAMtools v1.22, Minimac4 v1.0.2, Eagle v2.4.1, PLINK2, Python 3, and R. Debian-based container with complete bioinformatics toolkit."
 
 # Prevent interactive prompts during installation
 ENV DEBIAN_FRONTEND=noninteractive

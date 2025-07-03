@@ -19,7 +19,7 @@ FROM alpine:3.19
 
 LABEL maintainer="AfriGen-D <info@afrigen.org>"
 LABEL version="2.4.1"
-LABEL description="Eagle haplotype phasing software container"
+LABEL org.opencontainers.image.description="Eagle v2.4.1 haplotype phasing software for genotype imputation workflows. Alpine Linux based container with Eagle phasing tool."
 
 # Install runtime dependencies
 RUN apk add --no-cache \
