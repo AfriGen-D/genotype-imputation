@@ -1,47 +1,53 @@
 ############################################################
-# Dockerfile to build Genotype imputation
-# Based on Ubuntu 20.04
+# Dockerfile to build CrossMap coordinate conversion tool
+# Based on Alpine Linux for better stability
 ############################################################
 
-# Set the base image to Ubuntu
-FROM ubuntu:20.04
+# Set the base image to Alpine Linux
+FROM alpine:3.18
 
 # File Author / Maintainer
-LABEL maintenair="Mamana Mbiyavanga mamana.mbiyavanga@uct.ac.za"
-
-ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
+LABEL maintainer="Mamana Mbiyavanga mamana.mbiyavanga@uct.ac.za"
+LABEL description="CrossMap coordinate conversion tool - Latest version"
+LABEL version="0.7.3"
 
 ################## BEGIN INSTALLATION ######################
 
-# Install wget
-RUN apt-get update &&  \
-  apt-get install -y python3.8 python3-pip && \
-  apt-get clean && \
-  rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+# Install system dependencies
+RUN apk add --no-cache \
+    python3 \
+    py3-pip \
+    py3-setuptools \
+    py3-wheel \
+    bash \
+    wget \
+    ca-certificates \
+    build-base \
+    python3-dev \
+    zlib-dev \
+    bzip2-dev \
+    xz-dev \
+    curl-dev \
+    gcc \
+    musl-dev
 
-RUN pip3 install CrossMap
+# Install Python dependencies step by step
+RUN pip3 install --upgrade pip setuptools wheel
+RUN pip3 install numpy
+RUN pip3 install pysam
+RUN pip3 install bx-python
+RUN pip3 install CrossMap==0.7.3 --verbose
 
-RUN useradd --create-home --shell /bin/bash ubuntu && \
-  chown -R ubuntu:ubuntu /home/ubuntu
+# List what was installed
+RUN pip3 list | grep -i cross
 
-# Install htslib
-RUN wget https://github.com/samtools/htslib/releases/download/1.9/htslib-1.9.tar.bz2 && \
-  tar -xvf htslib-1.9.tar.bz2 && \
-  cd htslib-1.9 && \
-  ./configure --prefix=/usr/local && \
-  make && \
-  make install && \
-  cd .. && rm -rf htslib-1.9*
+# Create working directory
+WORKDIR /data
 
-# Install bcftools
-RUN wget https://github.com/samtools/bcftools/releases/download/1.13/bcftools-1.13.tar.bz2 && \
-  tar -xvf bcftools-1.13.tar.bz2 && \
-  cd bcftools-1.13 && \
-  ./configure --prefix=/usr/local && \
-  make && \
-  make install && \
-  cd .. && rm -rf bcftools-1.13*
+# Create a wrapper script that points to the actual CrossMap executable
+RUN echo '#!/bin/bash' > /usr/local/bin/crossmap && \
+    echo '/usr/bin/CrossMap "$@"' >> /usr/local/bin/crossmap && \
+    chmod +x /usr/local/bin/crossmap
 
-USER ubuntu
-
-CMD ["/bin/bash","-i"]
+# Set default command
+CMD ["/usr/bin/CrossMap"]

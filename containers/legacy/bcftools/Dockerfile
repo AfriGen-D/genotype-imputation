@@ -1,81 +1,92 @@
 ############################################################
-# Dockerfile to build Genotype imputation
-# Based on Ubuntu 16.04
+# Dockerfile to build bcftools, samtools, htslib, vcftools, bedtools
+# Based on Alpine Linux for better stability
 ############################################################
 
-# Set the base image to Ubuntu
-FROM ubuntu:20.04
+# Set the base image to Alpine Linux
+FROM alpine:3.18
 
 # File Author / Maintainer
-LABEL maintenair="Mamana Mbiyavanga mamana.mbiyavanga@uct.ac.za"
-
-ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
-ARG DEBIAN_FRONTEND=noninteractive
+LABEL maintainer="Mamana Mbiyavanga mamana.mbiyavanga@uct.ac.za"
+LABEL description="BCFtools and genomics tools container - Latest versions"
 
 ################## BEGIN INSTALLATION ######################
 
-# Install wget
-RUN apt-get update && apt-get install -y \
-  autoconf \
-  build-essential \
-  git \
-  libncurses5-dev \
-  pkg-config \
-  unzip \
-  wget curl \
-  python python-dev \
-  libbz2-dev \
-  liblzma-dev \
-  zlib1g-dev &&\
-  apt-get clean && \
-  rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+# Install dependencies
+RUN apk add --no-cache \
+    build-base \
+    autoconf \
+    automake \
+    git \
+    wget \
+    curl \
+    tar \
+    bzip2 \
+    xz \
+    zlib-dev \
+    bzip2-dev \
+    xz-dev \
+    ncurses-dev \
+    ca-certificates \
+    bash \
+    perl \
+    python3 \
+    python3-dev
 
-# Install htslib
-RUN wget https://github.com/samtools/htslib/releases/download/1.9/htslib-1.9.tar.bz2 && \
-  tar -xvf htslib-1.9.tar.bz2 && \
-  cd htslib-1.9 && \
-  ./configure --prefix=/usr/local && \
-  make && \
-  make install && \
-  cd .. && rm -rf htslib-1.9*
+# Install htslib (latest version)
+RUN wget https://github.com/samtools/htslib/releases/download/1.20/htslib-1.20.tar.bz2 && \
+    tar -xvf htslib-1.20.tar.bz2 && \
+    cd htslib-1.20 && \
+    ./configure --prefix=/usr/local && \
+    make && \
+    make install && \
+    cd .. && rm -rf htslib-1.20*
 
-# Install samtools
-RUN wget https://github.com/samtools/samtools/releases/download/1.9/samtools-1.9.tar.bz2 && \
-  tar -xvf samtools-1.9.tar.bz2 && \
-  cd samtools-1.9 && \
-  ./configure --prefix=/usr/local && \
-  make && \
-  make install && \
-  cd .. && rm -rf samtools-1.9*
+# Install samtools (latest version)
+RUN wget https://github.com/samtools/samtools/releases/download/1.20/samtools-1.20.tar.bz2 && \
+    tar -xvf samtools-1.20.tar.bz2 && \
+    cd samtools-1.20 && \
+    ./configure --prefix=/usr/local && \
+    make && \
+    make install && \
+    cd .. && rm -rf samtools-1.20*
 
-# Install VCFTools
+# Install bcftools (latest version)
+RUN wget https://github.com/samtools/bcftools/releases/download/1.20/bcftools-1.20.tar.bz2 && \
+    tar -xvf bcftools-1.20.tar.bz2 && \
+    cd bcftools-1.20 && \
+    ./configure --prefix=/usr/local && \
+    make && \
+    make install && \
+    cd .. && rm -rf bcftools-1.20*
+
+# Install VCFTools (latest version)
 RUN wget https://github.com/vcftools/vcftools/releases/download/v0.1.16/vcftools-0.1.16.tar.gz && \
-  tar -xvf vcftools-0.1.16.tar.gz && \
-  cd vcftools-0.1.16 && \
-  ./configure && \
-  make && \
-  make install
+    tar -xvf vcftools-0.1.16.tar.gz && \
+    cd vcftools-0.1.16 && \
+    ./configure && \
+    make && \
+    make install && \
+    cd .. && rm -rf vcftools-0.1.16*
 
-# Install bcftools
-RUN wget https://github.com/samtools/bcftools/releases/download/1.13/bcftools-1.13.tar.bz2 && \
-  tar -xvf bcftools-1.13.tar.bz2 && \
-  cd bcftools-1.13 && \
-  ./configure --prefix=/usr/local && \
-  make && \
-  make install && \
-  cd .. && rm -rf bcftools-1.13*
+# Install bedtools (latest version)
+RUN wget https://github.com/arq5x/bedtools2/releases/download/v2.31.1/bedtools-2.31.1.tar.gz && \
+    tar -zxvf bedtools-2.31.1.tar.gz && \
+    cd bedtools2 && \
+    make && \
+    mv bin/bedtools /usr/local/bin/ && \
+    cd .. && rm -rf bedtools2 && rm -f bedtools-2.31.1.tar.gz
 
-# Install bedtools
-RUN wget https://github.com/arq5x/bedtools2/releases/download/v2.28.0/bedtools-2.28.0.tar.gz && \
-  tar -zxvf bedtools-2.28.0.tar.gz && \
-  cd bedtools2 && \
-  make && \
-  mv bin/bedtools /usr/local/bin/ && \
-  cd .. && rm -r bedtools2
+# Create working directory
+WORKDIR /data
 
-RUN useradd --create-home --shell /bin/bash ubuntu && \
-  chown -R ubuntu:ubuntu /home/ubuntu
+# Add /usr/local/bin to PATH
+ENV PATH="/usr/local/bin:$PATH"
 
-USER ubuntu
+# Test installations
+RUN bcftools --version && \
+    samtools --version && \
+    bedtools --version && \
+    vcftools --version
 
-CMD ["/bin/bash","-i"]
+CMD ["/bin/bash"]

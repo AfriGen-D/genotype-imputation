@@ -1,131 +1,134 @@
 ############################################################
-# Dockerfile to build Genotype imputation
-# Based on Ubuntu 16.04
+# Dockerfile to build comprehensive genotype imputation tools
+# Based on Alpine Linux for better stability and efficiency
 ############################################################
 
-# Set the base image to Ubuntu
-FROM ubuntu:20.04
+# Set the base image to Alpine Linux
+FROM alpine:3.18
 
 # File Author / Maintainer
-LABEL maintenair="Mamana Mbiyavanga mamana.mbiyavanga@uct.ac.za"
-
-ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
-ENV PATH /opt/conda/bin:$PATH
-ARG DEBIAN_FRONTEND=noninteractive
+LABEL maintainer="Mamana Mbiyavanga mamana.mbiyavanga@uct.ac.za"
+LABEL description="Comprehensive genotype imputation tools suite - Latest versions"
+LABEL version="2024.1"
 
 ################## BEGIN INSTALLATION ######################
 
-# Install wget
-RUN apt-get update && apt-get install -y \
-  autoconf \
-  build-essential \
-  git \
-  libncurses5-dev \
-  pkg-config \
-  unzip \
-  wget curl \
-  python python-dev \
-  libbz2-dev \
-  liblzma-dev \
-  zlib1g-dev &&\
-  apt-get clean && \
-  rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+# Install build dependencies and system tools
+RUN apk add --no-cache \
+    build-base \
+    autoconf \
+    automake \
+    libtool \
+    git \
+    wget \
+    curl \
+    bash \
+    ca-certificates \
+    zlib-dev \
+    bzip2-dev \
+    xz-dev \
+    ncurses-dev \
+    libcurl \
+    python3 \
+    python3-dev \
+    py3-pip \
+    unzip \
+    tar \
+    gzip
 
-# Install IMPUTE2
-RUN wget http://mathgen.stats.ox.ac.uk/impute/impute_v2.3.2_x86_64_static.tgz && \
-  tar -zxvf impute_v2.3.2_x86_64_static.tgz && \
-  mv impute_v2.3.2_x86_64_static/impute2 /usr/local/bin/impute2 && \
-  mkdir /opt/impute2/example -p && \
-  mv impute_v2.3.2_x86_64_static/Example/* /opt/impute2/example && \
-  rm -rf impute_v2.3.2_x86_64_static impute_v2.3.2_x86_64_static.tgz
+# Install latest htslib (1.20)
+WORKDIR /tmp
+RUN wget https://github.com/samtools/htslib/releases/download/1.20/htslib-1.20.tar.bz2 && \
+    tar -xvf htslib-1.20.tar.bz2 && \
+    cd htslib-1.20 && \
+    ./configure --prefix=/usr/local && \
+    make && \
+    make install && \
+    cd .. && rm -rf htslib-1.20*
 
-# Install htslib
-RUN wget https://github.com/samtools/htslib/releases/download/1.9/htslib-1.9.tar.bz2 && \
-  tar -xvf htslib-1.9.tar.bz2 && \
-  cd htslib-1.9 && \
-  ./configure --prefix=/usr/local && \
-  make && \
-  make install && \
-  cd .. && rm -rf htslib-1.9*
+# Install latest samtools (1.20)
+RUN wget https://github.com/samtools/samtools/releases/download/1.20/samtools-1.20.tar.bz2 && \
+    tar -xvf samtools-1.20.tar.bz2 && \
+    cd samtools-1.20 && \
+    ./configure --prefix=/usr/local && \
+    make && \
+    make install && \
+    cd .. && rm -rf samtools-1.20*
 
-# Install samtools
-RUN wget https://github.com/samtools/samtools/releases/download/1.9/samtools-1.9.tar.bz2 && \
-  tar -xvf samtools-1.9.tar.bz2 && \
-  cd samtools-1.9 && \
-  ./configure --prefix=/usr/local && \
-  make && \
-  make install && \
-  cd .. && rm -rf samtools-1.9*
+# Install latest bcftools (1.20)  
+RUN wget https://github.com/samtools/bcftools/releases/download/1.20/bcftools-1.20.tar.bz2 && \
+    tar -xvf bcftools-1.20.tar.bz2 && \
+    cd bcftools-1.20 && \
+    ./configure --prefix=/usr/local && \
+    make && \
+    make install && \
+    cd .. && rm -rf bcftools-1.20*
 
-# Install VCFTools
+# Install latest VCFtools (still 0.1.16)
 RUN wget https://github.com/vcftools/vcftools/releases/download/v0.1.16/vcftools-0.1.16.tar.gz && \
-  tar -xvf vcftools-0.1.16.tar.gz && \
-  cd vcftools-0.1.16 && \
-  ./configure && \
-  make && \
-  make install
+    tar -xvf vcftools-0.1.16.tar.gz && \
+    cd vcftools-0.1.16 && \
+    ./configure --prefix=/usr/local && \
+    make && \
+    make install && \
+    cd .. && rm -rf vcftools-0.1.16*
 
-# Install bcftools
-RUN wget https://github.com/samtools/bcftools/releases/download/1.13/bcftools-1.13.tar.bz2 && \
-  tar -xvf bcftools-1.9.tar.bz2 && \
-  cd bcftools-1.9 && \
-  ./configure --prefix=/usr/local && \
-  make && \
-  make install && \
-  cd .. && rm -rf bcftools-1.9*
+# Install latest bedtools (2.31.1)
+RUN wget https://github.com/arq5x/bedtools2/releases/download/v2.31.1/bedtools-2.31.1.tar.gz && \
+    tar -zxvf bedtools-2.31.1.tar.gz && \
+    cd bedtools2 && \
+    make && \
+    mv bin/* /usr/local/bin/ && \
+    cd .. && rm -rf bedtools2*
 
-# Install bedtools
-RUN wget https://github.com/arq5x/bedtools2/releases/download/v2.28.0/bedtools-2.28.0.tar.gz && \
-  tar -zxvf bedtools-2.28.0.tar.gz && \
-  cd bedtools2 && \
-  make && \
-  mv bin/bedtools /usr/local/bin/ && \
-  cd .. && rm -r bedtools2
+# Install IMPUTE2 (prebuilt binary)
+RUN wget https://mathgen.stats.ox.ac.uk/impute/impute_v2.3.2_x86_64_static.tgz && \
+    tar -zxvf impute_v2.3.2_x86_64_static.tgz && \
+    mv impute_v2.3.2_x86_64_static/impute2 /usr/local/bin/impute2 && \
+    chmod +x /usr/local/bin/impute2 && \
+    mkdir -p /opt/impute2/example && \
+    mv impute_v2.3.2_x86_64_static/Example/* /opt/impute2/example/ && \
+    rm -rf impute_v2.3.2_x86_64_static*
 
-# Install minimac3
-RUN wget ftp://share.sph.umich.edu/minimac3/Minimac3.v2.0.1.tar.gz  && \
-  tar -xzvf Minimac3.v2.0.1.tar.gz  && \
-  cd Minimac3/  && \
-  make  && \
-  mv ./bin/Minimac3 /usr/local/bin/minimac3
-
-# Install minimac4
-RUN wget http://debian.mirror.ac.za/debian/pool/main/libs/libstatgen/libstatgen0_1.0.14-5_amd64.deb && \
-  dpkg -i libstatgen0_1.0.14-5_amd64.deb && \
-  wget https://github.com/statgen/Minimac4/releases/download/v1.0.2/minimac4-1.0.2-Linux.deb && \
-  dpkg -i minimac4-1.0.2-Linux.deb
-
-# Install PLINK2
-# there is an undocumented stable url (without the date)
+# Install PLINK2 (latest)
 RUN wget http://s3.amazonaws.com/plink2-assets/plink2_linux_x86_64_latest.zip -O plink.zip && \
-  unzip plink.zip -d /usr/local/bin/ && \
-  rm -f plink.zip
+    unzip plink.zip -d /usr/local/bin/ && \
+    rm -f plink.zip
 
-# Install Eagle
-RUN wget https://data.broadinstitute.org/alkesgroup/Eagle/downloads/Eagle_v2.4.1.tar.gz && \
-  gunzip Eagle_v2.4.1.tar.gz && \
-  tar xvf Eagle_v2.4.1.tar && \
-  mv Eagle_v2.4.1/eagle /usr/local/bin/ && \
-  rm -rf Eagle_v2.4.1
+# Install Eagle (latest v2.4.1)
+RUN wget https://storage.googleapis.com/broad-alkesgroup-public/Eagle/downloads/Eagle_v2.4.1.tar.gz && \
+    tar -xzf Eagle_v2.4.1.tar.gz && \
+    mv Eagle_v2.4.1/eagle /usr/local/bin/ && \
+    chmod +x /usr/local/bin/eagle && \
+    rm -rf Eagle_v2.4.1*
 
-# Install R and R packages
-RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh && \
-  /bin/bash ~/miniconda.sh -b -p /opt/conda && \
-  rm ~/miniconda.sh && \
-  echo "conda activate base" >> ~/.bashrc
-RUN conda clean --all --yes && \
-  conda install -y -c bioconda r-ggplot2 r-dplyr r-plyr r-tidyr r-data.table r-reshape2 r-optparse r-sm
-RUN conda clean --all --yes && \
-  conda install -y -c conda-forge r-ggsci
+# Install Minimac4 (prebuilt binary)
+RUN wget https://github.com/statgen/Minimac4/releases/download/v4.1.6/minimac4-4.1.6-Linux-x86_64.sh && \
+    chmod +x minimac4-4.1.6-Linux-x86_64.sh && \
+    ./minimac4-4.1.6-Linux-x86_64.sh --skip-license --prefix=/usr/local && \
+    rm minimac4-4.1.6-Linux-x86_64.sh
 
-RUN conda update conda && \
-  conda clean --all --yes && \
-  conda install -y -c bioconda snpeff=4.3 snpsift
+# Note: Minimac3 is deprecated in favor of Minimac4
+# Note: SnpEff/SnpSift require Java which would significantly increase image size
+# Users can install these separately if needed
 
+# Create working directory
+WORKDIR /data
 
-RUN useradd --create-home --shell /bin/bash ubuntu && \
-  chown -R ubuntu:ubuntu /home/ubuntu
+# Create wrapper scripts for common tasks
+RUN echo '#!/bin/bash' > /usr/local/bin/imputation_help && \
+    echo 'echo "=== Imputation Tools Suite ==="' >> /usr/local/bin/imputation_help && \
+    echo 'echo "Available tools:"' >> /usr/local/bin/imputation_help && \
+    echo 'echo "  - htslib: $(htsfile --version-only 2>/dev/null || echo unknown)"' >> /usr/local/bin/imputation_help && \
+    echo 'echo "  - samtools: $(samtools --version | head -1)"' >> /usr/local/bin/imputation_help && \
+    echo 'echo "  - bcftools: $(bcftools --version | head -1)"' >> /usr/local/bin/imputation_help && \
+    echo 'echo "  - vcftools: $(vcftools --version 2>&1 | head -1)"' >> /usr/local/bin/imputation_help && \
+    echo 'echo "  - bedtools: $(bedtools --version)"' >> /usr/local/bin/imputation_help && \
+    echo 'echo "  - impute2: Available"' >> /usr/local/bin/imputation_help && \
+    echo 'echo "  - plink2: $(plink2 --version | head -1)"' >> /usr/local/bin/imputation_help && \
+    echo 'echo "  - eagle: Available"' >> /usr/local/bin/imputation_help && \
+    echo 'echo "  - minimac4: Available"' >> /usr/local/bin/imputation_help && \
+    chmod +x /usr/local/bin/imputation_help
 
-USER ubuntu
-
-CMD ["/bin/bash","-i"]
+# Set default command
+CMD ["imputation_help"]
