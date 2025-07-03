@@ -38,6 +38,8 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     libncurses5-dev \
     libncursesw5-dev \
+    # GSL library for BCFtools (required for polysomy command)
+    libgsl-dev \
     # Python and R
     python3 \
     python3-pip \
