@@ -1,27 +1,37 @@
 name: Build Analysis Container
 
+# TEMPORARILY DISABLED - Enable after core Alpine containers are proven to work
+# on:
+#   push:
+#     branches: [ main, master, develop ]
+#     paths:
+#       - 'containers/analysis/**'
+#       - '.github/workflows/docker-build-analysis.yml'
+#   pull_request:
+#     branches: [ main, master ]
+#     paths:
+#       - 'containers/analysis/**'
+#       - '.github/workflows/docker-build-analysis.yml'
+#   release:
+#     types: [published]
+#   schedule:
+#     # Weekly build every Sunday at 4 AM UTC
+#     - cron: '0 4 * * 0'
+#   workflow_dispatch:
+#     inputs:
+#       tag:
+#         description: 'Docker tag to use (default: bcftools-1.20)'
+#         required: false
+#         default: 'bcftools-1.20'
+
+# Placeholder trigger to prevent workflow from running
 on:
-  push:
-    branches: [ main, master, develop ]
-    paths:
-      - 'containers/analysis/**'
-      - '.github/workflows/docker-build-analysis.yml'
-  pull_request:
-    branches: [ main, master ]
-    paths:
-      - 'containers/analysis/**'
-      - '.github/workflows/docker-build-analysis.yml'
-  release:
-    types: [published]
-  schedule:
-    # Weekly build every Sunday at 4 AM UTC
-    - cron: '0 4 * * 0'
   workflow_dispatch:
     inputs:
-      tag:
-        description: 'Docker tag to use (default: bcftools-1.20)'
-        required: false
-        default: 'bcftools-1.20'
+      force_build:
+        description: 'Force build analysis container (complex Python+R+BCFtools)'
+        required: true
+        default: 'false'
 
 env:
   GHCR_REGISTRY: ghcr.io

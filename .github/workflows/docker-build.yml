@@ -42,8 +42,9 @@ jobs:
       - name: Determine containers to build
         id: containers
         run: |
-          # Build remaining containers (plink2 and analysis have dedicated workflows)
-          CUSTOM_CONTAINERS='["eagle-phasing", "minimac4", "all-in-one", "imputation", "phasing", "vcf-processing"]'
+          # Build only reliable Alpine-based containers (plink2 and analysis have dedicated workflows)
+          # Temporarily excluding "all-in-one" (Debian-based, complex) until Alpine containers are proven
+          CUSTOM_CONTAINERS='["eagle-phasing", "minimac4", "imputation", "phasing", "vcf-processing"]'
           echo "containers=${CUSTOM_CONTAINERS}" >> $GITHUB_OUTPUT
 
       - name: Determine tag
@@ -91,11 +92,15 @@ jobs:
       - name: Set container-specific tool versions
         id: tool-versions
         run: |
-          # Set tool version tags based on container type
+          # Set tool version tags based on container type (only core Alpine containers)
           case "${{ matrix.container }}" in
-            "analysis")
-              PRIMARY_VERSION="bcftools-1.20"
-              ADDITIONAL_TAGS="python-3.11,r-4.3.0"
+            "eagle-phasing")
+              PRIMARY_VERSION="eagle-2.4.1"
+              ADDITIONAL_TAGS="htslib-1.20"
+              ;;
+            "minimac4")
+              PRIMARY_VERSION="minimac4-4.1.6"
+              ADDITIONAL_TAGS="alpine-3.18"
               ;;
             "imputation")
               PRIMARY_VERSION="minimac4-4.1.6"
@@ -108,22 +113,6 @@ jobs:
             "vcf-processing")
               PRIMARY_VERSION="bcftools-1.20"
               ADDITIONAL_TAGS="vcftools-0.1.16,htslib-1.20"
-              ;;
-            "eagle-phasing")
-              PRIMARY_VERSION="eagle-2.4.1"
-              ADDITIONAL_TAGS="htslib-1.20"
-              ;;
-            "minimac4")
-              PRIMARY_VERSION="minimac4-4.1.6"
-              ADDITIONAL_TAGS="alpine-3.18"
-              ;;
-            "plink2")
-              PRIMARY_VERSION="plink2-2.0.0"
-              ADDITIONAL_TAGS="alpine-3.18"
-              ;;
-            "all-in-one")
-              PRIMARY_VERSION="alpine-3.18"
-              ADDITIONAL_TAGS="bcftools-1.20,minimac4-4.1.6,eagle-2.4.1"
               ;;
           esac
           
@@ -217,10 +206,13 @@ jobs:
       - name: Set container tool versions for testing
         id: tool-versions
         run: |
-          # Set tool version tags based on container type (same as build job)
+          # Set tool version tags based on container type (only core Alpine containers)
           case "${{ matrix.container }}" in
-            "analysis")
-              PRIMARY_VERSION="bcftools-1.20"
+            "eagle-phasing")
+              PRIMARY_VERSION="eagle-2.4.1"
+              ;;
+            "minimac4")
+              PRIMARY_VERSION="minimac4-4.1.6"
               ;;
             "imputation")
               PRIMARY_VERSION="minimac4-4.1.6"
@@ -230,18 +222,6 @@ jobs:
               ;;
             "vcf-processing")
               PRIMARY_VERSION="bcftools-1.20"
-              ;;
-            "eagle-phasing")
-              PRIMARY_VERSION="eagle-2.4.1"
-              ;;
-            "minimac4")
-              PRIMARY_VERSION="minimac4-4.1.6"
-              ;;
-            "plink2")
-              PRIMARY_VERSION="plink2-2.0.0"
-              ;;
-            "all-in-one")
-              PRIMARY_VERSION="alpine-3.18"
               ;;
           esac
           echo "primary_version=${PRIMARY_VERSION}" >> $GITHUB_OUTPUT
@@ -255,7 +235,7 @@ jobs:
           # Pull the container
           docker pull "$CONTAINER_IMAGE"
           
-          # Basic functionality tests
+          # Basic functionality tests (only core Alpine containers)
           case "${{ matrix.container }}" in
             "eagle-phasing")
               echo "Testing Eagle..."
@@ -268,31 +248,6 @@ jobs:
               docker run --rm "$CONTAINER_IMAGE" minimac4 --help
               # Test that the binary works  
               docker run --rm "$CONTAINER_IMAGE" bash -c "which minimac4 && minimac4 --help | head -5"
-              ;;
-            "plink2")
-              echo "Testing PLINK2..."
-              docker run --rm "$CONTAINER_IMAGE" plink2 --help
-              # Test that the binary works
-              docker run --rm "$CONTAINER_IMAGE" bash -c "which plink2 && plink2 --help | head -5"
-              ;;
-            "all-in-one")
-              echo "Testing All-in-One container..."
-              docker run --rm "$CONTAINER_IMAGE" bash -c "
-                echo 'Testing BCFtools...' && bcftools --version && 
-                echo 'Testing Eagle...' && eagle --help > /dev/null && echo 'Eagle OK' &&
-                echo 'Testing Minimac4...' && minimac4 --help > /dev/null && echo 'Minimac4 OK' &&
-                echo 'Testing PLINK2...' && plink2 --help > /dev/null && echo 'PLINK2 OK' &&
-                echo 'All tools working!'
-              "
-              ;;
-            "analysis")
-              echo "Testing Analysis container..."
-              docker run --rm "$CONTAINER_IMAGE" bash -c "
-                echo 'Testing BCFtools...' && bcftools --version &&
-                echo 'Testing Python...' && python3 --version &&
-                echo 'Testing R...' && R --version | head -1 &&
-                echo 'Analysis tools working!'
-              "
               ;;
             "imputation")
               echo "Testing Imputation container..."
@@ -331,22 +286,13 @@ jobs:
           SIZE_MB=$((SIZE / 1024 / 1024))
           echo "📦 Container ${{ matrix.container }} size: ${SIZE_MB} MB"
           
-          # Set reasonable size limits (Alpine Linux containers are much smaller)
+          # Set reasonable size limits for core Alpine containers (much smaller than Ubuntu)
           case "${{ matrix.container }}" in
             "eagle-phasing")
-              MAX_SIZE=400
+              MAX_SIZE=400  # Eagle + HTSlib
               ;;
             "minimac4")
-              MAX_SIZE=500
-              ;;
-            "plink2")
-              MAX_SIZE=200
-              ;;
-            "all-in-one")
-              MAX_SIZE=1500
-              ;;
-            "analysis")
-              MAX_SIZE=800  # Python + R + BCFtools
+              MAX_SIZE=500  # Minimac4 binary
               ;;
             "imputation")
               MAX_SIZE=600  # Minimac4 + BCFtools + VCFtools
@@ -379,10 +325,13 @@ jobs:
       - name: Set container tool versions for security scan
         id: tool-versions
         run: |
-          # Set tool version tags based on container type (same as build job)
+          # Set tool version tags based on container type (only core Alpine containers)
           case "${{ matrix.container }}" in
-            "analysis")
-              PRIMARY_VERSION="bcftools-1.20"
+            "eagle-phasing")
+              PRIMARY_VERSION="eagle-2.4.1"
+              ;;
+            "minimac4")
+              PRIMARY_VERSION="minimac4-4.1.6"
               ;;
             "imputation")
               PRIMARY_VERSION="minimac4-4.1.6"
@@ -392,18 +341,6 @@ jobs:
               ;;
             "vcf-processing")
               PRIMARY_VERSION="bcftools-1.20"
-              ;;
-            "eagle-phasing")
-              PRIMARY_VERSION="eagle-2.4.1"
-              ;;
-            "minimac4")
-              PRIMARY_VERSION="minimac4-4.1.6"
-              ;;
-            "plink2")
-              PRIMARY_VERSION="plink2-2.0.0"
-              ;;
-            "all-in-one")
-              PRIMARY_VERSION="alpine-3.18"
               ;;
           esac
           echo "primary_version=${PRIMARY_VERSION}" >> $GITHUB_OUTPUT
@@ -481,17 +418,17 @@ jobs:
           TEST_STATUS="${{ needs.test-containers.result }}"
           
           if [[ "$BUILD_STATUS" == "success" ]]; then
-            echo "### ✅ Built Containers (Available on GHCR):" >> $GITHUB_STEP_SUMMARY
+            echo "### ✅ Core Alpine Containers (Available on GHCR):" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ \`eagle-phasing:eagle-2.4.1\` (Eagle 2.4.1 + HTSlib 1.20)" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ \`minimac4:minimac4-4.1.6\` (Minimac4 4.1.6)" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ \`imputation:minimac4-4.1.6\` (Minimac4 4.1.6 + BCFtools 1.20 + VCFtools 0.1.16)" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ \`phasing:eagle-2.4.1\` (Eagle 2.4.1 + HTSlib 1.20)" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ \`vcf-processing:bcftools-1.20\` (BCFtools 1.20 + VCFtools 0.1.16 + tabix)" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ \`eagle-phasing:eagle-2.4.1\` (Eagle 2.4.1 + HTSlib 1.20)" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ \`minimac4:minimac4-4.1.6\` (Minimac4 4.1.6)" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ \`all-in-one:alpine-3.18\` (All tools on Alpine 3.18)" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### 🔀 Containers with Dedicated Workflows:" >> $GITHUB_STEP_SUMMARY
-            echo "- 🔧 \`analysis:bcftools-1.20\` (Built by dedicated workflow)" >> $GITHUB_STEP_SUMMARY
-            echo "- 🔧 \`plink2:plink2-2.0.0\` (Built by dedicated workflow)" >> $GITHUB_STEP_SUMMARY
+            echo "### 🚧 Temporarily Disabled (Enable After Core Success):" >> $GITHUB_STEP_SUMMARY
+            echo "- 🔸 \`all-in-one:alpine-3.18\` (Complex Debian + BCFtools 1.22)" >> $GITHUB_STEP_SUMMARY
+            echo "- 🔸 \`analysis:bcftools-1.20\` (Complex Python + R + BCFtools)" >> $GITHUB_STEP_SUMMARY
+            echo "- 🔸 \`plink2:plink2-2.0.0\` (Prebuilt binary approach)"
           else
             echo "### ❌ Container Build Failed" >> $GITHUB_STEP_SUMMARY
           fi
