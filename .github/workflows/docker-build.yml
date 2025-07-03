@@ -24,7 +24,8 @@ on:
         default: 'alpine-3.18'
 
 env:
-  REGISTRY: ghcr.io
+  GHCR_REGISTRY: ghcr.io
+  DOCKERHUB_REGISTRY: docker.io
   IMAGE_PREFIX: ${{ github.repository_owner }}
 
 jobs:
@@ -41,8 +42,8 @@ jobs:
       - name: Determine containers to build
         id: containers
         run: |
-          # Build all custom Alpine Linux containers
-          CUSTOM_CONTAINERS='["eagle-phasing", "minimac4", "plink2", "all-in-one", "analysis", "imputation", "phasing", "vcf-processing"]'
+          # Build remaining containers (plink2 and analysis have dedicated workflows)
+          CUSTOM_CONTAINERS='["eagle-phasing", "minimac4", "all-in-one", "imputation", "phasing", "vcf-processing"]'
           echo "containers=${CUSTOM_CONTAINERS}" >> $GITHUB_OUTPUT
 
       - name: Determine tag
@@ -133,19 +134,29 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to Container Registry
+      - name: Log in to GitHub Container Registry
         if: needs.prepare.outputs.should_push == 'true'
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ${{ env.GHCR_REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        if: needs.prepare.outputs.should_push == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKERHUB_REGISTRY }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.container }}
+          images: |
+            ${{ env.GHCR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.container }}
+            ${{ env.DOCKERHUB_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.container }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -185,7 +196,7 @@ jobs:
         if: needs.prepare.outputs.should_push == 'true'
         uses: actions/attest-build-provenance@v1
         with:
-          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.container }}
+          subject-name: ${{ env.GHCR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.container }}
           subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
 
@@ -446,7 +457,7 @@ jobs:
           echo "## 🐳 Alpine Linux Container Build Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Tagging Strategy:** Tool versions (e.g., bcftools-1.20, minimac4-4.1.6)" >> $GITHUB_STEP_SUMMARY
-          echo "**Registry:** \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Registries:** \`${{ env.GHCR_REGISTRY }}/${{ env.IMAGE_PREFIX }}\` and \`${{ env.DOCKERHUB_REGISTRY }}/${{ env.IMAGE_PREFIX }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Platform:** linux/amd64 (HPC optimized)" >> $GITHUB_STEP_SUMMARY
           echo "**Base OS:** Alpine Linux 3.18 (lightweight and secure)" >> $GITHUB_STEP_SUMMARY
           echo "**Push to registry:** ${{ needs.prepare.outputs.should_push }}" >> $GITHUB_STEP_SUMMARY
@@ -457,17 +468,19 @@ jobs:
           TEST_STATUS="${{ needs.test-containers.result }}"
           
           if [[ "$BUILD_STATUS" == "success" ]]; then
-            echo "### ✅ Built Custom Containers with Tool Versions:" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/analysis:bcftools-1.20\` (BCFtools 1.20 + Python 3.11 + R 4.3.0)" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/imputation:minimac4-4.1.6\` (Minimac4 4.1.6 + BCFtools 1.20 + VCFtools 0.1.16)" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/phasing:eagle-2.4.1\` (Eagle 2.4.1 + HTSlib 1.20)" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/vcf-processing:bcftools-1.20\` (BCFtools 1.20 + VCFtools 0.1.16 + tabix)" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/eagle-phasing:eagle-2.4.1\` (Eagle 2.4.1 + HTSlib 1.20)" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/minimac4:minimac4-4.1.6\` (Minimac4 4.1.6)" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/plink2:plink2-2.0.0\` (PLINK2 2.0.0)" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/all-in-one:alpine-3.18\` (All tools on Alpine 3.18)" >> $GITHUB_STEP_SUMMARY
+            echo "### ✅ Built Containers (Available on Both Registries):" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ \`imputation:minimac4-4.1.6\` (Minimac4 4.1.6 + BCFtools 1.20 + VCFtools 0.1.16)" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ \`phasing:eagle-2.4.1\` (Eagle 2.4.1 + HTSlib 1.20)" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ \`vcf-processing:bcftools-1.20\` (BCFtools 1.20 + VCFtools 0.1.16 + tabix)" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ \`eagle-phasing:eagle-2.4.1\` (Eagle 2.4.1 + HTSlib 1.20)" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ \`minimac4:minimac4-4.1.6\` (Minimac4 4.1.6)" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ \`all-in-one:alpine-3.18\` (All tools on Alpine 3.18)" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 🔀 Containers with Dedicated Workflows:" >> $GITHUB_STEP_SUMMARY
+            echo "- 🔧 \`analysis:bcftools-1.20\` (Built by dedicated workflow)" >> $GITHUB_STEP_SUMMARY
+            echo "- 🔧 \`plink2:plink2-2.0.0\` (Built by dedicated workflow)" >> $GITHUB_STEP_SUMMARY
           else
-            echo "### ❌ Custom Container Build Failed" >> $GITHUB_STEP_SUMMARY
+            echo "### ❌ Container Build Failed" >> $GITHUB_STEP_SUMMARY
           fi
           
           echo "" >> $GITHUB_STEP_SUMMARY

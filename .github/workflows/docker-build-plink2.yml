@@ -1,0 +1,161 @@
+name: Build PLINK2 Container
+
+on:
+  push:
+    branches: [ main, master, develop ]
+    paths:
+      - 'containers/plink2/**'
+      - '.github/workflows/docker-build-plink2.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'containers/plink2/**'
+      - '.github/workflows/docker-build-plink2.yml'
+  release:
+    types: [published]
+  schedule:
+    # Weekly build every Sunday at 3 AM UTC
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Docker tag to use (default: plink2-2.0.0)'
+        required: false
+        default: 'plink2-2.0.0'
+
+env:
+  GHCR_REGISTRY: ghcr.io
+  DOCKERHUB_REGISTRY: docker.io
+  IMAGE_PREFIX: ${{ github.repository_owner }}
+  CONTAINER_NAME: plink2
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+      image-tags: ${{ steps.meta.outputs.tags }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.GHCR_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKERHUB_REGISTRY }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.GHCR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ env.CONTAINER_NAME }}
+            ${{ env.DOCKERHUB_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ env.CONTAINER_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=raw,value=plink2-2.0.0,enable={{is_default_branch}}
+            type=raw,value=plink2-2.0.0-alpine,enable={{is_default_branch}}
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=schedule,pattern={{date 'YYYY-MM-DD'}}
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: containers/${{ env.CONTAINER_NAME }}
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ env.CONTAINER_NAME }}
+          cache-to: type=gha,mode=max,scope=${{ env.CONTAINER_NAME }}
+          provenance: true
+          sbom: true
+
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: ${{ env.GHCR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ env.CONTAINER_NAME }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        registry: 
+          - ghcr.io
+          - docker.io
+    
+    steps:
+      - name: Test PLINK2 container
+        run: |
+          IMAGE="${{ matrix.registry }}/${{ env.IMAGE_PREFIX }}/${{ env.CONTAINER_NAME }}:plink2-2.0.0"
+          echo "Testing: $IMAGE"
+          
+          # Test basic functionality
+          docker run --rm "$IMAGE" plink2 --help
+          docker run --rm "$IMAGE" plink2 --version
+          
+          # Test that binary exists and is executable
+          docker run --rm "$IMAGE" bash -c "which plink2 && ls -la /usr/local/bin/plink2"
+          
+          echo "✅ PLINK2 container tests passed for ${{ matrix.registry }}"
+
+      - name: Test container size
+        run: |
+          IMAGE="${{ matrix.registry }}/${{ env.IMAGE_PREFIX }}/${{ env.CONTAINER_NAME }}:plink2-2.0.0"
+          SIZE=$(docker image inspect "$IMAGE" --format='{{.Size}}')
+          SIZE_MB=$((SIZE / 1024 / 1024))
+          echo "📦 Container size: ${SIZE_MB} MB"
+          
+          if [ $SIZE_MB -gt 200 ]; then
+            echo "⚠️ Warning: Container size (${SIZE_MB} MB) exceeds expected maximum (200 MB)"
+          else
+            echo "✅ Container size is within expected limits"
+          fi
+
+  security-scan:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        registry: 
+          - ghcr.io
+          - docker.io
+    
+    steps:
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ matrix.registry }}/${{ env.IMAGE_PREFIX }}/${{ env.CONTAINER_NAME }}:plink2-2.0.0
+          format: 'sarif'
+          output: 'trivy-results-${{ env.CONTAINER_NAME }}-${{ matrix.registry }}.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results-${{ env.CONTAINER_NAME }}-${{ matrix.registry }}.sarif' 

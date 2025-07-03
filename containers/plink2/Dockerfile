@@ -4,22 +4,19 @@ LABEL maintainer="AfriGen-D <info@afrigen.org>"
 LABEL version="2.00a6LM"
 LABEL description="PLINK 2.0 genetic data analysis software container"
 
-# Install build dependencies
+# Install dependencies for downloading and extracting
 RUN apk add --no-cache \
-    build-base \
-    git \
-    zlib-dev \
-    bzip2-dev \
-    xz-dev \
+    wget \
+    unzip \
     ca-certificates
 
-# Build PLINK2 from source
+# Download pre-built PLINK2 binary (more reliable than building from source on Alpine)
 WORKDIR /tmp
-RUN git clone --depth 1 https://github.com/chrchang/plink-ng.git && \
-    cd plink-ng/2.0/build_dynamic && \
-    make -j$(nproc) && \
+RUN wget -O plink2_linux_x86_64.zip "http://s3.amazonaws.com/plink2-assets/plink2_linux_x86_64_latest.zip" && \
+    unzip plink2_linux_x86_64.zip && \
     mv plink2 /usr/local/bin/plink2 && \
-    chmod +x /usr/local/bin/plink2
+    chmod +x /usr/local/bin/plink2 && \
+    rm -rf /tmp/*
 
 # Production stage  
 FROM alpine:3.19
