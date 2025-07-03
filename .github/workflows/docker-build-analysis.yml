@@ -52,12 +52,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.DOCKERHUB_REGISTRY }}
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      # Uncomment when Docker Hub secrets are added (see DOCKER_HUB_SETUP.md)
+      # - name: Log in to Docker Hub
+      #   uses: docker/login-action@v3
+      #   with:
+      #     registry: ${{ env.DOCKERHUB_REGISTRY }}
+      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Extract metadata
         id: meta
@@ -65,7 +66,8 @@ jobs:
         with:
           images: |
             ${{ env.GHCR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ env.CONTAINER_NAME }}
-            ${{ env.DOCKERHUB_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ env.CONTAINER_NAME }}
+            # Uncomment when Docker Hub secrets are added:
+            # ${{ env.DOCKERHUB_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ env.CONTAINER_NAME }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -103,7 +105,8 @@ jobs:
       matrix:
         registry: 
           - ghcr.io
-          - docker.io
+          # Uncomment when Docker Hub secrets are added:
+          # - docker.io
     
     steps:
       - name: Test Analysis container

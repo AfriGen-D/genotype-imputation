@@ -142,13 +142,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Log in to Docker Hub
-        if: needs.prepare.outputs.should_push == 'true'
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.DOCKERHUB_REGISTRY }}
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      # Uncomment when Docker Hub secrets are added (see DOCKER_HUB_SETUP.md)
+      # - name: Log in to Docker Hub
+      #   if: needs.prepare.outputs.should_push == 'true'
+      #   uses: docker/login-action@v3
+      #   with:
+      #     registry: ${{ env.DOCKERHUB_REGISTRY }}
+      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Extract metadata
         id: meta
@@ -156,7 +157,8 @@ jobs:
         with:
           images: |
             ${{ env.GHCR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.container }}
-            ${{ env.DOCKERHUB_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.container }}
+            # Uncomment when Docker Hub secrets are added:
+            # ${{ env.DOCKERHUB_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.container }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -457,7 +459,7 @@ jobs:
           echo "## 🐳 Alpine Linux Container Build Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Tagging Strategy:** Tool versions (e.g., bcftools-1.20, minimac4-4.1.6)" >> $GITHUB_STEP_SUMMARY
-          echo "**Registries:** \`${{ env.GHCR_REGISTRY }}/${{ env.IMAGE_PREFIX }}\` and \`${{ env.DOCKERHUB_REGISTRY }}/${{ env.IMAGE_PREFIX }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Registry:** \`${{ env.GHCR_REGISTRY }}/${{ env.IMAGE_PREFIX }}\` (Docker Hub: add secrets to enable)" >> $GITHUB_STEP_SUMMARY
           echo "**Platform:** linux/amd64 (HPC optimized)" >> $GITHUB_STEP_SUMMARY
           echo "**Base OS:** Alpine Linux 3.18 (lightweight and secure)" >> $GITHUB_STEP_SUMMARY
           echo "**Push to registry:** ${{ needs.prepare.outputs.should_push }}" >> $GITHUB_STEP_SUMMARY
@@ -468,7 +470,7 @@ jobs:
           TEST_STATUS="${{ needs.test-containers.result }}"
           
           if [[ "$BUILD_STATUS" == "success" ]]; then
-            echo "### ✅ Built Containers (Available on Both Registries):" >> $GITHUB_STEP_SUMMARY
+            echo "### ✅ Built Containers (Available on GHCR):" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ \`imputation:minimac4-4.1.6\` (Minimac4 4.1.6 + BCFtools 1.20 + VCFtools 0.1.16)" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ \`phasing:eagle-2.4.1\` (Eagle 2.4.1 + HTSlib 1.20)" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ \`vcf-processing:bcftools-1.20\` (BCFtools 1.20 + VCFtools 0.1.16 + tabix)" >> $GITHUB_STEP_SUMMARY
