@@ -25,7 +25,7 @@ on:
 
 env:
   GHCR_REGISTRY: ghcr.io
-  DOCKERHUB_REGISTRY: docker.io
+  # DOCKERHUB_REGISTRY: docker.io  # Commented out - add Docker Hub secrets to enable
   IMAGE_PREFIX: ${{ github.repository_owner }}
   CONTAINER_NAME: plink2
 
@@ -70,8 +70,6 @@ jobs:
         with:
           images: |
             ${{ env.GHCR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ env.CONTAINER_NAME }}
-            # Uncomment when Docker Hub secrets are added:
-            # ${{ env.DOCKERHUB_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ env.CONTAINER_NAME }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
