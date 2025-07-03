@@ -1,10 +1,10 @@
 ############################################################
 # Dockerfile for Genotype Imputation Environment
-# Updated: January 2025
-# Base: Ubuntu 22.04 LTS
+# Updated: July 2025
+# Base: Debian 12 (Bookworm) - More stable than Ubuntu
 ############################################################
 
-FROM ubuntu:22.04
+FROM debian:bookworm
 
 LABEL maintainer="Genotype Imputation Team"
 LABEL version="2.0"
@@ -29,6 +29,7 @@ RUN apt-get update && apt-get install -y \
     automake \
     libtool \
     pkg-config \
+    ca-certificates \
     # System libraries for cross-compilation
     zlib1g-dev \
     libbz2-dev \
@@ -37,11 +38,11 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     libncurses5-dev \
     libncursesw5-dev \
-    libdeflate-dev \
     # Python and R
     python3 \
     python3-pip \
     python3-dev \
+    python3-venv \
     r-base \
     r-base-dev \
     # Utilities
@@ -52,7 +53,6 @@ RUN apt-get update && apt-get install -y \
     git \
     vim \
     less \
-    tabix \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
@@ -71,10 +71,11 @@ ENV MINIMAC4_VERSION=1.0.2
 ENV EAGLE_VERSION=2.4.1
 
 # Install HTSlib, SAMtools, and BCFtools (same source, compatible versions)
-RUN wget https://github.com/samtools/htslib/releases/download/${HTSLIB_VERSION}/htslib-${HTSLIB_VERSION}.tar.bz2 && \
+RUN wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 \
+        https://github.com/samtools/htslib/releases/download/${HTSLIB_VERSION}/htslib-${HTSLIB_VERSION}.tar.bz2 && \
     tar -xjf htslib-${HTSLIB_VERSION}.tar.bz2 && \
     cd htslib-${HTSLIB_VERSION} && \
-    ./configure --prefix=/usr/local --enable-libcurl --enable-gcs --enable-s3 && \
+    ./configure --prefix=/usr/local --enable-libcurl && \
     make -j$(nproc) && \
     make install && \
     ldconfig && \

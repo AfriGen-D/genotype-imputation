@@ -56,3 +56,4 @@ sample_data/
 
 # SpecStory history (if not needed)
 .specstory/
+.history/*

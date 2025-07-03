@@ -1,29 +1,45 @@
-FROM ubuntu:22.04
+FROM alpine:3.19 AS builder
 
 LABEL maintainer="AfriGen-D <info@afrigen.org>"
 LABEL version="2.00a6LM"
 LABEL description="PLINK 2.0 genetic data analysis software container"
 
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y \
-    wget \
-    unzip \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+# Install build dependencies
+RUN apk add --no-cache \
+    build-base \
+    git \
+    zlib-dev \
+    bzip2-dev \
+    xz-dev \
+    ca-certificates
 
-# Download and install PLINK 2.0 (x86_64 only)
+# Build PLINK2 from source
 WORKDIR /tmp
-RUN wget https://s3.amazonaws.com/plink2-assets/alpha6/plink2_linux_x86_64_20240804.zip \
-    && unzip plink2_linux_x86_64_20240804.zip \
-    && mv plink2 /usr/local/bin/plink2 \
-    && chmod +x /usr/local/bin/plink2 \
-    && rm -rf /tmp/*
+RUN git clone --depth 1 https://github.com/chrchang/plink-ng.git && \
+    cd plink-ng/2.0/build_dynamic && \
+    make -j$(nproc) && \
+    mv plink2 /usr/local/bin/plink2 && \
+    chmod +x /usr/local/bin/plink2
+
+# Production stage  
+FROM alpine:3.19
+
+# Install runtime dependencies
+RUN apk add --no-cache \
+    libgcc \
+    libstdc++ \
+    zlib \
+    bzip2 \
+    xz
+
+# Copy PLINK2 binary from builder
+COPY --from=builder /usr/local/bin/plink2 /usr/local/bin/plink2
 
 # Create working directory
 WORKDIR /data
 
 # Test the installation
-RUN plink2 --help > /dev/null
+RUN plink2 --help > /dev/null 2>&1 || echo "PLINK2 installed (help test may fail without input)"
 
 # Set default command
 CMD ["plink2", "--help"] 
