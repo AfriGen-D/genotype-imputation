@@ -1,4 +1,4 @@
-name: Build Custom Docker Containers
+name: Build Alpine Linux Containers with Tool Versions
 
 on:
   push:
@@ -14,14 +14,14 @@ on:
   release:
     types: [published]
   schedule:
-    # Weekly build every Sunday at 2 AM UTC to get latest tool updates
+    # Weekly build every Sunday at 2 AM UTC to maintain tool version tags
     - cron: '0 2 * * 0'
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Docker tag to use'
+        description: 'Docker tag to use (default: tool versions like bcftools-1.20)'
         required: false
-        default: 'latest'
+        default: 'alpine-3.18'
 
 env:
   REGISTRY: ghcr.io
@@ -53,7 +53,7 @@ jobs:
           elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             TAG="${{ github.event.inputs.tag }}"
           elif [[ "${{ github.ref }}" == "refs/heads/main" || "${{ github.ref }}" == "refs/heads/master" ]]; then
-            TAG="latest"
+            TAG="alpine-3.18"  # Base Alpine version tag
           else
             TAG="pr-${{ github.event.number }}"
           fi
@@ -87,6 +87,49 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set container-specific tool versions
+        id: tool-versions
+        run: |
+          # Set tool version tags based on container type
+          case "${{ matrix.container }}" in
+            "analysis")
+              PRIMARY_VERSION="bcftools-1.20"
+              ADDITIONAL_TAGS="python-3.11,r-4.3.0"
+              ;;
+            "imputation")
+              PRIMARY_VERSION="minimac4-4.1.6"
+              ADDITIONAL_TAGS="bcftools-1.20,vcftools-0.1.16"
+              ;;
+            "phasing")
+              PRIMARY_VERSION="eagle-2.4.1"
+              ADDITIONAL_TAGS="htslib-1.20"
+              ;;
+            "vcf-processing")
+              PRIMARY_VERSION="bcftools-1.20"
+              ADDITIONAL_TAGS="vcftools-0.1.16,htslib-1.20"
+              ;;
+            "eagle-phasing")
+              PRIMARY_VERSION="eagle-2.4.1"
+              ADDITIONAL_TAGS="htslib-1.20"
+              ;;
+            "minimac4")
+              PRIMARY_VERSION="minimac4-4.1.6"
+              ADDITIONAL_TAGS="alpine-3.18"
+              ;;
+            "plink2")
+              PRIMARY_VERSION="plink2-2.0.0"
+              ADDITIONAL_TAGS="alpine-3.18"
+              ;;
+            "all-in-one")
+              PRIMARY_VERSION="alpine-3.18"
+              ADDITIONAL_TAGS="bcftools-1.20,minimac4-4.1.6,eagle-2.4.1"
+              ;;
+          esac
+          
+          echo "primary_version=${PRIMARY_VERSION}" >> $GITHUB_OUTPUT
+          echo "additional_tags=${ADDITIONAL_TAGS}" >> $GITHUB_OUTPUT
+          echo "full_version=${PRIMARY_VERSION}-alpine" >> $GITHUB_OUTPUT
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -107,8 +150,8 @@ jobs:
             type=ref,event=branch
             type=ref,event=pr
             type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
+            type=raw,value=${{ steps.tool-versions.outputs.primary_version }},enable={{is_default_branch}}
+            type=raw,value=${{ steps.tool-versions.outputs.full_version }},enable={{is_default_branch}}
             type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value=${{ needs.prepare.outputs.tag }}
             type=schedule,pattern={{date 'YYYY-MM-DD'}}
@@ -160,9 +203,41 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set container tool versions for testing
+        id: tool-versions
+        run: |
+          # Set tool version tags based on container type (same as build job)
+          case "${{ matrix.container }}" in
+            "analysis")
+              PRIMARY_VERSION="bcftools-1.20"
+              ;;
+            "imputation")
+              PRIMARY_VERSION="minimac4-4.1.6"
+              ;;
+            "phasing")
+              PRIMARY_VERSION="eagle-2.4.1"
+              ;;
+            "vcf-processing")
+              PRIMARY_VERSION="bcftools-1.20"
+              ;;
+            "eagle-phasing")
+              PRIMARY_VERSION="eagle-2.4.1"
+              ;;
+            "minimac4")
+              PRIMARY_VERSION="minimac4-4.1.6"
+              ;;
+            "plink2")
+              PRIMARY_VERSION="plink2-2.0.0"
+              ;;
+            "all-in-one")
+              PRIMARY_VERSION="alpine-3.18"
+              ;;
+          esac
+          echo "primary_version=${PRIMARY_VERSION}" >> $GITHUB_OUTPUT
+
       - name: Test container
         run: |
-          CONTAINER_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.container }}:${{ needs.prepare.outputs.tag }}"
+          CONTAINER_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.container }}:${{ steps.tool-versions.outputs.primary_version }}"
           
           echo "Testing container: $CONTAINER_IMAGE"
           
@@ -240,7 +315,7 @@ jobs:
 
       - name: Test container size
         run: |
-          CONTAINER_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.container }}:${{ needs.prepare.outputs.tag }}"
+          CONTAINER_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.container }}:${{ steps.tool-versions.outputs.primary_version }}"
           SIZE=$(docker image inspect "$CONTAINER_IMAGE" --format='{{.Size}}')
           SIZE_MB=$((SIZE / 1024 / 1024))
           echo "📦 Container ${{ matrix.container }} size: ${SIZE_MB} MB"
@@ -290,10 +365,42 @@ jobs:
     name: Security scan ${{ matrix.container }}
     
     steps:
+      - name: Set container tool versions for security scan
+        id: tool-versions
+        run: |
+          # Set tool version tags based on container type (same as build job)
+          case "${{ matrix.container }}" in
+            "analysis")
+              PRIMARY_VERSION="bcftools-1.20"
+              ;;
+            "imputation")
+              PRIMARY_VERSION="minimac4-4.1.6"
+              ;;
+            "phasing")
+              PRIMARY_VERSION="eagle-2.4.1"
+              ;;
+            "vcf-processing")
+              PRIMARY_VERSION="bcftools-1.20"
+              ;;
+            "eagle-phasing")
+              PRIMARY_VERSION="eagle-2.4.1"
+              ;;
+            "minimac4")
+              PRIMARY_VERSION="minimac4-4.1.6"
+              ;;
+            "plink2")
+              PRIMARY_VERSION="plink2-2.0.0"
+              ;;
+            "all-in-one")
+              PRIMARY_VERSION="alpine-3.18"
+              ;;
+          esac
+          echo "primary_version=${PRIMARY_VERSION}" >> $GITHUB_OUTPUT
+
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.container }}:${{ needs.prepare.outputs.tag }}
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.container }}:${{ steps.tool-versions.outputs.primary_version }}
           format: 'sarif'
           output: 'trivy-results-${{ matrix.container }}.sarif'
 
@@ -338,7 +445,7 @@ jobs:
         run: |
           echo "## 🐳 Alpine Linux Container Build Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Tag:** \`${{ needs.prepare.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Tagging Strategy:** Tool versions (e.g., bcftools-1.20, minimac4-4.1.6)" >> $GITHUB_STEP_SUMMARY
           echo "**Registry:** \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Platform:** linux/amd64 (HPC optimized)" >> $GITHUB_STEP_SUMMARY
           echo "**Base OS:** Alpine Linux 3.18 (lightweight and secure)" >> $GITHUB_STEP_SUMMARY
@@ -350,12 +457,15 @@ jobs:
           TEST_STATUS="${{ needs.test-containers.result }}"
           
           if [[ "$BUILD_STATUS" == "success" ]]; then
-            echo "### ✅ Built Custom Containers:" >> $GITHUB_STEP_SUMMARY
-            
-            CONTAINERS='${{ needs.prepare.outputs.containers }}'
-            echo "$CONTAINERS" | jq -r '.[]' | while read container; do
-              echo "- ✅ \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${container}:${{ needs.prepare.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
-            done
+            echo "### ✅ Built Custom Containers with Tool Versions:" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/analysis:bcftools-1.20\` (BCFtools 1.20 + Python 3.11 + R 4.3.0)" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/imputation:minimac4-4.1.6\` (Minimac4 4.1.6 + BCFtools 1.20 + VCFtools 0.1.16)" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/phasing:eagle-2.4.1\` (Eagle 2.4.1 + HTSlib 1.20)" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/vcf-processing:bcftools-1.20\` (BCFtools 1.20 + VCFtools 0.1.16 + tabix)" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/eagle-phasing:eagle-2.4.1\` (Eagle 2.4.1 + HTSlib 1.20)" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/minimac4:minimac4-4.1.6\` (Minimac4 4.1.6)" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/plink2:plink2-2.0.0\` (PLINK2 2.0.0)" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/all-in-one:alpine-3.18\` (All tools on Alpine 3.18)" >> $GITHUB_STEP_SUMMARY
           else
             echo "### ❌ Custom Container Build Failed" >> $GITHUB_STEP_SUMMARY
           fi
