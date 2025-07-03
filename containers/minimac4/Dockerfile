@@ -1,5 +1,6 @@
 FROM alpine:3.18
 
+# Minimac4 v4.1.6 for genotype imputation
 LABEL maintainer="AfriGen-D <info@afrigen.org>"
 LABEL version="4.1.6"
 LABEL description="Minimac4 genotype imputation software container"
