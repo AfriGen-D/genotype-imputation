@@ -41,8 +41,8 @@ jobs:
       - name: Determine containers to build
         id: containers
         run: |
-          # Only build custom containers (not available externally)
-          CUSTOM_CONTAINERS='["eagle-phasing", "minimac4", "plink2", "all-in-one"]'
+          # Build all custom Alpine Linux containers
+          CUSTOM_CONTAINERS='["eagle-phasing", "minimac4", "plink2", "all-in-one", "analysis", "imputation", "phasing", "vcf-processing"]'
           echo "containers=${CUSTOM_CONTAINERS}" >> $GITHUB_OUTPUT
 
       - name: Determine tag
@@ -199,6 +199,41 @@ jobs:
                 echo 'All tools working!'
               "
               ;;
+            "analysis")
+              echo "Testing Analysis container..."
+              docker run --rm "$CONTAINER_IMAGE" bash -c "
+                echo 'Testing BCFtools...' && bcftools --version &&
+                echo 'Testing Python...' && python3 --version &&
+                echo 'Testing R...' && R --version | head -1 &&
+                echo 'Analysis tools working!'
+              "
+              ;;
+            "imputation")
+              echo "Testing Imputation container..."
+              docker run --rm "$CONTAINER_IMAGE" bash -c "
+                echo 'Testing Minimac4...' && minimac4 --help > /dev/null && echo 'Minimac4 OK' &&
+                echo 'Testing BCFtools...' && bcftools --version &&
+                echo 'Testing VCFtools...' && vcftools --version &&
+                echo 'Imputation tools working!'
+              "
+              ;;
+            "phasing")
+              echo "Testing Phasing container..."
+              docker run --rm "$CONTAINER_IMAGE" bash -c "
+                echo 'Testing Eagle...' && eagle --help > /dev/null && echo 'Eagle OK' &&
+                echo 'Testing tabix...' && tabix --help > /dev/null && echo 'tabix OK' &&
+                echo 'Phasing tools working!'
+              "
+              ;;
+            "vcf-processing")
+              echo "Testing VCF Processing container..."
+              docker run --rm "$CONTAINER_IMAGE" bash -c "
+                echo 'Testing BCFtools...' && bcftools --version &&
+                echo 'Testing VCFtools...' && vcftools --version &&
+                echo 'Testing tabix...' && tabix --help > /dev/null && echo 'tabix OK' &&
+                echo 'VCF processing tools working!'
+              "
+              ;;
           esac
           
           echo "✅ Container ${{ matrix.container }} passed basic tests"
@@ -210,7 +245,7 @@ jobs:
           SIZE_MB=$((SIZE / 1024 / 1024))
           echo "📦 Container ${{ matrix.container }} size: ${SIZE_MB} MB"
           
-          # Set reasonable size limits
+          # Set reasonable size limits (Alpine Linux containers are much smaller)
           case "${{ matrix.container }}" in
             "eagle-phasing")
               MAX_SIZE=400
@@ -223,6 +258,18 @@ jobs:
               ;;
             "all-in-one")
               MAX_SIZE=1500
+              ;;
+            "analysis")
+              MAX_SIZE=800  # Python + R + BCFtools
+              ;;
+            "imputation")
+              MAX_SIZE=600  # Minimac4 + BCFtools + VCFtools
+              ;;
+            "phasing")
+              MAX_SIZE=400  # Eagle + HTSlib
+              ;;
+            "vcf-processing")
+              MAX_SIZE=300  # BCFtools + VCFtools + tabix
               ;;
           esac
           
@@ -289,11 +336,12 @@ jobs:
     steps:
       - name: Build Summary
         run: |
-          echo "## 🐳 Custom Container Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## 🐳 Alpine Linux Container Build Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Tag:** \`${{ needs.prepare.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Registry:** \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Platform:** linux/amd64 (HPC optimized)" >> $GITHUB_STEP_SUMMARY
+          echo "**Base OS:** Alpine Linux 3.18 (lightweight and secure)" >> $GITHUB_STEP_SUMMARY
           echo "**Push to registry:** ${{ needs.prepare.outputs.should_push }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
