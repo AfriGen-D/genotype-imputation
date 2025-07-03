@@ -160,4 +160,17 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
-          sarif_file: 'trivy-results-${{ env.CONTAINER_NAME }}-${{ matrix.registry }}.sarif' 
+          sarif_file: 'trivy-results-${{ env.CONTAINER_NAME }}-${{ matrix.registry }}.sarif'
+
+  cleanup:
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Delete old workflow runs
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          retain_days: 30
+          keep_minimum_runs: 10 

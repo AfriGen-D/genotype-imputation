@@ -446,8 +446,21 @@ jobs:
             fi
           done
 
+  cleanup:
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Delete old workflow runs
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          retain_days: 30
+          keep_minimum_runs: 10
+
   summary:
-    needs: [prepare, build-custom, test-containers, check-external-containers]
+    needs: [prepare, build-custom, test-containers, check-external-containers, cleanup]
     runs-on: ubuntu-latest
     if: always()
     
