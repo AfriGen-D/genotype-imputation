@@ -13,4 +13,6 @@ Containers to build:
 - analysis:bcftools-1.20 (dedicated workflow)
 - plink2:plink2-2.0.0 (dedicated workflow)
 
-Status: TRIGGERING BUILD NOW 
+Status: TRIGGERING BUILD NOW - MANUAL RETRY
+
+Force trigger attempt #2 - updating trigger file to ensure workflow runs 
