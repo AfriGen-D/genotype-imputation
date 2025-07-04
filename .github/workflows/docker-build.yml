@@ -1,4 +1,4 @@
-name: Build Alpine Linux Containers with Tool Versions
+name: Build Genotype Imputation Containers
 
 on:
   push:
