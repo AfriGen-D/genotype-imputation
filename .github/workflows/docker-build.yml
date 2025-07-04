@@ -26,7 +26,8 @@ on:
 env:
   GHCR_REGISTRY: ghcr.io
   DOCKERHUB_REGISTRY: docker.io
-  IMAGE_PREFIX: ${{ github.repository_owner }}
+  GHCR_IMAGE_PREFIX: ${{ github.repository_owner }}
+  DOCKERHUB_IMAGE_PREFIX: ${{ secrets.DOCKERHUB_USERNAME }}
 
 jobs:
   prepare:
@@ -144,8 +145,8 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ env.GHCR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.container }}
-            ${{ env.DOCKERHUB_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.container }}
+            ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_PREFIX }}/${{ matrix.container }}
+            ${{ env.DOCKERHUB_REGISTRY }}/${{ env.DOCKERHUB_IMAGE_PREFIX }}/${{ matrix.container }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -185,7 +186,7 @@ jobs:
         if: needs.prepare.outputs.should_push == 'true'
         uses: actions/attest-build-provenance@v1
         with:
-          subject-name: ${{ env.GHCR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.container }}
+          subject-name: ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_PREFIX }}/${{ matrix.container }}
           subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
 
@@ -193,7 +194,7 @@ jobs:
         if: needs.prepare.outputs.should_push == 'true'
         uses: actions/attest-build-provenance@v1
         with:
-          subject-name: ${{ env.DOCKERHUB_REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.container }}
+          subject-name: ${{ env.DOCKERHUB_REGISTRY }}/${{ env.DOCKERHUB_IMAGE_PREFIX }}/${{ matrix.container }}
           subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
 
@@ -432,7 +433,7 @@ jobs:
           echo "## 🐳 Alpine Linux Container Build Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Tagging Strategy:** Tool versions (e.g., bcftools-1.20, minimac4-4.1.6)" >> $GITHUB_STEP_SUMMARY
-          echo "**Registry:** \`${{ env.GHCR_REGISTRY }}/${{ env.IMAGE_PREFIX }}\` and \`${{ env.DOCKERHUB_REGISTRY }}/${{ env.IMAGE_PREFIX }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Registry:** \`${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_PREFIX }}\` and \`${{ env.DOCKERHUB_REGISTRY }}/${{ env.DOCKERHUB_IMAGE_PREFIX }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Platform:** linux/amd64 (HPC optimized)" >> $GITHUB_STEP_SUMMARY
           echo "**Base OS:** Alpine Linux 3.18 (lightweight and secure)" >> $GITHUB_STEP_SUMMARY
           echo "**Push to registry:** ${{ needs.prepare.outputs.should_push }}" >> $GITHUB_STEP_SUMMARY
@@ -468,8 +469,8 @@ jobs:
           
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🐳 How to Use:" >> $GITHUB_STEP_SUMMARY
-          echo "**GitHub Container Registry:** \`docker pull ghcr.io/${{ env.IMAGE_PREFIX }}/CONTAINER:TAG\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Docker Hub:** \`docker pull ${{ env.IMAGE_PREFIX }}/CONTAINER:TAG\`" >> $GITHUB_STEP_SUMMARY
+          echo "**GitHub Container Registry:** \`docker pull ghcr.io/${{ env.GHCR_IMAGE_PREFIX }}/CONTAINER:TAG\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Docker Hub:** \`docker pull ${{ env.DOCKERHUB_IMAGE_PREFIX }}/CONTAINER:TAG\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### ✅ Build Completed Successfully" >> $GITHUB_STEP_SUMMARY
           echo "All containers built successfully and pushed to both registries. Tests and security scans are temporarily disabled for faster builds." >> $GITHUB_STEP_SUMMARY
