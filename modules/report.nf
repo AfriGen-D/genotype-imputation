@@ -140,6 +140,7 @@ process generate_frequency {
     tag "frq_${target_name}_${ref_name}"
     publishDir "${params.outDir}/frqs/${ref_name}", overwrite: true, mode:'copy', pattern: '*frq'
     label "medium"
+    label "bcftools"
     input:
         tuple val(target_name), val(ref_name), file(impute_vcf),  file(ref_vcf)
     output:

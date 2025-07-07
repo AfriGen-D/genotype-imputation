@@ -46,61 +46,90 @@ services:
     profiles: ["existing", "all"]
 
   # ========================================
-  # CUSTOM CONTAINERS (Build Locally)
+  # OPTIMIZED CONTAINERS (Pull from Docker Hub)
   # ========================================
 
-  # Eagle phasing
+  # Eagle phasing (Alpine-based, lightweight)
   eagle-phasing:
-    build:
-      context: ./eagle-phasing
-      dockerfile: Dockerfile
-    image: ghcr.io/afrigen-d/eagle-phasing:latest
+    image: mamana/eagle-phasing:eagle-2.4.1
     volumes:
       - ./data:/data
       - ./input:/input
       - ./output:/output
     working_dir: /data
-    profiles: ["custom", "all"]
+    profiles: ["production", "all"]
 
-  # Minimac4 imputation
+  # Minimac4 imputation (Alpine-based, lightweight)
   minimac4:
-    build:
-      context: ./minimac4
-      dockerfile: Dockerfile
-    image: ghcr.io/afrigen-d/minimac4:latest
+    image: mamana/minimac4:minimac4-4.1.6
     volumes:
       - ./data:/data
       - ./input:/input
       - ./output:/output
     working_dir: /data
-    profiles: ["custom", "all"]
+    profiles: ["production", "all"]
 
-  # PLINK 2.0
-  plink2:
-    build:
-      context: ./plink2
-      dockerfile: Dockerfile
-    image: ghcr.io/afrigen-d/plink2:latest
+  # VCF processing tools (BCFtools, VCFtools, tabix)
+  vcf-processing:
+    image: mamana/vcf-processing:bcftools-1.20
     volumes:
       - ./data:/data
       - ./input:/input
       - ./output:/output
     working_dir: /data
-    profiles: ["custom", "all"]
+    profiles: ["production", "all"]
 
-  # All-in-one container (includes everything)
-  all-in-one:
-    build:
-      context: ./all-in-one
-      dockerfile: Dockerfile
-    image: ghcr.io/afrigen-d/genotype-imputation:latest
+  # Comprehensive imputation workflow
+  imputation:
+    image: mamana/imputation:minimac4-4.1.6
     volumes:
       - ./data:/data
       - ./input:/input
       - ./output:/output
       - ./scripts:/scripts
     working_dir: /data
-    profiles: ["custom", "all"]
+    profiles: ["production", "all"]
+
+  # Comprehensive phasing workflow
+  phasing:
+    image: mamana/phasing:eagle-2.4.1
+    volumes:
+      - ./data:/data
+      - ./input:/input
+      - ./output:/output
+    working_dir: /data
+    profiles: ["production", "all"]
+
+  # ========================================
+  # LEGACY CONTAINERS (For backwards compatibility)
+  # ========================================
+
+  # PLINK 2.0 (if needed for specific analyses)
+  plink2:
+    build:
+      context: ./plink2
+      dockerfile: Dockerfile
+    image: mamana/plink2:plink2-2.0.0
+    volumes:
+      - ./data:/data
+      - ./input:/input
+      - ./output:/output
+    working_dir: /data
+    profiles: ["legacy", "all"]
+
+  # All-in-one container (comprehensive but larger)
+  all-in-one:
+    build:
+      context: ./all-in-one
+      dockerfile: Dockerfile
+    image: mamana/genotype-imputation:alpine-3.18
+    volumes:
+      - ./data:/data
+      - ./input:/input
+      - ./output:/output
+      - ./scripts:/scripts
+    working_dir: /data
+    profiles: ["legacy", "all"]
 
 # Named volumes for persistent data
 volumes:

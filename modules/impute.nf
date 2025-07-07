@@ -26,6 +26,7 @@ if (params.help){
 process impute_minimac4 {
     tag "imp_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${ref_name}_${tagName}"
     label "bigmem"
+    label "impute_minimac4"
     publishDir "${params.outDir}/imputed/${ref_name}/${target_name}", overwrite: true, mode:'copy'
 
     input:
@@ -51,6 +52,7 @@ process impute5 {
     tag "imp_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${ref_name}_${tagName}"
     publishDir "${params.outDir}/imputed/impute5/${ref_name}", overwrite: true, mode:'copy', pattern: '*vcf.gz'
     label "bigmem_impute5"
+    label "impute_minimac4"
     input:
         tuple val(chrm), val(chunk_start), val(chunk_end), val(target_name), file(target_phased_vcf), file(target_phased_vcf_tbi), val(ref_name), file(ref_vcf), file(ref_imp5), file(ref_imp5_idx), val(tagName), file(impute5_genetic_map)
     output:
@@ -70,6 +72,7 @@ process impute5 {
 process generate_impute5_info {
     tag "imp_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${ref_name}"
     publishDir "${params.outDir}/imputed/impute5/${ref_name}", overwrite: true, mode:'copy'
+    label "bcftools"
     input:
         tuple val(chrm), val(chunk_start), val(chunk_end), val(target_name), val(ref_name), file(impute5_out)
     output:
@@ -89,6 +92,7 @@ process generate_impute5_info {
 process impute_minimac4_1 {
     tag "imp_${target_name1}_${chrm1}:${chunk_start1}-${chunk_end1}_${ref_name1}_${tagName1}"
     label "bigmem"
+    label "impute_minimac4"
     input:
         tuple val(chrm1), val(chunk_start1), val(chunk_end1), val(target_name1), file(target_phased_vcf1), val(ref_name1), file(ref_vcf1), file(ref_m3vcf1), val(tagName1)
     output:
@@ -124,6 +128,7 @@ process combineImpute {
     tag "impComb_${target_name}_${ref_name}_${chrm}"
     publishDir "${params.outDir}/imputed/${ref_name}/${target_name}", overwrite: true, mode:'copy', pattern: '*imputed.vcf.gz'
     label "bigmem"
+    label "bcftools"
     
     input:
         tuple val(target_name), val(ref_name), val(chrm), val(imputed_files)

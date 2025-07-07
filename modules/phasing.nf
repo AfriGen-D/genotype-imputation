@@ -26,6 +26,7 @@ if (params.help){
 process minimac4_phasing_eagle {
     tag "phase_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${ref_name}_${tagName}"
     label "verylarge"
+    label "phasing_eagle"
     input:
         tuple val(chrm), val(ref_name), file(ref_m3vcf), file(ref_vcf), file(ref_vcf_idx), file(eagle_genetic_map), val(chunk_start), val(chunk_end), val(target_name), val(tagName), file(target_vcf_chunk)
     output:
@@ -54,6 +55,7 @@ process minimac4_phasing_eagle {
 process impute5_phasing_eagle {
     tag "phase_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${ref_name}_${tagName}"
     label "verylarge"
+    label "phasing_eagle"
     input:
         tuple val(chrm), val(ref_name), file(ref_m3vcf), file(imp5_idx), file(ref_vcf), file(ref_vcf_idx), file(eagle_genetic_map), val(chunk_start), val(chunk_end), val(target_name), val(tagName), file(target_vcf_chunk)
     output:
@@ -83,6 +85,7 @@ process phasing_vcf_no_ref_chunk {
     tag "phase_${dataset}_${chrm}_${start}_${end}"
     // publishDir "${params.outdir}/${dataset}/vcfs_phased", overwrite: true, mode:'copy'
     label "bigmem10"
+    label "phasing_eagle"
 
     input:
         tuple val(dataset), val(chrm), val(start), val(end), file(dataset_vcf), file(eagle_genetic_map)

@@ -92,6 +92,7 @@ def get_chromosome_vcf(vcf){
  */
 process check_chromosome {
     tag "check_chromosome_${target}"
+    label "bcftools"
     input:
         tuple val(target), file(target_vcf)
     output:
@@ -107,6 +108,7 @@ process check_chromosome {
 process get_chromosome {
     tag "get_chromosome_${dataset}"
     label "bigmem1"
+    label "bcftools"
 
     input:
         tuple val(dataset), file(dataset_vcf)
@@ -123,6 +125,7 @@ process get_chromosome {
 process split_vcf_chromosome {
     tag "split_vcf_chrm_${dataset}"
     label "bigmem1"
+    label "bcftools"
 
     input:
         tuple val(dataset), file(dataset_vcf)
@@ -146,6 +149,7 @@ process split_vcf_chromosome {
 process split_vcf_chunk {
     tag "split_vcf_${dataset}_${chunk_size}"
     label "bigmem1"
+    label "bcftools"
 
     input:
         tuple val(dataset), file(dataset_vcf), val(chunk_size)
@@ -168,6 +172,7 @@ process split_vcf_chunk {
 process check_mismatch {
     tag "check_mismatch_${target}_${chrm}_${start}_${end}"
     label "medium"
+    label "bcftools"
     
     input:
         tuple val(target), val(chrm), val(start), val(end), file(target_vcf), file(reference_genome)
@@ -200,6 +205,7 @@ def no_mismatch(target_name, warn, summary){
 process target_qc {
     tag "target_qc_${target_name}"
     label "bigmem"
+    label "bcftools"
 
     input:
         tuple val(target_name), val(chrm), val(start), val(end), file(target_vcf)
@@ -217,6 +223,7 @@ process target_qc {
 process qc_dupl {
     tag "dupl_qc_${dataset}_${chrm}_${start}_${end}"
     label "bigmem"
+    label "bcftools"
 
     input:
         tuple val(dataset), val(chrm), val(start), val(end), file(dataset_vcf)
@@ -235,6 +242,7 @@ process qc_dupl {
 process split_multi_allelic {
     tag "split_multi_${dataset}_${chrm}_${start}_${end}"
     label "bigmem"
+    label "bcftools"
 
     input:
         tuple val(dataset), val(chrm), val(start), val(end), file(vcf)
@@ -252,6 +260,7 @@ process split_multi_allelic {
 process fill_tags_vcf {
     tag "fill_tags_${dataset}_${chrm}"
     label "bigmem"
+    label "bcftools"
 
     input:
         tuple val(dataset), val(chrm), val(start), val(end), file(vcf)
@@ -268,6 +277,7 @@ process fill_tags_vcf {
 process filter_min_ac {
     tag "min_ac_${dataset}_${chrm}_${start}_${end}"
     label "bigmem"
+    label "bcftools"
 
     input:
         tuple val(dataset), val(chrm), val(start), val(end), file(vcf), val(params)
@@ -290,6 +300,7 @@ process filter_min_ac {
 process qc_site_missingness {
     tag "site_missingness_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${ref_name}_${tagName}"
     label "bigmem"
+    label "bcftools"
 
     input:
         tuple val(chrm), val(chunk_start), val(chunk_end), val(target_name), val(ref_name), file(impute_vcf), file(imputed_info), val(tagName), val(qc_params)
@@ -307,6 +318,7 @@ process qc_site_missingness {
 process sites_only {
     tag "sites_only_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${ref_name}_${tagName}"
     label "bigmem"
+    label "bcftools"
 
     input:
         tuple val(chrm), val(chunk_start), val(chunk_end), val(target_name), val(ref_name), file(impute_vcf_qc), file(imputed_info), val(tagName)
@@ -315,7 +327,7 @@ process sites_only {
         tuple val(chrm), val(chunk_start), val(chunk_end), val(target_name), val(ref_name), file(sites_vcf), file(imputed_info), val(tagName)
 
     script:
-        base = base = file(impute_vcf_qc.baseName).baseName
+        base = file(impute_vcf_qc.baseName).baseName
         sites_vcf = "${base}_sites.vcf.gz"
         """
         tabix ${impute_vcf_qc}
@@ -328,6 +340,7 @@ process combine_vcfs_chrm {
    tag "combine_${chrm}_${target_name}_${ref_name}_${tagName}"
    publishDir "${params.outDir}/imputed/vcfs/${ref_name}/all/${target_name}/${tagName}", overwrite: true, mode:'copy', pattern: '*vcf.gz*'
    label "bigmem"
+   label "bcftools"
    
    input:
        tuple val(chrm), val(target_name), val(ref_name), val(tagName), val(vcfs)
@@ -354,6 +367,7 @@ process combine_vcfs_chrm {
 process combine_vcfs {
    tag "combine_${dataset}_${ref_name}"
    label "bigmem"
+   label "bcftools"
    
    input:
        tuple val(dataset), val(ref_name), val(vcfs)

@@ -1,252 +1,264 @@
-# Genotype Imputation Containers
+# Container Architecture for Genotype Imputation Pipeline
 
-This directory contains Docker containers optimized for genotype imputation workflows, leveraging existing containers where possible and only building custom containers for missing tools.
+## Overview
 
-## 🐳 Container Architecture
+This pipeline uses a modular container architecture with specialized containers for different tools and workflows. The containers are available on Docker Hub for easy access and optimal performance.
 
-### Existing Containers (Ready to Use)
-- **BCFtools/SAMtools/HTSlib**: `ghcr.io/wtsi-npg/samtools:latest`
-- **VCFtools**: `quay.io/biocontainers/vcftools:latest`
-- **Python Environment**: `python:3.11-slim`
-- **R Environment**: `bioconductor/bioconductor_docker:latest`
+## Container Registry
 
-### Custom Containers (We Build)
-- **Eagle Phasing**: `ghcr.io/afrigen-d/eagle-phasing:latest`
-- **Minimac4**: `ghcr.io/afrigen-d/minimac4:latest`
-- **PLINK 2.0**: `ghcr.io/afrigen-d/plink2:latest`
-- **All-in-One**: `ghcr.io/afrigen-d/genotype-imputation:latest`
+All containers are available on Docker Hub under the `mamana` organization:
+- **Registry**: `docker.io/mamana/`
+- **Alternative**: `ghcr.io/afrigen-d/` (GitHub Container Registry)
 
-## 🔧 Usage Examples
+## Container Catalog
 
-### Using Existing Containers
+### 🔧 Core Tool Containers
+
+#### 1. Minimac4 Imputation
 ```bash
-# VCF processing with BCFtools
-docker run --rm -v $(pwd):/data ghcr.io/wtsi-npg/samtools:latest \
-  bcftools view -H /data/input.vcf.gz | wc -l
-
-# VCF filtering with VCFtools
-docker run --rm -v $(pwd):/data quay.io/biocontainers/vcftools:latest \
-  vcftools --gzvcf /data/input.vcf.gz --maf 0.05 --recode --stdout
+docker pull mamana/minimac4:minimac4-4.1.6
 ```
+- **Purpose**: Genotype imputation using Minimac4
+- **Tools**: Minimac4 4.1.6
+- **Base**: Alpine Linux 3.18
+- **Size**: ~300MB
 
-### Using Custom Containers
+#### 2. Eagle Phasing
 ```bash
-# Eagle phasing
-docker run --rm -v $(pwd):/data ghcr.io/afrigen-d/eagle-phasing:latest \
-  eagle --vcf=/data/input.vcf.gz --geneticMap=/data/genetic_map.txt
-
-# Minimac4 imputation
-docker run --rm -v $(pwd):/data ghcr.io/afrigen-d/minimac4:latest \
-  minimac4 --refHaps /data/reference.m3vcf.gz --haps /data/target.vcf.gz
+docker pull mamana/eagle-phasing:eagle-2.4.1
 ```
+- **Purpose**: Haplotype phasing using Eagle
+- **Tools**: Eagle 2.4.1, HTSlib 1.20
+- **Base**: Alpine Linux 3.18
+- **Size**: ~280MB
 
-## 📊 Container Comparison
-
-| Container | Size | Build Time | Use Case |
-|-----------|------|------------|----------|
-| WTSI Samtools | ~200MB | 0min (pull) | VCF processing |
-| BioContainers VCFtools | ~150MB | 0min (pull) | VCF analysis |
-| Custom Eagle | ~300MB | 15min | Phasing |
-| Custom Minimac4 | ~250MB | 20min | Imputation |
-| Custom All-in-One | ~800MB | 35min | Complete workflow |
-
-## 🚀 Quick Start
-
-### 1. Use Docker Compose
+#### 3. VCF Processing
 ```bash
-# Start all services
-docker-compose up -d
-
-# Run specific workflow
-docker-compose run --rm eagle-phasing \
-  eagle --vcf=/data/input.vcf.gz --out=/data/phased
+docker pull mamana/vcf-processing:bcftools-1.20
 ```
+- **Purpose**: VCF file processing and quality control
+- **Tools**: BCFtools 1.20, VCFtools 0.1.16, tabix, HTSlib 1.20
+- **Base**: Alpine Linux 3.18
+- **Size**: ~250MB
 
-### 2. Build Custom Containers Only
+### 🚀 Workflow Containers
+
+#### 4. Comprehensive Imputation
 ```bash
-# Build only what we need
-./build-custom.sh
-
-# Or build specific container
-docker build -t genotype-imputation/eagle-phasing eagle-phasing/
+docker pull mamana/imputation:minimac4-4.1.6
 ```
+- **Purpose**: Complete imputation workflow
+- **Tools**: Minimac4 4.1.6, BCFtools 1.20, VCFtools 0.1.16, tabix
+- **Base**: Alpine Linux 3.18
+- **Size**: ~450MB
 
-### 3. Building on Ubuntu VM (Recommended for x86_64)
+#### 5. Comprehensive Phasing
 ```bash
-# Clone your repository
-git clone https://github.com/YourUsername/genotype-imputation.git
-cd genotype-imputation/containers
-
-# Build all custom containers
-./build-custom.sh
-
-# Or build individual containers
-docker build -t eagle-phasing:latest ./eagle-phasing
-docker build -t minimac4:latest ./minimac4
-docker build -t plink2:latest ./plink2
-docker build -t all-in-one:latest ./all-in-one
-
-# Test with docker-compose
-docker-compose --profile custom up -d
+docker pull mamana/phasing:eagle-2.4.1
 ```
+- **Purpose**: Complete phasing workflow
+- **Tools**: Eagle 2.4.1, HTSlib 1.20, tabix
+- **Base**: Alpine Linux 3.18
+- **Size**: ~350MB
 
-### 3. Use in Nextflow
+## Usage in Nextflow
+
+### Process-Specific Container Assignment
+
+The pipeline automatically assigns the appropriate container based on the process:
+
 ```nextflow
-process EAGLE_PHASING {
-    container 'ghcr.io/afrigen-d/eagle-phasing:latest'
-    
-    input:
-    path vcf
-    
-    output:
-    path "*.phased.vcf.gz"
-    
-    script:
-    """
-    eagle --vcf=${vcf} --geneticMap=genetic_map.txt --outPrefix=phased
-    """
+// Minimac4 imputation processes
+withName: 'impute_minimac4' {
+  container = 'mamana/minimac4:minimac4-4.1.6'
+}
+
+// Eagle phasing processes
+withName: 'minimac4_phasing_eagle' {
+  container = 'mamana/eagle-phasing:eagle-2.4.1'
+}
+
+// VCF processing and QC
+withName: 'check_chromosome' {
+  container = 'mamana/vcf-processing:bcftools-1.20'
 }
 ```
 
-## 🔄 Migration from Monolithic
+### Docker Compose Profiles
 
-If migrating from the original monolithic container:
-1. **VCF Processing**: Replace with `ghcr.io/wtsi-npg/samtools:latest`
-2. **VCF Analysis**: Replace with `quay.io/biocontainers/vcftools:latest`
-3. **Phasing**: Use new `ghcr.io/afrigen-d/eagle-phasing:latest`
-4. **Imputation**: Use new `ghcr.io/afrigen-d/minimac4:latest`
-
-## 🏗️ Development
-
-### Adding New Tools
-1. Check if container already exists in:
-   - [BioContainers](https://biocontainers.pro)
-   - [WTSI Containers](https://github.com/wtsi-npg)
-   - [Docker Hub](https://hub.docker.com)
-2. If not available, create new container in appropriate directory
-3. Update CI/CD pipeline to build new container
-
-### Testing
-```bash
-# Test existing containers
-./test-existing.sh
-
-# Test custom containers
-./test-custom.sh
-
-# Run full integration test
-./test-integration.sh
-```
-
-## 📈 Performance Benefits
-
-Using existing containers provides:
-- **Faster deployment**: No compilation time for existing tools
-- **Smaller total size**: Avoid duplicate dependencies
-- **Better maintenance**: Upstream updates handled by maintainers
-- **Proven stability**: Widely tested containers
-
-## 🔧 Recent Improvements
-
-### Fixed Ubuntu Repository Issues
-The containers have been updated to resolve widespread Ubuntu repository hash sum mismatches:
-- **Root Cause**: Ubuntu 20.04 and 22.04 repositories experiencing hash verification failures
-- **Solution**: Migrated to stable Alpine Linux 3.19 base images
-- **Impact**: Containers now build reliably without package installation failures
-
-### Architecture Compatibility
-- **Target Platform**: linux/amd64 for HPC compatibility
-- **Build Environment**: Optimized for Ubuntu VM deployment
-- **Cross-platform**: Works on both x86_64 and ARM64 hosts (via emulation)
-
-### Container Optimizations
-- **Size Reduction**: Alpine-based containers are 60-80% smaller than Ubuntu equivalents
-- **Build Time**: Faster builds due to smaller base images
-- **Security**: Minimal attack surface with Alpine's security-focused design
-- **Tool Versions**: Updated to latest stable versions of all bioinformatics tools
-
-### What's Changed
-```bash
-# Previous (Ubuntu-based, broken)
-FROM ubuntu:20.04  # ❌ Hash sum mismatch errors
-RUN apt-get update && apt-get install -y bcftools  # ❌ Fails to install
-
-# Current (Alpine-based, working)
-FROM alpine:3.19   # ✅ Stable, secure, lightweight
-RUN apk add --no-cache bcftools  # ✅ Reliable installation
-```
-
-### Build Script Improvements
-- **Parallel Building**: Build multiple containers simultaneously
-- **Error Handling**: Comprehensive error reporting and recovery
-- **Platform Support**: Automatic platform detection and optimization
-- **External Container Check**: Verify availability of upstream containers
-
-## 🛠️ Troubleshooting
-
-### Architecture Issues
-
-**Problem**: `rosetta error: failed to open elf at /lib64/ld-linux-x86-64.so.2`
-**Solution**: You're running x86_64 containers on Apple Silicon (ARM64)
+Use Docker Compose for local development and testing:
 
 ```bash
-# Option 1: Build for your native architecture
-docker build --platform linux/arm64 -t eagle-phasing:arm64 ./eagle-phasing
+# Production containers (optimized, lightweight)
+docker-compose --profile production up
 
-# Option 2: Use Ubuntu VM for x86_64 builds (recommended)
-# The containers are optimized for linux/amd64 (HPC environments)
+# All containers (including legacy)
+docker-compose --profile all up
+
+# Specific service
+docker-compose up imputation
 ```
 
-### Permission Issues
+## Performance Optimizations
 
-**Problem**: `Permission denied` when pushing to GitHub
-**Solution**: 
-1. Fork the repository: https://github.com/AfriGen-D/genotype-imputation
-2. Update your remote: `git remote set-url origin https://github.com/YourUsername/genotype-imputation.git`
-3. Push: `git push origin master`
+### 🏔️ Alpine Linux Base
+- **Smaller size**: 40-60% smaller than Ubuntu-based containers
+- **Faster startup**: Reduced image pull and container start time
+- **Security**: Minimal attack surface with musl libc
 
-### Container Build Failures
+### 🔧 Tool-Specific Containers
+- **Targeted**: Only includes necessary tools for specific processes
+- **Efficient**: No unnecessary dependencies
+- **Reliable**: Fewer conflicts between tools
 
-**Problem**: Package installation fails with hash sum mismatch
-**Solution**: The containers now use Alpine Linux to avoid Ubuntu repository issues
+### 🚀 Multi-Stage Builds
+- **Optimized**: Only runtime dependencies in final image
+- **Smaller**: Build tools removed from final container
+- **Cached**: Intermediate stages cached for faster rebuilds
 
-**Problem**: Tool not found after container build
-**Solution**: 
+## Container Mapping
+
+| Process Category | Container | Tools Included |
+|------------------|-----------|----------------|
+| **Imputation** | `mamana/minimac4:minimac4-4.1.6` | Minimac4 4.1.6 |
+| **Phasing** | `mamana/eagle-phasing:eagle-2.4.1` | Eagle 2.4.1, HTSlib 1.20 |
+| **VCF Processing** | `mamana/vcf-processing:bcftools-1.20` | BCFtools 1.20, VCFtools 0.1.16, tabix |
+| **Quality Control** | `mamana/vcf-processing:bcftools-1.20` | BCFtools 1.20, VCFtools 0.1.16 |
+| **File Operations** | `mamana/vcf-processing:bcftools-1.20` | BCFtools 1.20, tabix |
+| **Comprehensive** | `mamana/imputation:minimac4-4.1.6` | All imputation tools |
+
+## Running the Pipeline
+
+### Option 1: Docker Profile
 ```bash
-# Check if binary exists
-docker run --rm container-name which tool-name
-
-# Check container contents
-docker run --rm -it container-name sh
+nextflow run h3abionet/chipimputation -profile docker
 ```
 
-### Docker Compose Issues
-
-**Problem**: `image not found` errors
-**Solution**: 
+### Option 2: Singularity Profile
 ```bash
-# Build custom containers first
-./build-custom.sh
-
-# Or pull existing containers
-docker-compose pull
-
-# Use specific profile
-docker-compose --profile custom up -d
+nextflow run h3abionet/chipimputation -profile singularity
 ```
 
-## 🤝 Contributing
+### Option 3: Custom Container
+```bash
+nextflow run h3abionet/chipimputation \
+  --container mamana/imputation:minimac4-4.1.6 \
+  -profile docker
+```
 
-When contributing new containers:
-1. First check if tool already exists in container registries
-2. If building custom, optimize for size and build time
-3. Use multi-stage builds where possible
-4. Include comprehensive tests
-5. Document usage examples
+## Migration from Legacy Containers
 
-## 📚 References
+### Old Container References
+```bash
+# OLD (deprecated)
+quay.io/h3abionet_org/imputation_tools
+quay.io/mypandos/impute5:latest
+```
 
-- [WTSI Samtools Container](https://github.com/wtsi-npg/samtools_container)
-- [BioContainers Registry](https://biocontainers.pro)
-- [Eagle Phasing Documentation](https://alkesgroup.broadinstitute.org/Eagle/)
-- [Minimac4 Documentation](https://genome.sph.umich.edu/wiki/Minimac4) 
+### New Container References
+```bash
+# NEW (recommended)
+mamana/imputation:minimac4-4.1.6          # Comprehensive imputation
+mamana/minimac4:minimac4-4.1.6           # Minimac4 only
+mamana/eagle-phasing:eagle-2.4.1         # Eagle phasing
+mamana/vcf-processing:bcftools-1.20      # VCF processing
+mamana/phasing:eagle-2.4.1              # Comprehensive phasing
+```
+
+## Advanced Usage
+
+### Manual Container Pull
+```bash
+# Pull all containers
+docker pull mamana/minimac4:minimac4-4.1.6
+docker pull mamana/eagle-phasing:eagle-2.4.1
+docker pull mamana/imputation:minimac4-4.1.6
+docker pull mamana/phasing:eagle-2.4.1
+docker pull mamana/vcf-processing:bcftools-1.20
+```
+
+### Container Testing
+```bash
+# Test Minimac4 container
+docker run --rm mamana/minimac4:minimac4-4.1.6 minimac4 --help
+
+# Test Eagle container
+docker run --rm mamana/eagle-phasing:eagle-2.4.1 eagle --help
+
+# Test VCF processing
+docker run --rm mamana/vcf-processing:bcftools-1.20 bcftools --version
+```
+
+### Development with Docker Compose
+```bash
+# Start development environment
+docker-compose --profile production up -d
+
+# Run analysis interactively
+docker-compose exec imputation bash
+
+# View logs
+docker-compose logs -f imputation
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Container Not Found**
+   ```bash
+   # Ensure you're using the correct registry
+   docker pull mamana/minimac4:minimac4-4.1.6
+   ```
+
+2. **Permission Issues**
+   ```bash
+   # Run with proper user mapping
+   docker run --rm -u $(id -u):$(id -g) mamana/minimac4:minimac4-4.1.6
+   ```
+
+3. **Memory Issues**
+   ```bash
+   # Increase Docker memory limit
+   docker run --rm -m 8g mamana/imputation:minimac4-4.1.6
+   ```
+
+### Performance Tips
+
+1. **Use SSD storage** for Docker volumes
+2. **Increase Docker memory** allocation (8GB+ recommended)
+3. **Use local registry** for frequently used containers
+4. **Enable BuildKit** for faster builds:
+   ```bash
+   export DOCKER_BUILDKIT=1
+   ```
+
+## Container Maintenance
+
+### Updating Containers
+```bash
+# Pull latest versions
+docker pull mamana/minimac4:minimac4-4.1.6
+docker pull mamana/eagle-phasing:eagle-2.4.1
+docker pull mamana/vcf-processing:bcftools-1.20
+
+# Clean up old images
+docker image prune -f
+```
+
+### Security Scanning
+```bash
+# Scan for vulnerabilities
+docker scan mamana/minimac4:minimac4-4.1.6
+```
+
+## Support
+
+For container-related issues:
+- Check the [GitHub Issues](https://github.com/h3abionet/chipimputation/issues)
+- Review the [Docker Hub repositories](https://hub.docker.com/u/mamana)
+- Contact the maintainers via [AfriGen-D](mailto:info@afrigen.org)
+
+---
+
+**Note**: This container architecture is optimized for HPC environments and standard x86_64 systems. ARM64 support is not currently available. 

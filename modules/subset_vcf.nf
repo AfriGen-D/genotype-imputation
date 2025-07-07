@@ -26,6 +26,7 @@ if (params.help){
 process extract_site_from_vcf {
     tag "extract_site_${target_name}_${site_name}"
     label "bigmem"
+    label "bcftools"
 
     input:
         tuple val(target_name), val(chrm), val(start), val(end), file(target_vcf), val(site_name), file(site_file)
@@ -43,6 +44,7 @@ process extract_site_from_vcf {
 process sort_vcf {
     tag "sort_${target_name}"
     label "bigmem"
+    label "bcftools"
 
     input:
         tuple val(target_name), val(chrm), val(start), val(end), file(target_vcf), val(site_name), file(site_file)
@@ -59,6 +61,7 @@ process sort_vcf {
 process fill_tags_VCF {
     tag "fill_tags_${dataset}_${chrm}"
     label "bigmem"
+    label "bcftools"
 
     input:
         tuple val(dataset), file(vcf), val(chrm)
@@ -76,6 +79,7 @@ process fill_tags_VCF {
 process vcf_freq {
     tag "freq_${dataset}_${chrm}"
     label "bigmem"
+    label "bcftools"
 
     input:
         tuple val(dataset), file(vcf), val(chrm)
@@ -95,6 +99,7 @@ process vcf_freq {
 process vcf_map {
     tag "map_${target_name}"
     label "bigmem"
+    label "bcftools"
 
     input:
         tuple val(target_name), val(chrm), val(start), val(end), file(target_vcf), val(site_name), file(site_file)
@@ -113,6 +118,7 @@ process vcf_map {
 process vcf_map_simple {
     tag "map_${target_name}"
     label "bigmem"
+    label "bcftools"
 
     input:
         tuple val(target_name), val(chrm), val(start), val(end), file(target_vcf), val(site_name), file(site_file)
@@ -146,6 +152,7 @@ process info_freq {
 process get_vcf_sites {
     tag "get_sites_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${tagName}"
     label "bigmem"
+    label "bcftools"
 
     input:
         tuple val(chrm), val(chunk_start), val(chunk_end), val(target_name), val(ref_name), file(target_vcf), val(tagName)
@@ -196,6 +203,7 @@ process generate_chunks_vcf {
 process split_target_to_chunk {
     tag "split_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${tagName}"
     label "bigmem"
+    label "bcftools"
     maxForks 30
 
     input:
@@ -219,6 +227,7 @@ process extract_pop {
     tag "extract_pop_vcf_${target_name}_${chrm}_${ref_name}"
     // publishDir "${params.outDir}/imputed/vcfs/${ref_name}/${prefix}/${target_name}", overwrite: true, mode:'link', pattern: '*vcf.gz*'
     label "bigmem"
+    label "bcftools"
 
     input:
         tuple val(chrm), val(target_name), val(ref_name), val(tagName), file(vcf), file(vcf_tbi), file(sample_to_extract), val(prefix)
