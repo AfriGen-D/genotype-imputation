@@ -24,7 +24,7 @@ RUN wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 \
 # Production stage
 FROM alpine:3.19
 
-LABEL maintainer="AfriGen-D Consortium"
+LABEL maintainer="AfriGen-D <info@afrigen.org>"
 LABEL version="2.4.1"
 LABEL org.opencontainers.image.description="Eagle v2.4.1 haplotype phasing + VCF processing toolkit. Alpine Linux based container with Eagle, BCFtools v1.20, VCFtools v0.1.16, and HTSlib v1.20."
 
@@ -55,7 +55,7 @@ RUN apk add --no-cache \
 
 WORKDIR /opt/tools
 
-# HTSlib 1.20 (latest stable - foundation for BCFtools and tabix)
+# HTSlib 1.20 (foundation for BCFtools and tabix)
 RUN wget https://github.com/samtools/htslib/releases/download/1.20/htslib-1.20.tar.bz2 && \
     tar -xjf htslib-1.20.tar.bz2 && \
     cd htslib-1.20 && \
@@ -64,7 +64,7 @@ RUN wget https://github.com/samtools/htslib/releases/download/1.20/htslib-1.20.t
     make install && \
     cd .. && rm -rf htslib-1.20*
 
-# BCFtools 1.20 (latest stable - primary tool)
+# BCFtools 1.20
 RUN wget https://github.com/samtools/bcftools/releases/download/1.20/bcftools-1.20.tar.bz2 && \
     tar -xjf bcftools-1.20.tar.bz2 && \
     cd bcftools-1.20 && \
@@ -73,7 +73,7 @@ RUN wget https://github.com/samtools/bcftools/releases/download/1.20/bcftools-1.
     make install && \
     cd .. && rm -rf bcftools-1.20*
 
-# VCFtools 0.1.16 (latest stable - used in qc_site_missingness)
+# VCFtools 0.1.16
 RUN wget https://github.com/vcftools/vcftools/releases/download/v0.1.16/vcftools-0.1.16.tar.gz && \
     tar -xzf vcftools-0.1.16.tar.gz && \
     cd vcftools-0.1.16 && \
@@ -88,25 +88,14 @@ COPY --from=eagle-builder /tmp/Eagle_v2.4.1/eagle /usr/local/bin/eagle
 # Make Eagle executable
 RUN chmod +x /usr/local/bin/eagle
 
-# Create data directories
-RUN mkdir -p /data /input /output
-
+# Create working directory
 WORKDIR /data
 
-# Test tools work and create info script
-RUN echo '#!/bin/bash' > /usr/local/bin/eagle_vcf_tools_info && \
-    echo 'echo "=== Eagle + VCF Processing Tools ==="' >> /usr/local/bin/eagle_vcf_tools_info && \
-    echo 'echo "Eagle: $(eagle --version 2>&1 | head -1)"' >> /usr/local/bin/eagle_vcf_tools_info && \
-    echo 'echo "BCFtools: $(bcftools --version | head -1)"' >> /usr/local/bin/eagle_vcf_tools_info && \
-    echo 'echo "VCFtools: $(vcftools --version 2>&1 | head -1)"' >> /usr/local/bin/eagle_vcf_tools_info && \
-    echo 'echo "tabix: $(tabix --version 2>&1 | head -1)"' >> /usr/local/bin/eagle_vcf_tools_info && \
-    echo 'echo "htsfile: $(htsfile --version-only 2>/dev/null || echo "Available")"' >> /usr/local/bin/eagle_vcf_tools_info && \
-    chmod +x /usr/local/bin/eagle_vcf_tools_info
+# Test the installation
+RUN test -x /usr/local/bin/eagle && echo "Eagle binary is ready" && \
+    bcftools --version >/dev/null && echo "BCFtools is ready" && \
+    vcftools --version >/dev/null 2>&1 && echo "VCFtools is ready" && \
+    tabix --version >/dev/null 2>&1 && echo "tabix is ready"
 
-# Verify installations
-RUN eagle --version >/dev/null 2>&1 && \
-    bcftools --version >/dev/null && \
-    vcftools --version >/dev/null 2>&1 && \
-    tabix --version >/dev/null 2>&1
-
-CMD ["eagle_vcf_tools_info"] 
+# Set default command
+CMD ["eagle", "--help"] 
