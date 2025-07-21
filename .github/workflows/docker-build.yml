@@ -45,7 +45,7 @@ jobs:
         run: |
           # Build only reliable Alpine-based containers (plink2 and analysis have dedicated workflows)
           # Temporarily excluding "all-in-one" (Debian-based, complex) until Alpine containers are proven
-          CUSTOM_CONTAINERS='["eagle-phasing", "minimac4", "imputation", "phasing", "vcf-processing"]'
+          CUSTOM_CONTAINERS='["eagle-phasing", "minimac4", "imputation", "phasing", "vcf-processing", "eagle-vcf-processing"]'
           echo "containers=${CUSTOM_CONTAINERS}" >> $GITHUB_OUTPUT
 
       - name: Determine tag
@@ -114,6 +114,10 @@ jobs:
             "vcf-processing")
               PRIMARY_VERSION="bcftools-1.20"
               ADDITIONAL_TAGS="vcftools-0.1.16,htslib-1.20"
+              ;;
+            "eagle-vcf-processing")
+              PRIMARY_VERSION="eagle-2.4.1"
+              ADDITIONAL_TAGS="bcftools-1.20,vcftools-0.1.16,htslib-1.20"
               ;;
           esac
           
