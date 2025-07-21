@@ -53,8 +53,8 @@ RUN apk add --no-cache \
     libgcc \
     libstdc++
 
-# Create symlink for bash to /bin/bash for compatibility
-RUN ln -sf /bin/sh /bin/bash
+# Install bash properly
+RUN apk add --no-cache bash
 
 WORKDIR /opt/tools
 
