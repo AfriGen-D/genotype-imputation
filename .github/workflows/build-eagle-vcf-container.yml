@@ -5,10 +5,12 @@ on:
     branches: [ main, master ]
     paths:
       - 'containers/eagle-vcf-processing/**'
+      - '.github/workflows/build-eagle-vcf-container.yml'
   pull_request:
     branches: [ main, master ]
     paths:
       - 'containers/eagle-vcf-processing/**'
+      - '.github/workflows/build-eagle-vcf-container.yml'
   workflow_dispatch:
     inputs:
       push_to_registry:
