@@ -88,8 +88,10 @@ RUN wget https://github.com/vcftools/vcftools/releases/download/v0.1.16/vcftools
 # Copy Eagle binary from builder
 COPY --from=eagle-builder /tmp/Eagle_v2.4.1/eagle /usr/local/bin/eagle
 
-# Make Eagle executable
-RUN chmod +x /usr/local/bin/eagle
+# Make Eagle executable and verify
+RUN chmod +x /usr/local/bin/eagle && \
+    ls -la /usr/local/bin/eagle && \
+    /usr/local/bin/eagle --help >/dev/null 2>&1 || echo "Eagle binary verification failed"
 
 # Create working directory
 WORKDIR /data
