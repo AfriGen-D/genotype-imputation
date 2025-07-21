@@ -53,6 +53,9 @@ RUN apk add --no-cache \
     libgcc \
     libstdc++
 
+# Create symlink for bash to /bin/bash for compatibility
+RUN ln -sf /bin/sh /bin/bash
+
 WORKDIR /opt/tools
 
 # HTSlib 1.20 (foundation for BCFtools and tabix)
