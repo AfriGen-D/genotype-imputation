@@ -1,0 +1,54 @@
+name: Build Eagle + VCF Processing Container
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'containers/eagle-vcf-processing/**'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'containers/eagle-vcf-processing/**'
+  workflow_dispatch:
+    inputs:
+      push_to_registry:
+        description: 'Push to Docker Hub'
+        required: true
+        default: false
+        type: boolean
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Log in to Docker Hub
+      if: github.event_name == 'workflow_dispatch' && inputs.push_to_registry == 'true'
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+        
+    - name: Build and push Eagle + VCF Processing container
+      uses: docker/build-push-action@v5
+      with:
+        context: ./containers/eagle-vcf-processing
+        push: ${{ github.event_name == 'workflow_dispatch' && inputs.push_to_registry == 'true' }}
+        tags: |
+          mamana/eagle-vcf-processing:eagle-2.4.1
+          mamana/eagle-vcf-processing:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        
+    - name: Test container
+      run: |
+        docker run --rm mamana/eagle-vcf-processing:eagle-2.4.1 eagle --version
+        docker run --rm mamana/eagle-vcf-processing:eagle-2.4.1 tabix --version
+        docker run --rm mamana/eagle-vcf-processing:eagle-2.4.1 bcftools --version
+        docker run --rm mamana/eagle-vcf-processing:eagle-2.4.1 eagle_vcf_tools_info 
