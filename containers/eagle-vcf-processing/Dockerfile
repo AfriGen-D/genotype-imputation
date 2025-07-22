@@ -13,13 +13,22 @@ RUN apk add --no-cache \
     wget \
     tar \
     gzip \
-    ca-certificates
+    ca-certificates \
+    libgomp \
+    libgcc \
+    libstdc++
 
 # Download and extract Eagle
 WORKDIR /tmp
 RUN wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 \
         https://alkesgroup.broadinstitute.org/Eagle/downloads/Eagle_v2.4.1.tar.gz && \
     tar -xzf Eagle_v2.4.1.tar.gz
+
+# Compile Eagle from source for Alpine compatibility
+WORKDIR /tmp/Eagle_v2.4.1
+RUN make clean && \
+    make -j$(nproc) && \
+    ls -la eagle
 
 # Production stage
 FROM alpine:3.19
