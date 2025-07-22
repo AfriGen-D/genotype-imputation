@@ -88,7 +88,7 @@ RUN wget https://github.com/vcftools/vcftools/releases/download/v0.1.16/vcftools
     cd .. && rm -rf vcftools-0.1.16*
 
 # Minimac4 4.1.6 (latest stable - for imputation)
-RUN wget https://github.com/Santy-8128/minimac4/releases/download/v4.1.6/minimac4-4.1.6-Linux.tar.gz && \
+RUN wget https://github.com/statgen/Minimac4/releases/download/v4.1.6/minimac4-4.1.6-Linux.tar.gz && \
     tar -xzf minimac4-4.1.6-Linux.tar.gz && \
     mv minimac4-4.1.6-Linux/minimac4 /usr/local/bin/minimac4 && \
     chmod +x /usr/local/bin/minimac4 && \
