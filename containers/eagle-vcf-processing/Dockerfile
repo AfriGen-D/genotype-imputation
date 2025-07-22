@@ -2,21 +2,22 @@
 # Eagle + VCF Processing Container
 # Tools: Eagle 2.4.1 + BCFtools + tabix + VCFtools
 # Used in: minimac4_phasing_eagle, impute5_phasing_eagle
-# Based on Alpine Linux for better efficiency
+# Based on Ubuntu for better compatibility with Eagle
 ############################################################
 
-FROM alpine:3.19 AS eagle-builder
+FROM ubuntu:22.04 AS eagle-builder
 
 # Install build dependencies for Eagle
-RUN apk add --no-cache \
-    build-base \
+RUN apt-get update && apt-get install -y \
+    build-essential \
     wget \
     tar \
     gzip \
     ca-certificates \
-    libgomp \
-    libgcc \
-    libstdc++
+    libgomp1 \
+    libgcc-s1 \
+    libstdc++6 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Download and extract Eagle
 WORKDIR /tmp
@@ -24,32 +25,26 @@ RUN wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 \
         https://alkesgroup.broadinstitute.org/Eagle/downloads/Eagle_v2.4.1.tar.gz && \
     tar -xzf Eagle_v2.4.1.tar.gz
 
-# Compile Eagle from source for Alpine compatibility
-WORKDIR /tmp/Eagle_v2.4.1
-RUN make clean && \
-    make -j$(nproc) && \
-    ls -la eagle
-
 # Production stage
-FROM alpine:3.19
+FROM ubuntu:22.04
 
 LABEL maintainer="AfriGen-D <info@afrigen.org>"
 LABEL version="2.4.1"
 LABEL org.opencontainers.image.description="Eagle v2.4.1 haplotype phasing + VCF processing toolkit. Alpine Linux based container with Eagle, BCFtools v1.20, VCFtools v0.1.16, and HTSlib v1.20."
 
 # Install system dependencies and build tools
-RUN apk add --no-cache \
-    build-base \
+RUN apt-get update && apt-get install -y \
+    build-essential \
     autoconf \
     automake \
     libtool \
-    pkgconf \
-    zlib-dev \
-    bzip2-dev \
-    xz-dev \
-    curl-dev \
-    openssl-dev \
-    ncurses-dev \
+    pkg-config \
+    zlib1g-dev \
+    libbz2-dev \
+    liblzma-dev \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    libncurses5-dev \
     bash \
     wget \
     curl \
@@ -58,12 +53,10 @@ RUN apk add --no-cache \
     bzip2 \
     tar \
     gzip \
-    libgomp \
-    libgcc \
-    libstdc++
-
-# Install bash properly
-RUN apk add --no-cache bash
+    libgomp1 \
+    libgcc-s1 \
+    libstdc++6 \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /opt/tools
 
