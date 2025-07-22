@@ -87,6 +87,13 @@ RUN wget https://github.com/vcftools/vcftools/releases/download/v0.1.16/vcftools
     make install && \
     cd .. && rm -rf vcftools-0.1.16*
 
+# Minimac4 4.1.6 (latest stable - for imputation)
+RUN wget https://github.com/Santy-8128/minimac4/releases/download/v4.1.6/minimac4-4.1.6-Linux.tar.gz && \
+    tar -xzf minimac4-4.1.6-Linux.tar.gz && \
+    mv minimac4-4.1.6-Linux/minimac4 /usr/local/bin/minimac4 && \
+    chmod +x /usr/local/bin/minimac4 && \
+    rm -rf minimac4-4.1.6-Linux*
+
 # Copy Eagle binary from builder
 COPY --from=eagle-builder /tmp/Eagle_v2.4.1/eagle /usr/local/bin/eagle
 
@@ -102,7 +109,8 @@ WORKDIR /data
 RUN test -x /usr/local/bin/eagle && echo "Eagle binary is ready" && \
     bcftools --version >/dev/null && echo "BCFtools is ready" && \
     vcftools --version >/dev/null 2>&1 && echo "VCFtools is ready" && \
-    tabix --version >/dev/null 2>&1 && echo "tabix is ready"
+    tabix --version >/dev/null 2>&1 && echo "tabix is ready" && \
+    minimac4 --version >/dev/null 2>&1 && echo "Minimac4 is ready"
 
 # Set default command
 CMD ["eagle", "--help"] 
