@@ -22,6 +22,7 @@ REGISTRY=${REGISTRY:-ghcr.io/afrigen-d}
 CUSTOM_CONTAINERS=(
     "eagle-phasing"
     "minimac4" 
+    "minimac4-all"
     "plink2"
     "all-in-one"
 )
@@ -197,6 +198,7 @@ Examples:
 Custom containers built (linux/amd64):
   - eagle-phasing      (Eagle 2.4.1 for haplotype phasing)
   - minimac4          (Minimac4 1.0.2 for genotype imputation)
+  - minimac4-all      (Comprehensive Minimac4 + genomics tools for Azure)
   - plink2            (PLINK 2.0 for genetic analysis)
   - all-in-one        (Complete environment)
 
