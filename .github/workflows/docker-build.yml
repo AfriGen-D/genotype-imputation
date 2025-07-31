@@ -43,9 +43,10 @@ jobs:
       - name: Determine containers to build
         id: containers
         run: |
-          # Build only reliable Alpine-based containers (plink2 and analysis have dedicated workflows)
-          # Temporarily excluding "all-in-one" (Debian-based, complex) until Alpine containers are proven
-          CUSTOM_CONTAINERS='["eagle-phasing", "minimac4", "minimac4-all", "imputation", "phasing", "vcf-processing", "eagle-vcf-processing"]'
+          # Build only minimac4-all for troubleshooting (others temporarily commented out)
+          # Temporarily excluding other containers until minimac4-all build is working
+          CUSTOM_CONTAINERS='["minimac4-all"]'
+          # DISABLED FOR TROUBLESHOOTING: ["eagle-phasing", "minimac4", "imputation", "phasing", "vcf-processing", "eagle-vcf-processing"]
           echo "containers=${CUSTOM_CONTAINERS}" >> $GITHUB_OUTPUT
 
       - name: Determine tag
