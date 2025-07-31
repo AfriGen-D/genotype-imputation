@@ -45,7 +45,7 @@ jobs:
         run: |
           # Build only reliable Alpine-based containers (plink2 and analysis have dedicated workflows)
           # Temporarily excluding "all-in-one" (Debian-based, complex) until Alpine containers are proven
-          CUSTOM_CONTAINERS='["eagle-phasing", "minimac4", "imputation", "phasing", "vcf-processing", "eagle-vcf-processing"]'
+          CUSTOM_CONTAINERS='["eagle-phasing", "minimac4", "minimac4-all", "imputation", "phasing", "vcf-processing", "eagle-vcf-processing"]'
           echo "containers=${CUSTOM_CONTAINERS}" >> $GITHUB_OUTPUT
 
       - name: Determine tag
@@ -102,6 +102,10 @@ jobs:
             "minimac4")
               PRIMARY_VERSION="minimac4-4.1.6"
               ADDITIONAL_TAGS="alpine-3.18"
+              ;;
+            "minimac4-all")
+              PRIMARY_VERSION="minimac4-4.1.6-all"
+              ADDITIONAL_TAGS="azure,samtools-1.19,bcftools-1.19,vcftools-0.1.16,eagle-2.4.1"
               ;;
             "imputation")
               PRIMARY_VERSION="minimac4-4.1.6"

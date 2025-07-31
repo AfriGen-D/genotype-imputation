@@ -1,51 +1,47 @@
-FROM debian:bookworm-slim
+FROM alpine:3.19
 
-# Minimac4-all: Comprehensive container for Azure
+# Minimac4-all Azure Simple: Core tools for Azure
 LABEL maintainer="AfriGen-D <info@afrigen.org>"
-LABEL version="4.1.6-all"
-LABEL description="Comprehensive Minimac4 genotype imputation container optimized for Azure with all dependencies"
+LABEL version="4.1.6-azure-simple"
+LABEL description="Azure-compatible genotype imputation container with core tools (simplified build)"
 
-# Prevent interactive prompts during installation
-ENV DEBIAN_FRONTEND=noninteractive
+# Set timezone and working directory
 ENV TZ=UTC
-
-# Set working directory
 WORKDIR /opt
 
 # Install system dependencies and build tools
-RUN apt-get update && apt-get install -y \
+RUN apk add --no-cache \
     # Core build tools
-    build-essential \
+    build-base \
     cmake \
     autoconf \
     automake \
     libtool \
-    pkg-config \
+    pkgconfig \
     git \
     # System libraries
-    zlib1g-dev \
-    libbz2-dev \
-    liblzma-dev \
-    libcurl4-gnutls-dev \
-    libssl-dev \
-    libncurses5-dev \
+    zlib-dev \
+    bzip2-dev \
+    xz-dev \
+    curl-dev \
+    openssl-dev \
+    ncurses-dev \
     # Download tools
     wget \
     curl \
     unzip \
     bzip2 \
+    tar \
     # Runtime dependencies
     ca-certificates \
     bash \
     # Python for scripts
     python3 \
-    python3-pip \
     python3-dev \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+    py3-pip
 
 # Install Python packages for data processing
-RUN pip3 install --no-cache-dir \
+RUN pip3 install --no-cache-dir --break-system-packages \
     numpy \
     pandas \
     scipy \
@@ -58,10 +54,9 @@ RUN wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 \
         https://github.com/samtools/htslib/releases/download/${HTSLIB_VERSION}/htslib-${HTSLIB_VERSION}.tar.bz2 && \
     tar -xjf htslib-${HTSLIB_VERSION}.tar.bz2 && \
     cd htslib-${HTSLIB_VERSION} && \
-    ./configure --prefix=/usr/local --enable-libcurl && \
+    ./configure --prefix=/usr/local && \
     make -j$(nproc) && \
     make install && \
-    ldconfig && \
     cd .. && \
     rm -rf htslib-${HTSLIB_VERSION}*
 
@@ -102,29 +97,7 @@ RUN wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 \
     cd .. && \
     rm -rf vcftools-${VCFTOOLS_VERSION}*
 
-# Build Minimac4 from source for maximum compatibility
-ENV MINIMAC4_VERSION=4.1.6
-RUN git clone --depth 1 --branch v${MINIMAC4_VERSION} https://github.com/statgen/Minimac4.git && \
-    cd Minimac4 && \
-    mkdir build && \
-    cd build && \
-    cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local .. && \
-    make -j$(nproc) && \
-    make install && \
-    cd ../.. && \
-    rm -rf Minimac4
-
-# Install additional useful tools
-# PLINK2 (for genetic data analysis)
-RUN git clone --depth 1 https://github.com/chrchang/plink-ng.git && \
-    cd plink-ng/2.0/build_dynamic && \
-    make -j$(nproc) && \
-    mv plink2 /usr/local/bin/ && \
-    chmod +x /usr/local/bin/plink2 && \
-    cd ../../.. && \
-    rm -rf plink-ng
-
-# BEDtools (for genomic interval operations)
+# Install BEDtools (for genomic interval operations)
 RUN wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 \
         https://github.com/arq5x/bedtools2/releases/download/v2.31.1/bedtools-2.31.1.tar.gz && \
     tar -xzf bedtools-2.31.1.tar.gz && \
@@ -134,59 +107,73 @@ RUN wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 \
     cd .. && \
     rm -rf bedtools-2.31.1.tar.gz bedtools2
 
-# Create working directories
+# Install Eagle (phasing tool) - binary download
+ENV EAGLE_VERSION=2.4.1
+RUN wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 \
+        https://alkesgroup.broadinstitute.org/Eagle/downloads/Eagle_v${EAGLE_VERSION}.tar.gz && \
+    tar -xzf Eagle_v${EAGLE_VERSION}.tar.gz && \
+    mv Eagle_v${EAGLE_VERSION}/eagle /usr/local/bin/ && \
+    chmod +x /usr/local/bin/eagle && \
+    rm -rf Eagle_v${EAGLE_VERSION}*
+
+# Create Minimac4 environment setup (for manual installation)
+RUN echo '#!/bin/bash' > /usr/local/bin/setup-minimac4 && \
+    echo 'echo "🔧 Setting up Minimac4 environment for Azure..."' >> /usr/local/bin/setup-minimac4 && \
+    echo 'echo "You can install Minimac4 by:"' >> /usr/local/bin/setup-minimac4 && \
+    echo 'echo "1. Mount your own minimac4 binary to /usr/local/bin/minimac4"' >> /usr/local/bin/setup-minimac4 && \
+    echo 'echo "2. Or download pre-built binary:"' >> /usr/local/bin/setup-minimac4 && \
+    echo 'echo "   wget https://github.com/statgen/Minimac4/releases/download/v4.1.6/minimac4-4.1.6-Linux-x86_64.sh"' >> /usr/local/bin/setup-minimac4 && \
+    echo 'echo "   chmod +x minimac4-4.1.6-Linux-x86_64.sh"' >> /usr/local/bin/setup-minimac4 && \
+    echo 'echo "   ./minimac4-4.1.6-Linux-x86_64.sh --skip-license --prefix=/usr/local"' >> /usr/local/bin/setup-minimac4 && \
+    chmod +x /usr/local/bin/setup-minimac4
+
+# Create working directories for Azure
 RUN mkdir -p /data/{input,output,reference,temp} && \
     mkdir -p /scripts && \
     mkdir -p /logs
 
-# Create non-root user for security
-RUN useradd -m -s /bin/bash impuser && \
+# Create non-root user for Azure security compliance
+RUN adduser -D -s /bin/bash impuser && \
     chown -R impuser:impuser /data /scripts /logs
 
 # Set environment variables
 ENV PATH="/usr/local/bin:${PATH}"
 ENV LD_LIBRARY_PATH="/usr/local/lib:${LD_LIBRARY_PATH}"
 
-# Create comprehensive testing script
-RUN echo '#!/bin/bash' > /usr/local/bin/test-minimac4-all && \
-    echo 'echo "=== Minimac4-All Container Test Suite ==="' >> /usr/local/bin/test-minimac4-all && \
-    echo 'echo "🏠 Container: $(hostname)"' >> /usr/local/bin/test-minimac4-all && \
-    echo 'echo "👤 User: $(whoami)"' >> /usr/local/bin/test-minimac4-all && \
-    echo 'echo "📁 Working directory: $(pwd)"' >> /usr/local/bin/test-minimac4-all && \
-    echo 'echo ""' >> /usr/local/bin/test-minimac4-all && \
-    echo 'echo "🧬 Core Genomics Tools:"' >> /usr/local/bin/test-minimac4-all && \
-    echo 'echo "  Minimac4: $(minimac4 --version 2>&1 | head -1 || echo "minimac4 available")"' >> /usr/local/bin/test-minimac4-all && \
-    echo 'echo "  SAMtools: $(samtools --version | head -1)"' >> /usr/local/bin/test-minimac4-all && \
-    echo 'echo "  BCFtools: $(bcftools --version | head -1)"' >> /usr/local/bin/test-minimac4-all && \
-    echo 'echo "  VCFtools: $(vcftools --version 2>&1 | head -1)"' >> /usr/local/bin/test-minimac4-all && \
-    echo 'echo "  HTSlib (tabix): $(tabix 2>&1 | head -1)"' >> /usr/local/bin/test-minimac4-all && \
-    echo 'echo "  BEDtools: $(bedtools --version)"' >> /usr/local/bin/test-minimac4-all && \
-    echo 'echo "  PLINK2: $(plink2 --version 2>&1 | head -1 || echo "plink2 available")"' >> /usr/local/bin/test-minimac4-all && \
-    echo 'echo ""' >> /usr/local/bin/test-minimac4-all && \
-    echo 'echo "🐍 Python Environment:"' >> /usr/local/bin/test-minimac4-all && \
-    echo 'echo "  Python: $(python3 --version)"' >> /usr/local/bin/test-minimac4-all && \
-    echo 'echo "  NumPy: $(python3 -c \"import numpy; print(f\\"numpy {numpy.__version__}\\")\"")"' >> /usr/local/bin/test-minimac4-all && \
-    echo 'echo "  Pandas: $(python3 -c \"import pandas; print(f\\"pandas {pandas.__version__}\\")\"")"' >> /usr/local/bin/test-minimac4-all && \
-    echo 'echo ""' >> /usr/local/bin/test-minimac4-all && \
-    echo 'echo "📂 Working Directories:"' >> /usr/local/bin/test-minimac4-all && \
-    echo 'echo "  /data/input: $(ls -la /data/input)"' >> /usr/local/bin/test-minimac4-all && \
-    echo 'echo "  /data/output: $(ls -la /data/output)"' >> /usr/local/bin/test-minimac4-all && \
-    echo 'echo "  /data/reference: $(ls -la /data/reference)"' >> /usr/local/bin/test-minimac4-all && \
-    echo 'echo ""' >> /usr/local/bin/test-minimac4-all && \
-    echo 'echo "✅ Minimac4-All container ready for Azure deployments!"' >> /usr/local/bin/test-minimac4-all && \
-    echo 'echo "🎯 This container includes comprehensive genotype imputation tools"' >> /usr/local/bin/test-minimac4-all && \
-    chmod +x /usr/local/bin/test-minimac4-all
+# Create Azure-compatible testing script
+RUN echo '#!/bin/bash' > /usr/local/bin/test-azure-tools && \
+    echo 'echo "=== Azure-Compatible Genomics Tools Test ==="' >> /usr/local/bin/test-azure-tools && \
+    echo 'echo "🏠 Container: $(hostname)"' >> /usr/local/bin/test-azure-tools && \
+    echo 'echo "👤 User: $(whoami)"' >> /usr/local/bin/test-azure-tools && \
+    echo 'echo "📁 Working directory: $(pwd)"' >> /usr/local/bin/test-azure-tools && \
+    echo 'echo ""' >> /usr/local/bin/test-azure-tools && \
+    echo 'echo "🧬 Available Genomics Tools:"' >> /usr/local/bin/test-azure-tools && \
+    echo 'echo "  SAMtools: $(samtools --version | head -1)"' >> /usr/local/bin/test-azure-tools && \
+    echo 'echo "  BCFtools: $(bcftools --version | head -1)"' >> /usr/local/bin/test-azure-tools && \
+    echo 'echo "  VCFtools: $(vcftools --version 2>&1 | head -1)"' >> /usr/local/bin/test-azure-tools && \
+    echo 'echo "  HTSlib (tabix): $(tabix 2>&1 | head -1)"' >> /usr/local/bin/test-azure-tools && \
+    echo 'echo "  BEDtools: $(bedtools --version)"' >> /usr/local/bin/test-azure-tools && \
+    echo 'echo "  Eagle: $(eagle 2>&1 | head -3 | tail -1 || echo \"eagle available\")"' >> /usr/local/bin/test-azure-tools && \
+    echo 'echo ""' >> /usr/local/bin/test-azure-tools && \
+    echo 'echo "🐍 Python Environment:"' >> /usr/local/bin/test-azure-tools && \
+    echo 'echo "  Python: $(python3 --version)"' >> /usr/local/bin/test-azure-tools && \
+    echo 'echo "  NumPy: $(python3 -c \"import numpy; print(f\\\"numpy {numpy.__version__}\\\")\"")"' >> /usr/local/bin/test-azure-tools && \
+    echo 'echo "  Pandas: $(python3 -c \"import pandas; print(f\\\"pandas {pandas.__version__}\\\")\"")"' >> /usr/local/bin/test-azure-tools && \
+    echo 'echo ""' >> /usr/local/bin/test-azure-tools && \
+    echo 'echo "💡 For Minimac4, run: setup-minimac4"' >> /usr/local/bin/test-azure-tools && \
+    echo 'echo ""' >> /usr/local/bin/test-azure-tools && \
+    echo 'echo "✅ Azure-compatible genomics environment ready!"' >> /usr/local/bin/test-azure-tools && \
+    chmod +x /usr/local/bin/test-azure-tools
 
-# Create welcome message
-RUN echo 'echo "🧬 Minimac4-All Container for Azure"' > /etc/profile.d/welcome.sh && \
-    echo 'echo "Comprehensive genotype imputation environment"' >> /etc/profile.d/welcome.sh && \
-    echo 'echo "Run test-minimac4-all to verify installations"' >> /etc/profile.d/welcome.sh && \
+# Create welcome message for Azure
+RUN echo 'echo "🧬 Azure Genomics Environment"' > /etc/profile.d/welcome.sh && \
+    echo 'echo "Core tools ready for Azure deployments"' >> /etc/profile.d/welcome.sh && \
+    echo 'echo "Run test-azure-tools to verify installations"' >> /etc/profile.d/welcome.sh && \
+    echo 'echo "Run setup-minimac4 for Minimac4 setup instructions"' >> /etc/profile.d/welcome.sh && \
     echo 'echo "Working directory: /data"' >> /etc/profile.d/welcome.sh
 
-# Set default working directory
+# Set default working directory and user for Azure
 WORKDIR /data
-
-# Use non-root user
 USER impuser
 
 # Set default command
