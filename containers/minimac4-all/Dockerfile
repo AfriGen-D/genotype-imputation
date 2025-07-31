@@ -116,21 +116,25 @@ RUN wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 \
     chmod +x /usr/local/bin/eagle && \
     rm -rf Eagle_v${EAGLE_VERSION}*
 
-# Install Minimac4 (same as simple minimac4 container)
+# Install Minimac4 by building from source (more reliable than binary download)
 ENV MINIMAC4_VERSION=4.1.6
-RUN cd /tmp && \
-    echo "Downloading Minimac4 v${MINIMAC4_VERSION}..." && \
-    wget --retry-connrefused --waitretry=3 --read-timeout=30 --timeout=30 -t 5 \
-        https://github.com/statgen/Minimac4/releases/download/v${MINIMAC4_VERSION}/minimac4-${MINIMAC4_VERSION}-Linux-x86_64.sh && \
-    echo "Downloaded Minimac4 installer, size: $(ls -lh minimac4-${MINIMAC4_VERSION}-Linux-x86_64.sh)" && \
-    chmod +x minimac4-${MINIMAC4_VERSION}-Linux-x86_64.sh && \
+RUN echo "Building Minimac4 v${MINIMAC4_VERSION} from source..." && \
+    git clone --depth 1 --branch v${MINIMAC4_VERSION} https://github.com/statgen/Minimac4.git && \
+    cd Minimac4 && \
+    echo "Creating build directory..." && \
+    mkdir build && \
+    cd build && \
+    echo "Configuring build with cmake..." && \
+    cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local .. && \
+    echo "Building Minimac4..." && \
+    make -j$(nproc) && \
     echo "Installing Minimac4..." && \
-    ./minimac4-${MINIMAC4_VERSION}-Linux-x86_64.sh --skip-license --prefix=/usr/local && \
-    echo "Cleaning up installer..." && \
-    rm minimac4-${MINIMAC4_VERSION}-Linux-x86_64.sh && \
+    make install && \
     echo "Testing Minimac4 installation..." && \
     minimac4 --help >/dev/null 2>&1 && \
-    echo "✅ Minimac4 v${MINIMAC4_VERSION} installed successfully"
+    echo "✅ Minimac4 v${MINIMAC4_VERSION} built and installed successfully" && \
+    cd ../.. && \
+    rm -rf Minimac4
 
 # Create working directories for Azure
 RUN mkdir -p /data/{input,output,reference,temp} && \
