@@ -119,11 +119,18 @@ RUN wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 \
 # Install Minimac4 (same as simple minimac4 container)
 ENV MINIMAC4_VERSION=4.1.6
 RUN cd /tmp && \
-    wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 \
+    echo "Downloading Minimac4 v${MINIMAC4_VERSION}..." && \
+    wget --retry-connrefused --waitretry=3 --read-timeout=30 --timeout=30 -t 5 \
         https://github.com/statgen/Minimac4/releases/download/v${MINIMAC4_VERSION}/minimac4-${MINIMAC4_VERSION}-Linux-x86_64.sh && \
+    echo "Downloaded Minimac4 installer, size: $(ls -lh minimac4-${MINIMAC4_VERSION}-Linux-x86_64.sh)" && \
     chmod +x minimac4-${MINIMAC4_VERSION}-Linux-x86_64.sh && \
+    echo "Installing Minimac4..." && \
     ./minimac4-${MINIMAC4_VERSION}-Linux-x86_64.sh --skip-license --prefix=/usr/local && \
-    rm minimac4-${MINIMAC4_VERSION}-Linux-x86_64.sh
+    echo "Cleaning up installer..." && \
+    rm minimac4-${MINIMAC4_VERSION}-Linux-x86_64.sh && \
+    echo "Testing Minimac4 installation..." && \
+    minimac4 --help >/dev/null 2>&1 && \
+    echo "✅ Minimac4 v${MINIMAC4_VERSION} installed successfully"
 
 # Create working directories for Azure
 RUN mkdir -p /data/{input,output,reference,temp} && \
@@ -161,9 +168,6 @@ RUN echo '#!/bin/bash' > /usr/local/bin/test-azure-tools && \
     echo 'echo ""' >> /usr/local/bin/test-azure-tools && \
     echo 'echo "✅ Azure-compatible genomics environment ready!"' >> /usr/local/bin/test-azure-tools && \
     chmod +x /usr/local/bin/test-azure-tools
-
-# Test Minimac4 installation
-RUN minimac4 --help > /dev/null 2>&1 || echo "Minimac4 installed successfully"
 
 # Create welcome message for Azure
 RUN echo 'echo "🧬 Azure Genomics Environment - Minimac4-All"' > /etc/profile.d/welcome.sh && \
