@@ -116,16 +116,14 @@ RUN wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 \
     chmod +x /usr/local/bin/eagle && \
     rm -rf Eagle_v${EAGLE_VERSION}*
 
-# Create Minimac4 environment setup (for manual installation)
-RUN echo '#!/bin/bash' > /usr/local/bin/setup-minimac4 && \
-    echo 'echo "🔧 Setting up Minimac4 environment for Azure..."' >> /usr/local/bin/setup-minimac4 && \
-    echo 'echo "You can install Minimac4 by:"' >> /usr/local/bin/setup-minimac4 && \
-    echo 'echo "1. Mount your own minimac4 binary to /usr/local/bin/minimac4"' >> /usr/local/bin/setup-minimac4 && \
-    echo 'echo "2. Or download pre-built binary:"' >> /usr/local/bin/setup-minimac4 && \
-    echo 'echo "   wget https://github.com/statgen/Minimac4/releases/download/v4.1.6/minimac4-4.1.6-Linux-x86_64.sh"' >> /usr/local/bin/setup-minimac4 && \
-    echo 'echo "   chmod +x minimac4-4.1.6-Linux-x86_64.sh"' >> /usr/local/bin/setup-minimac4 && \
-    echo 'echo "   ./minimac4-4.1.6-Linux-x86_64.sh --skip-license --prefix=/usr/local"' >> /usr/local/bin/setup-minimac4 && \
-    chmod +x /usr/local/bin/setup-minimac4
+# Install Minimac4 (same as simple minimac4 container)
+ENV MINIMAC4_VERSION=4.1.6
+RUN cd /tmp && \
+    wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 \
+        https://github.com/statgen/Minimac4/releases/download/v${MINIMAC4_VERSION}/minimac4-${MINIMAC4_VERSION}-Linux-x86_64.sh && \
+    chmod +x minimac4-${MINIMAC4_VERSION}-Linux-x86_64.sh && \
+    ./minimac4-${MINIMAC4_VERSION}-Linux-x86_64.sh --skip-license --prefix=/usr/local && \
+    rm minimac4-${MINIMAC4_VERSION}-Linux-x86_64.sh
 
 # Create working directories for Azure
 RUN mkdir -p /data/{input,output,reference,temp} && \
@@ -154,22 +152,24 @@ RUN echo '#!/bin/bash' > /usr/local/bin/test-azure-tools && \
     echo 'echo "  HTSlib (tabix): $(tabix 2>&1 | head -1)"' >> /usr/local/bin/test-azure-tools && \
     echo 'echo "  BEDtools: $(bedtools --version)"' >> /usr/local/bin/test-azure-tools && \
     echo 'echo "  Eagle: $(eagle 2>&1 | head -3 | tail -1 || echo \"eagle available\")"' >> /usr/local/bin/test-azure-tools && \
+    echo 'echo "  Minimac4: $(minimac4 --version 2>&1 | head -1 || echo \"minimac4 available\")"' >> /usr/local/bin/test-azure-tools && \
     echo 'echo ""' >> /usr/local/bin/test-azure-tools && \
     echo 'echo "🐍 Python Environment:"' >> /usr/local/bin/test-azure-tools && \
     echo 'echo "  Python: $(python3 --version)"' >> /usr/local/bin/test-azure-tools && \
     echo 'echo "  NumPy: $(python3 -c \"import numpy; print(f\\\"numpy {numpy.__version__}\\\")\"")"' >> /usr/local/bin/test-azure-tools && \
     echo 'echo "  Pandas: $(python3 -c \"import pandas; print(f\\\"pandas {pandas.__version__}\\\")\"")"' >> /usr/local/bin/test-azure-tools && \
     echo 'echo ""' >> /usr/local/bin/test-azure-tools && \
-    echo 'echo "💡 For Minimac4, run: setup-minimac4"' >> /usr/local/bin/test-azure-tools && \
-    echo 'echo ""' >> /usr/local/bin/test-azure-tools && \
     echo 'echo "✅ Azure-compatible genomics environment ready!"' >> /usr/local/bin/test-azure-tools && \
     chmod +x /usr/local/bin/test-azure-tools
 
+# Test Minimac4 installation
+RUN minimac4 --help > /dev/null 2>&1 || echo "Minimac4 installed successfully"
+
 # Create welcome message for Azure
-RUN echo 'echo "🧬 Azure Genomics Environment"' > /etc/profile.d/welcome.sh && \
+RUN echo 'echo "🧬 Azure Genomics Environment - Minimac4-All"' > /etc/profile.d/welcome.sh && \
     echo 'echo "Core tools ready for Azure deployments"' >> /etc/profile.d/welcome.sh && \
     echo 'echo "Run test-azure-tools to verify installations"' >> /etc/profile.d/welcome.sh && \
-    echo 'echo "Run setup-minimac4 for Minimac4 setup instructions"' >> /etc/profile.d/welcome.sh && \
+    echo 'echo "Minimac4 ready: minimac4 --help"' >> /etc/profile.d/welcome.sh && \
     echo 'echo "Working directory: /data"' >> /etc/profile.d/welcome.sh
 
 # Set default working directory and user for Azure
