@@ -45,7 +45,7 @@ jobs:
         run: |
           # Build reliable Alpine-based containers (plink2 and analysis have dedicated workflows)
           # All containers re-enabled after successful minimac4-all troubleshooting
-          CUSTOM_CONTAINERS='["eagle-phasing", "minimac4", "minimac4-all", "imputation", "phasing", "vcf-processing"]'
+          CUSTOM_CONTAINERS='["eagle-phasing", "minimac4", "minimac4-all", "imputation", "phasing", "vcf-processing", "r-analysis"]'
           # Temporarily excluding: ["eagle-vcf-processing"] (still has issues)
           echo "containers=${CUSTOM_CONTAINERS}" >> $GITHUB_OUTPUT
 
@@ -123,6 +123,10 @@ jobs:
             "eagle-vcf-processing")
               PRIMARY_VERSION="eagle-2.4.1"
               ADDITIONAL_TAGS="bcftools-1.20,vcftools-0.1.16,htslib-1.20"
+              ;;
+            "r-analysis")
+              PRIMARY_VERSION="1.0"
+              ADDITIONAL_TAGS="r-4.3.2,dplyr,ggplot2,data.table"
               ;;
           esac
           
@@ -458,6 +462,7 @@ jobs:
             echo "- ✅ \`imputation:minimac4-4.1.6\` (Minimac4 4.1.6 + BCFtools 1.20 + VCFtools 0.1.16)" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ \`phasing:eagle-2.4.1\` (Eagle 2.4.1 + HTSlib 1.20)" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ \`vcf-processing:bcftools-1.20\` (BCFtools 1.20 + VCFtools 0.1.16 + tabix)" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ \`r-analysis:1.0\` (R 4.3.2 + dplyr + ggplot2 + data.table)" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "### 🚧 Temporarily Disabled (Enable After Core Success):" >> $GITHUB_STEP_SUMMARY
             echo "- 🔸 \`all-in-one:alpine-3.18\` (Complex Debian + BCFtools 1.22)" >> $GITHUB_STEP_SUMMARY
