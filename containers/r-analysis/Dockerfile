@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install R packages required by the pipeline
-RUN R -e "install.packages(c('dplyr', 'data.table', 'ggplot2', 'tidyr', 'readr', 'stringr', 'purrr', 'tibble'), repos='https://cloud.r-project.org/')"
+RUN R -e "install.packages(c('dplyr', 'data.table', 'ggplot2', 'tidyr', 'readr', 'stringr', 'purrr', 'tibble', 'R.utils'), repos='https://cloud.r-project.org/')"
 
 # Install additional packages that might be needed for plotting
 RUN R -e "install.packages(c('scales', 'gridExtra', 'cowplot', 'viridis', 'RColorBrewer'), repos='https://cloud.r-project.org/')"
