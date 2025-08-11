@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Reads map file, chunk size
 Returns file with chromosome chunk_start chunk_end

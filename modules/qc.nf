@@ -66,7 +66,22 @@ def check_chromosome_vcf(dataset, dataset_vcf, map_file, chrms){
         }
         chromosomes = in_chrs
         if (in_chrs.isEmpty()){
-            exit 1,  "|-- ERROR- No Chromosome(s) found not in target(s) dataset(s)! The pipeline will exit."
+            def error_msg = "|-- ERROR- No Chromosome(s) found not in target(s) dataset(s)! The pipeline will exit.\n"
+            error_msg += "|-- DEBUG INFO:\n"
+            error_msg += "|--   Requested chromosomes: ${chrms}\n"
+            error_msg += "|--   Available chromosomes in dataset '${dataset}': ${chromosomes_['ALL'].join(', ')}\n"
+            error_msg += "|--   Map file used: ${map_file}\n"
+            if (!not_chrs.isEmpty()) {
+                error_msg += "|--   Chromosomes not found in target: ${not_chrs.join(', ')}\n"
+            }
+            if (!notValid_chrs.isEmpty()) {
+                error_msg += "|--   Invalid chromosome names found: ${notValid_chrs.join(', ')}\n"
+            }
+            error_msg += "|-- SOLUTION:\n"
+            error_msg += "|--   1. Check that your chromosome names match those in the target dataset\n"
+            error_msg += "|--   2. Use 'ALL' to process all available chromosomes, or\n"
+            error_msg += "|--   3. Specify valid chromosomes from: ${chromosomes_['ALL'].join(', ')}"
+            exit 1, error_msg
         }
         if (!(not_chrs.isEmpty())){
             log.info "|-- WARN- Chromosome(s) ${not_chrs.join(', ')} not in target datasets and will be ignored."
