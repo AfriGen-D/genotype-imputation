@@ -30,21 +30,24 @@ process impute_minimac4 {
     publishDir "${params.outDir}/imputed/${ref_name}/${target_name}", overwrite: true, mode:'copy'
 
     input:
-        tuple val(chrm), val(chunk_start), val(chunk_end), val(target_name), file(target_phased_vcf), file(target_phased_vcf_tbi), val(ref_name), file(ref_vcf), file(ref_m3vcf), val(tagName)
+        tuple val(chrm), val(chunk_start), val(chunk_end), val(target_name), file(target_phased_vcf), file(target_phased_vcf_tbi), val(ref_name), file(ref_vcf), file(ref_msav), val(tagName)
     output:
-        tuple val(chrm), val(chunk_start), val(chunk_end), val(target_name), val(ref_name), file("${base}_imputed.dose.vcf.gz"), file("${base}_imputed.info"), val(tagName)
+        tuple val(chrm), val(chunk_start), val(chunk_end), val(target_name), val(ref_name), file("${base}_imputed"), file("${base}_imputed.info"), val(tagName)
     shell:
         base = "${file(target_phased_vcf.baseName).baseName}_${tagName}_${chrm}_${chunk_start}-${chunk_end}"
         """
         minimac4 \
-            --refHaps ${ref_m3vcf} \
-            --haps ${target_phased_vcf} \
             --format GT,DS \
-            --allTypedSites \
-            --minRatio ${params.minRatio} \
-            --chr ${chrm} --start ${chunk_start} --end ${chunk_end} --window ${params.buffer_size} \
-            --prefix ${base}_imputed \
-            --cpus ${task.cpus}
+            --all-typed-sites \
+            --min-ratio ${params.minRatio} \
+            --region ${chrm}:${chunk_start}-${chunk_end} \
+            --overlap ${params.buffer_size} \
+            --output ${base}_imputed \
+            --output-format bcf \
+            --sites ${base}_imputed.info \
+            --threads ${task.cpus} \
+            ${ref_msav} \
+            ${target_phased_vcf}
         """
 }
 
@@ -106,14 +109,15 @@ process impute_minimac4_1 {
             bcftools annotate  --set-id '%CHROM\\_%POS\\_%REF\\_%ALT' ${target_phased_vcf1} | 
             vcftools --vcf - --keep-INFO-all --max-missing 0.05 --hwe 0.00001 --mac 1 --recode --stdout | bgzip > ${base}.id.vcf.gz
             minimac4 \
-                --cpus ${task.cpus} \
-                --refHaps ${ref_m3vcf1} \
-                --haps ${base}.id.vcf.gz \
+                --threads ${task.cpus} \
                 --format GT,DS \
-                --allTypedSites \
-                --minRatio ${params.minRatio} \
-                --chr ${chrm1} --start ${chunk_start1} --end ${chunk_end1} --window ${params.buffer_size} \
-                --prefix ${base}_imputed
+                --all-typed-sites \
+                --min-ratio ${params.minRatio} \
+                --region ${chrm1}:${chunk_start1}-${chunk_end1} \
+                --overlap ${params.buffer_size} \
+                --output ${base}_imputed \
+                ${ref_m3vcf1} \
+                ${base}.id.vcf.gz
         else
              touch ${base}_imputed.dose.vcf && bgzip ${base}_imputed.dose.vcf
              touch ${base}_imputed.info

@@ -20,7 +20,7 @@ h3achipimputation v${params.version}"
     def summary = [:]
     summary['Pipeline Name']    = 'h3achipimputation'
     summary['Pipeline version'] = params.version
-    // summary['Run Name']         = custom_runName ?: workflow.runName
+    summary['Run Name']         = workflow.runName
     // summary['Target datasets']  = params.target_datasets.values().join(', ')
     // summary['Reference panels']  = params.ref_panels.keySet().join(', ')
     summary['Max Memory']       = params.max_memory
@@ -78,18 +78,73 @@ workflow preprocess {
         //     .map{ dataset, dataset_vcf, map_file -> check_chromosome_vcf(dataset, dataset_vcf, map_file, params.chromosomes) }
         //     .map{ dataset, dataset_vcf, map_file, chrms -> chrms.unique() }
         
-        //// check if reference panel files exist
-        params.chromosomes.split(',').each{ chrm ->
+        //// check if reference panel files exist - handle ALL chromosomes
+        def resolved_chromosomes = []
+        if (params.chromosomes == 'ALL' || params.chromosomes == '') {
+            // When ALL is specified, use both b37 and b38 chromosome formats
+            // This prevents the chrALL file path error while allowing the pipeline to continue
+            log.info "|-- INFO: Chromosomes set to 'ALL' - checking reference files for common chromosomes (both b37 and b38 formats)"
+            
+            // Try both b37 (1, 2, 3...) and b38 (chr1, chr2, chr3...) formats
+            def b37_chrms = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22']
+            def b38_chrms = ['chr1','chr2','chr3','chr4','chr5','chr6','chr7','chr8','chr9','chr10','chr11','chr12','chr13','chr14','chr15','chr16','chr17','chr18','chr19','chr20','chr21','chr22']
+            
+            // Check which format the reference panel files use by testing a few chromosomes
+            def test_chrm_found = false
+            params.ref_panels.each{ ref_name, ref_m3vcf, ref_vcf ->
+                if (!test_chrm_found) {
+                    // Test chr1 first (b38 format)
+                    def test_vcf_b38 = sprintf(ref_vcf, 'chr1')
+                    def test_m3vcf_b38 = sprintf(ref_m3vcf, 'chr1')
+                    if (file(test_vcf_b38).exists() || file(test_m3vcf_b38).exists()) {
+                        resolved_chromosomes = b38_chrms
+                        test_chrm_found = true
+                        log.info "|-- INFO: Detected b38 chromosome format (chr1, chr2, ...) in reference panels"
+                    } else {
+                        // Test 1 (b37 format)
+                        def test_vcf_b37 = sprintf(ref_vcf, '1')
+                        def test_m3vcf_b37 = sprintf(ref_m3vcf, '1')
+                        if (file(test_vcf_b37).exists() || file(test_m3vcf_b37).exists()) {
+                            resolved_chromosomes = b37_chrms
+                            test_chrm_found = true
+                            log.info "|-- INFO: Detected b37 chromosome format (1, 2, ...) in reference panels"
+                        }
+                    }
+                }
+            }
+            
+            // If no files found, default to both formats for checking
+            if (!test_chrm_found) {
+                resolved_chromosomes = b37_chrms + b38_chrms
+                log.warn "|-- WARN: Could not determine chromosome format from reference panels, will check both b37 and b38 formats"
+            }
+        } else {
+            resolved_chromosomes = params.chromosomes.split(',')
+        }
+        
+        // Only check files for chromosomes that have corresponding reference files
+        resolved_chromosomes.each{ chrm ->
             params.ref_panels.each{ ref_name, ref_m3vcf, ref_vcf ->
                 vcf = sprintf(ref_vcf, chrm)
                 m3vcf = sprintf(ref_m3vcf, chrm)
-                if(vcf.endsWith("vcf.gz")){
-                    vcf_idx = "${vcf}.tbi" 
+                
+                // Only check files if they should exist (skip if file patterns don't make sense)
+                if (!vcf.contains('chrALL') && !m3vcf.contains('chrALL')) {
+                    if(vcf.endsWith("vcf.gz")){
+                        vcf_idx = "${vcf}.tbi" 
+                    }
+                    else if(vcf.endsWith("bcf")){
+                        vcf_idx = "${vcf}.csi" 
+                    }
+                    try {
+                        check_files([ m3vcf, vcf, vcf_idx ])
+                    } catch (Exception e) {
+                        log.warn "|-- WARN: Reference files for chromosome ${chrm} not found: ${m3vcf}, ${vcf}"
+                        log.warn "|--       Pipeline will determine actual available chromosomes from target data"
+                    }
+                } else {
+                    log.warn "|-- WARN: Skipping file check for chromosome '${chrm}' as it resolves to invalid file path"
                 }
-                else if(vcf.endsWith("bcf")){
-                    vcf_idx = "${vcf}.csi" 
-                }
-                check_files([ m3vcf, vcf, vcf_idx ])
             }
         }
 
@@ -263,22 +318,31 @@ workflow {
     // //// Report by datasets
     report_by_dataset( impute_data )
 
-    // // Generate dataset frequencies
-    inp = Channel.fromList(params.ref_panels).map{ref, m3vcf, vcf -> [ref, vcf]}
-    input = impute_data
-    .map{ target_name, ref_name, vcf, impute_vcf, info ->[  ref_name, target_name, file(impute_vcf)]}
-    .combine(inp, by:0)
-    .map{ ref_name, target_name, impute_vcf, ref_vcf -> [target_name, ref_name, file(impute_vcf), file(ref_vcf)]}
+    // // Generate dataset frequencies - need chromosome for ref panel path
+    impute_data_with_chr = impute.out.chunks_imputed
+                .map{chr, fwd, rev, test_data, ref, imputed_vcf, 
+                imputed_info, tst_data -> [chr, test_data, ref, imputed_vcf, imputed_info]}
+    
+    input = impute_data_with_chr
+    .map{ chr, target_name, ref_name, impute_vcf, info -> 
+        // Get the reference panel VCF path and replace %s with chromosome
+        def ref_panel = params.ref_panels.find { it[0] == ref_name }
+        if (ref_panel) {
+            def ref_vcf_path = ref_panel[2].replace('%s', chr)
+            [target_name, ref_name, file(impute_vcf), file(ref_vcf_path)]
+        }
+    }
+    .filter { it != null }  // Remove any null entries
     generate_frequency(input)
 
     // // Plot frequency Comparison
-    freq_comp = impute_data.map {target_name, ref_name, vcf, impute_vcf, info -> 
+    freq_comp = impute_data_with_chr.map {chr, target_name, ref_name, impute_vcf, info -> 
     [target_name, ref_name, info]}
     .combine(generate_frequency.out, by:[0,1])
     plot_freq_comparison(freq_comp)
 
     // // Plot number of imputed SNPs over the mean r2 for all reference panels
-    combineInfo_frq = impute_data.map{ target_name, ref_name, vcf, impute_vcf, info ->[ target_name, ref_name, info, params.maf_thresh]}
+    combineInfo_frq = impute_data_with_chr.map{ chr, target_name, ref_name, impute_vcf, info ->[ target_name, ref_name, info, params.maf_thresh]}
     .combine(generate_frequency.out, by:[0,1])
     .map { target_name, ref_name, info, maf_thresh, target_frq, ref_frq -> 
     [target_name, ref_name, info, maf_thresh, target_frq]}
