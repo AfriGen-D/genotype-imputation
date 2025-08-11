@@ -40,7 +40,7 @@ process filter_info {
         acc_out = "${comb_info}_accuracy"
         infos = ref_infos.join(',')
         impute_info_cutoff = params.impute_info_cutoff
-        template "improved/filter_info_minimac.py"
+        template "filter_info_minimac.py"
 }
 
 
@@ -55,7 +55,7 @@ process report_site_by_maf {
     script:
         site_by_maf = "${sites.baseName}_report_by_maf"
         group = 'REF_PANEL'
-        template "improved/report_well_imputed.py"
+        template "report_well_imputed.py"
 }
 
 """
@@ -77,7 +77,7 @@ process report_well_imputed_by_target {
         out_prefix = "${inWell_imputed.baseName}.imputed_info_performance_by_maf_report"
         // outWell_imputed = "${target_name}_${ref_panels}_${chrms}.imputed_info_performance_by_maf_report"
         group = "REF_PANEL"
-        template "improved/report_well_imputed.py"
+        template "report_well_imputed.py"
 }
 
 """
@@ -112,7 +112,7 @@ process report_accuracy_target {
         tuple val(target_name), val(ref_panels), file(outSNP_acc), val(group)
     script:
         outSNP_acc = "${inSNP_acc.baseName}.imputed_info_report_accuracy.tsv"
-        template "improved/report_accuracy_by_maf.py"
+        template "report_accuracy_by_maf.py"
 }
 
 """

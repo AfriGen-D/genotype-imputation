@@ -181,7 +181,7 @@ process generate_chunks {
         if(params.chunk){ chunk = params.chunk } else{ chunk='' }
         chromosomes = ''
         chunkFile = "chunks.txt"
-        template "improved/generate_chunks.py"
+        template "generate_chunks.py"
 }
 
 process generate_chunks_vcf {
@@ -196,7 +196,7 @@ process generate_chunks_vcf {
         if(params.chunk){ chunk = params.chunk } else{ chunk='' }
         chromosomes = chrms
         chunkFile = "chunks.txt"
-        template "improved/generate_chunks.py"
+        template "generate_chunks.py"
 }
 
 

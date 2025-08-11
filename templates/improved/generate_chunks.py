@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 Improved version of generate_chunks.py
 Generates genomic chunks for parallel processing of imputation.

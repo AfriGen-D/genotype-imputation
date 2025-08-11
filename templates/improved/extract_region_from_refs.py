@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 Improved version of extract_region_from_refs.py
 Extracts specific genomic regions from reference panel files.

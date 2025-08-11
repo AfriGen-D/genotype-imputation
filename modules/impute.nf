@@ -189,6 +189,6 @@ process filter_info_by_target {
         ref_infos = ref_infos
         datasets = ref_panels
         impute_info_cutoff = params.impute_info_cutoff
-        template "improved/filter_info_minimac.py"
+        template "filter_info_minimac.py"
 }
 
