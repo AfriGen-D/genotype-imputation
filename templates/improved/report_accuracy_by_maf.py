@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Improved version of report_accuracy_by_maf.py
 Analyzes imputation accuracy stratified by minor allele frequency (MAF).

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Improved version of report_well_imputed.py
 Generates reports on well-imputed variants from imputation results.

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Improved version of filter_info_minimac.py
 Filters imputation info files based on quality thresholds.
