@@ -206,7 +206,7 @@ class ChunkGenerator:
         
         with open(output_file, 'w') as f:
             for chunk in chunks:
-                f.write(str(chunk) + '\n')
+                f.write(str(chunk) + '\\n')
     
     def get_statistics(self) -> Dict:
         """Get statistics about the loaded data."""
@@ -332,7 +332,7 @@ def main():
             logger.info(f"Writing chunks in BED format to {args.output_file}")
             with open(args.output_file, 'w') as f:
                 for chunk in chunks:
-                    f.write(chunk.to_bed_format() + '\n')
+                    f.write(chunk.to_bed_format() + '\\n')
         else:
             generator.write_chunks(chunks, args.output_file)
         

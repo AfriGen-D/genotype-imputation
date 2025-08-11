@@ -162,14 +162,14 @@ class InfoFileProcessor:
             self.maf_idx = self.header.index("MAF")
             
             # Write header to output files
-            well_out.write('\t'.join(["GROUPS"] + data) + '\n')
-            snp_out.write(data[1] + '\n')  # SNP column
+            well_out.write('\\t'.join(["GROUPS"] + data) + '\\n')
+            snp_out.write(data[1] + '\\n')  # SNP column
             
             # Check for concordance data
             if "EmpRsq" in self.header:
                 self.has_concordance = True
                 self.conc_idx = self.header.index("EmpRsq")
-                acc_out.write('\t'.join(["GROUPS"] + data) + '\n')
+                acc_out.write('\\t'.join(["GROUPS"] + data) + '\\n')
                 
         except ValueError as e:
             logger.error(f"Required column not found in header: {e}")
@@ -203,15 +203,15 @@ class InfoFileProcessor:
             if rsq_value not in ['-', 'NA', '']:
                 rsq = float(rsq_value)
                 if rsq >= self.info_cutoff:
-                    well_out.write('\t'.join([dataset] + data) + '\n')
-                    snp_out.write(data[1] + '\n')  # SNP column
+                    well_out.write('\\t'.join([dataset] + data) + '\\n')
+                    snp_out.write(data[1] + '\\n')  # SNP column
                     is_well_imputed = True
             
             # Check concordance if available
             if self.has_concordance and self.conc_idx is not None:
                 conc_value = data[self.conc_idx]
                 if conc_value != '-':
-                    acc_out.write('\t'.join([dataset] + data) + '\n')
+                    acc_out.write('\\t'.join([dataset] + data) + '\\n')
                     has_concordance = True
             
             return is_well_imputed, has_concordance
