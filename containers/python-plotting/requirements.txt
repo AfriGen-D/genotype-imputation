@@ -1,0 +1,35 @@
+# Core scientific computing
+numpy==1.24.3
+pandas==2.0.3
+scipy==1.11.1
+
+# Plotting libraries
+matplotlib==3.7.2
+seaborn==0.12.2
+
+# Additional utilities
+scikit-learn==1.3.0
+statsmodels==0.14.0
+
+# File handling
+openpyxl==3.1.2  # For Excel file support
+xlsxwriter==3.1.2  # For writing Excel files
+tables==3.8.0  # For HDF5 support
+
+# Performance and parallel processing
+numba==0.57.1  # For JIT compilation
+joblib==1.3.1  # For parallel processing
+
+# Color schemes and styling
+colorcet==3.0.1
+cmocean==3.0.3
+
+# Progress bars (useful for long-running processes)
+tqdm==4.65.0
+
+# Data validation
+pandera==0.15.2
+
+# Statistical testing
+pingouin==0.5.3  # Additional statistical tests
+statannot==0.2.3  # Statistical annotations for plots

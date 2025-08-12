@@ -225,8 +225,8 @@ class WellImputedReporter:
         
         with open(output_file, 'w') as f:
             # Write header
-            f.write("Well-Imputed Variants Summary Report\\n")
-            f.write("=" * 70 + "\\n\\n")
+            f.write("Well-Imputed Variants Summary Report\n")
+            f.write("=" * 70 + "\n\n")
             f.write(f"R² Threshold: {self.rsq_threshold}\n")
             f.write(f"MAF Threshold: {self.maf_threshold}\n\n")
             
@@ -234,30 +234,30 @@ class WellImputedReporter:
             total_all = sum(s.total_variants for s in self.dataset_stats.values())
             well_imputed_all = sum(s.well_imputed for s in self.dataset_stats.values())
             
-            f.write("Overall Summary\\n")
-            f.write("-" * 40 + "\\n")
+            f.write("Overall Summary\n")
+            f.write("-" * 40 + "\n")
             f.write(f"Total datasets: {len(self.dataset_stats)}\n")
             f.write(f"Total variants: {total_all:,}\n")
             f.write(f"Well-imputed variants: {well_imputed_all:,}\n")
             if total_all > 0:
                 f.write(f"Overall well-imputed rate: {100 * well_imputed_all / total_all:.2f}%\n")
-            f.write("\\n")
+            f.write("\n")
             
             # Per-dataset summary
-            f.write("Per-Dataset Summary\\n")
-            f.write("-" * 40 + "\\n")
+            f.write("Per-Dataset Summary\n")
+            f.write("-" * 40 + "\n")
             f.write(f"{'Dataset':<30} {'Total':<12} {'Well-Imputed':<15} {'Rate':<8}\n")
-            f.write("-" * 70 + "\\n")
+            f.write("-" * 70 + "\n")
             
             for dataset, stats in sorted(self.dataset_stats.items()):
                 f.write(f"{dataset:<30} {stats.total_variants:<12,} "
                        f"{stats.well_imputed:<15,} {stats.well_imputed_rate:>7.1%}\n")
             
-            f.write("\\n")
+            f.write("\n")
             
             # MAF distribution
-            f.write("MAF Distribution (All Datasets Combined)\\n")
-            f.write("-" * 40 + "\\n")
+            f.write("MAF Distribution (All Datasets Combined)\n")
+            f.write("-" * 40 + "\n")
             f.write(f"{'MAF Range':<15} {'Count':<12} {'Percentage':<10}\n")
             
             combined_maf = defaultdict(int)
@@ -270,11 +270,11 @@ class WellImputedReporter:
                 pct = 100 * count / total_all if total_all > 0 else 0
                 f.write(f"{bin_name:<15} {count:<12,} {pct:>9.1f}%\n")
             
-            f.write("\\n")
+            f.write("\n")
             
             # R² distribution
-            f.write("R² Distribution (All Datasets Combined)\\n")
-            f.write("-" * 40 + "\\n")
+            f.write("R² Distribution (All Datasets Combined)\n")
+            f.write("-" * 40 + "\n")
             f.write(f"{'R² Range':<15} {'Count':<12} {'Percentage':<10}\n")
             
             combined_rsq = defaultdict(int)

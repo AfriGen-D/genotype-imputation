@@ -275,15 +275,15 @@ class AccuracyByMAFReporter:
         
         with open(output_file, 'w') as f:
             # Write header
-            f.write("Imputation Accuracy Report by MAF\\n")
-            f.write("=" * 80 + "\\n\\n")
+            f.write("Imputation Accuracy Report by MAF\n")
+            f.write("=" * 80 + "\n\n")
             f.write(f"R² Threshold for well-imputed: {self.rsq_threshold}\n")
             f.write(f"Number of datasets: {len(self.metrics)}\n\n")
             
             # For each dataset
             for dataset in sorted(self.metrics.keys()):
                 f.write(f"\nDataset: {dataset}\n")
-                f.write("-" * 60 + "\\n\\n")
+                f.write("-" * 60 + "\n\n")
                 
                 # Overall metrics for this dataset
                 overall = self.overall_metrics[dataset]
@@ -296,16 +296,16 @@ class AccuracyByMAFReporter:
                 if overall.genotyped_count > 0:
                     f.write(f"  Genotyped variants: {overall.genotyped_count:,} "
                            f"({100 * overall.genotyped_count / overall.count:.1f}%)\n")
-                f.write("\\n")
+                f.write("\n")
                 
                 # Table header
-                f.write("Accuracy by MAF:\\n")
+                f.write("Accuracy by MAF:\n")
                 f.write(f"{'MAF Range':<12} {'N':<10} {'Mean R²':<12} {'Std R²':<10} "
                        f"{'Well-Imp%':<10}")
                 if any(m.empirical_rsq_sum > 0 for m in self.metrics[dataset].values()):
                     f.write(f" {'Emp R²':<10}")
-                f.write("\\n")
-                f.write("-" * 80 + "\\n")
+                f.write("\n")
+                f.write("-" * 80 + "\n")
                 
                 # Metrics by MAF bin
                 for maf_bin in self.maf_bins:
@@ -320,9 +320,9 @@ class AccuracyByMAFReporter:
                     if bin_metrics.empirical_rsq_sum > 0:
                         f.write(f" {bin_metrics.mean_empirical_rsq:<10.4f}")
                     
-                    f.write("\\n")
+                    f.write("\n")
                 
-                f.write("\\n")
+                f.write("\n")
     
     def generate_summary_table(self, output_file: Path) -> None:
         """Generate summary table suitable for publication."""
@@ -332,7 +332,7 @@ class AccuracyByMAFReporter:
             # TSV header
             header = ["Dataset", "MAF_Range", "N_Variants", "Mean_Rsq", "SD_Rsq", 
                      "Well_Imputed_Pct", "Mean_Emp_Rsq"]
-            f.write('\\t'.join(header) + '\\n')
+            f.write('\t'.join(header) + '\n')
             
             # Data rows
             for dataset in sorted(self.metrics.keys()):
@@ -350,7 +350,7 @@ class AccuracyByMAFReporter:
                         f"{bin_metrics.well_imputed_rate * 100:.2f}",
                         f"{bin_metrics.mean_empirical_rsq:.4f}" if bin_metrics.empirical_rsq_sum > 0 else "NA"
                     ]
-                    f.write('\\t'.join(row) + '\\n')
+                    f.write('\t'.join(row) + '\n')
     
     def export_json(self, output_file: Path) -> None:
         """Export metrics as JSON for downstream analysis."""

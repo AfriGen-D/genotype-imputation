@@ -6,8 +6,9 @@ Filters imputation info files based on quality thresholds.
 
 import argparse
 import sys
+import gzip
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Union, TextIO
 import logging
 
 # Configure logging
@@ -58,6 +59,27 @@ def parse_arguments() -> argparse.Namespace:
             parser.error(f"Info file not found: {file_path}")
     
     return args
+
+
+def open_file(filename: str, mode: str = 'r') -> Union[TextIO, gzip.GzipFile]:
+    """
+    Open a file, automatically detecting if it's gzipped.
+    
+    Args:
+        filename: Path to the file
+        mode: File open mode
+        
+    Returns:
+        File handle (regular or gzip)
+    """
+    # Check if file is gzipped by reading magic number
+    with open(filename, 'rb') as f:
+        magic = f.read(2)
+    
+    if magic == b'\x1f\x8b':  # gzip magic number
+        return gzip.open(filename, mode + 't')
+    else:
+        return open(filename, mode)
 
 
 class InfoFileProcessor:
@@ -115,7 +137,7 @@ class InfoFileProcessor:
         file_concordance = 0
         
         try:
-            with open(info_file, 'r') as f:
+            with open_file(info_file, 'r') as f:
                 for line_num, line in enumerate(f, 1):
                     line = line.strip()
                     if not line:
@@ -162,14 +184,14 @@ class InfoFileProcessor:
             self.maf_idx = self.header.index("MAF")
             
             # Write header to output files
-            well_out.write('\\t'.join(["GROUPS"] + data) + '\\n')
-            snp_out.write(data[1] + '\\n')  # SNP column
+            well_out.write('\t'.join(["GROUPS"] + data) + '\n')
+            snp_out.write(data[1] + '\n')  # SNP column
             
             # Check for concordance data
             if "EmpRsq" in self.header:
                 self.has_concordance = True
                 self.conc_idx = self.header.index("EmpRsq")
-                acc_out.write('\\t'.join(["GROUPS"] + data) + '\\n')
+                acc_out.write('\t'.join(["GROUPS"] + data) + '\n')
                 
         except ValueError as e:
             logger.error(f"Required column not found in header: {e}")
@@ -203,15 +225,15 @@ class InfoFileProcessor:
             if rsq_value not in ['-', 'NA', '']:
                 rsq = float(rsq_value)
                 if rsq >= self.info_cutoff:
-                    well_out.write('\\t'.join([dataset] + data) + '\\n')
-                    snp_out.write(data[1] + '\\n')  # SNP column
+                    well_out.write('\t'.join([dataset] + data) + '\n')
+                    snp_out.write(data[1] + '\n')  # SNP column
                     is_well_imputed = True
             
             # Check concordance if available
             if self.has_concordance and self.conc_idx is not None:
                 conc_value = data[self.conc_idx]
                 if conc_value != '-':
-                    acc_out.write('\\t'.join([dataset] + data) + '\\n')
+                    acc_out.write('\t'.join([dataset] + data) + '\n')
                     has_concordance = True
             
             return is_well_imputed, has_concordance

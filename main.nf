@@ -4,10 +4,11 @@ nextflow.enable.dsl=2  // Updated to stable DSL2 syntax (from deprecated preview
 include { get_chromosome; fill_tags_vcf; check_chromosome; check_files; check_chromosome_vcf; check_mismatch; no_mismatch ; qc_dupl; split_multi_allelic; filter_min_ac; target_qc as target_qc; target_qc as target_qc1; qc_site_missingness as qc_site_missingness1; qc_site_missingness as qc_site_missingness2; sites_only ; combine_vcfs ; combine_infos; combine_csvs as combine_freqs; combine_vcfs_chrm; } from './modules/qc' 
 include { vcf_map_simple; extract_site_from_vcf; generate_chunks_vcf; split_target_to_chunk; vcf_map; vcf_freq; info_freq; fill_tags_VCF; sort_vcf ; get_vcf_sites; extract_pop } from './modules/subset_vcf'
 include { minimac4_phasing_eagle } from './modules/phasing'
-include { impute_minimac4; impute_minimac4_1; combineImpute; combineInfo; filter_info_by_target } from './modules/impute'
+include { impute_minimac4; extract_impute_info; impute_minimac4_1; combineImpute; combineInfo; filter_info_by_target } from './modules/impute'
 include { filter_info; report_site_by_maf; plot_freq_comparison; report_well_imputed_by_target; plot_performance_target; 
 report_accuracy_target; plot_accuracy_target; generate_frequency; plot_r2_SNPpos; plot_r2_SNPcount; plot_hist_r2_SNPcount; plot_MAF_r2; 
 average_r2 } from './modules/report'
+include { run_qc_plots } from './modules/qc_plots'
 
 
 // Header log info
@@ -21,8 +22,8 @@ h3achipimputation v${params.version}"
     summary['Pipeline Name']    = 'h3achipimputation'
     summary['Pipeline version'] = params.version
     summary['Run Name']         = workflow.runName
-    // summary['Target datasets']  = params.target_datasets.values().join(', ')
-    // summary['Reference panels']  = params.ref_panels.keySet().join(', ')
+    summary['Target datasets']  = params.target_datasets.collect{ "${it[0]} (${it[1]})" }.join(', ')
+    summary['Reference panels'] = params.ref_panels.collect{ "${it[0]} (${it[2]})" }.join(', ')
     summary['Max Memory']       = params.max_memory
     summary['Max CPUs']         = params.max_cpus
     summary['Max Time']         = params.max_time
@@ -173,9 +174,9 @@ workflow subset{
         generate_chunks_vcf(data_chrms.map{ dataset, vcf, map_file, chrms -> [ dataset, file(vcf), file(map_file), chrms, params.chunk_size ] })
         chunks_datas = generate_chunks_vcf.out.flatMap{ dataset, vcf, chunk_file ->
             datas = []
-            chunks = file(chunk_file).text.split()
+            chunks = file(chunk_file).readLines()
             chunks.each{ chunk_data ->
-                data = chunk_data.split(',')
+                data = chunk_data.trim().split(',')
                 chrm = data[0]
                 chunk_start = data[1]
                 chunk_end = data[2]
@@ -204,10 +205,11 @@ workflow impute{
     
     main:
         impute_minimac4(data)
+        extract_impute_info(impute_minimac4.out)
 
     emit: 
         data
-        chunks_imputed = impute_minimac4.out
+        chunks_imputed = extract_impute_info.out
 }
 
 workflow report_by_ref{

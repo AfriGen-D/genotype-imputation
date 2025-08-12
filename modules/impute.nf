@@ -32,10 +32,11 @@ process impute_minimac4 {
     input:
         tuple val(chrm), val(chunk_start), val(chunk_end), val(target_name), file(target_phased_vcf), file(target_phased_vcf_tbi), val(ref_name), file(ref_vcf), file(ref_msav), val(tagName)
     output:
-        tuple val(chrm), val(chunk_start), val(chunk_end), val(target_name), val(ref_name), file("${base}_imputed"), file("${base}_imputed.info"), val(tagName)
+        tuple val(chrm), val(chunk_start), val(chunk_end), val(target_name), val(ref_name), file("${base}_imputed.bcf"), val(tagName)
     shell:
         base = "${file(target_phased_vcf.baseName).baseName}_${tagName}_${chrm}_${chunk_start}-${chunk_end}"
         """
+        # Run minimac4 imputation
         minimac4 \
             --format GT,DS \
             --all-typed-sites \
@@ -44,10 +45,44 @@ process impute_minimac4 {
             --overlap ${params.buffer_size} \
             --output ${base}_imputed \
             --output-format bcf \
-            --sites ${base}_imputed.info \
             --threads ${task.cpus} \
             ${ref_msav} \
             ${target_phased_vcf}
+        
+        # Rename the output BCF file to have .bcf extension
+        mv ${base}_imputed ${base}_imputed.bcf
+        """
+}
+
+process extract_impute_info {
+    tag "extract_info_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${ref_name}"
+    label "bcftools"
+    publishDir "${params.outDir}/imputed/${ref_name}/${target_name}", overwrite: true, mode:'copy'
+
+    input:
+        tuple val(chrm), val(chunk_start), val(chunk_end), val(target_name), val(ref_name), file(imputed_bcf), val(tagName)
+    output:
+        tuple val(chrm), val(chunk_start), val(chunk_end), val(target_name), val(ref_name), file(imputed_bcf), file("${base}_imputed.info.gz"), val(tagName)
+    script:
+        base = "${file(imputed_bcf.baseName).baseName}"
+        """
+        # Generate tab-delimited info file from the BCF output
+        echo -e "SNP\tREF(0)\tALT(1)\tALT_Frq\tMAF\tAvgCall\tRsq\tGenotyped\tLooRsq\tEmpR\tEmpRsq\tDose0\tDose1" | gzip > ${base}_imputed.info.gz
+        
+        # Extract info from BCF file
+        # Note: TYPED and IMPUTED are flags, ER2 is empirical R-squared (only for genotyped variants)
+        bcftools query -f '%CHROM:%POS:%REF:%ALT\t%REF\t%ALT\t%INFO/AF\t%INFO/MAF\t%INFO/AVG_CS\t%INFO/R2\t%INFO/IMPUTED\t%INFO/ER2\t-\t%INFO/ER2\t-\t-\n' ${imputed_bcf} | \
+            awk 'BEGIN {OFS="\t"} {
+                # Set Genotyped field based on IMPUTED flag (column 8)
+                if (\$8 == "1") \$8 = "Imputed"
+                else \$8 = "Genotyped"
+                
+                # Handle missing values - replace . with -
+                for (i=1; i<=NF; i++) {
+                    if (\$i == ".") \$i = "-"
+                }
+                print
+            }' | gzip >> ${base}_imputed.info.gz
         """
 }
 
@@ -186,9 +221,12 @@ process filter_info_by_target {
     script:
         chrms = chrms.split(',')[0]+"-"+chrms.split(',')[-1]
         out_prefix = "${target_name}_${ref_panels.split(',').join('-')}_${chrms}.imputed_info"
-        ref_infos = ref_infos
-        datasets = ref_panels
-        impute_info_cutoff = params.impute_info_cutoff
-        template "improved/filter_info_minimac.py"
+        """
+        python3 ${projectDir}/templates/improved/filter_info_minimac.py \\
+            --infoFiles ${ref_infos} \\
+            --datasets ${ref_panels} \\
+            --out_prefix ${out_prefix} \\
+            --infoCutoff ${params.impute_info_cutoff}
+        """
 }
 

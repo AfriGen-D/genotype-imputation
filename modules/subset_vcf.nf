@@ -181,7 +181,16 @@ process generate_chunks {
         if(params.chunk){ chunk = params.chunk } else{ chunk='' }
         chromosomes = ''
         chunkFile = "chunks.txt"
-        template "improved/generate_chunks.py"
+        chunk_args = chunk ? "--region ${chunk}" : ""
+        chromosomes_args = chromosomes ? "--chromosomes ${chromosomes}" : ""
+        """
+        python3 ${projectDir}/templates/improved/generate_chunks.py \\
+            ${mapFile} \\
+            ${chunkFile} \\
+            --chunk-size ${chunk_size} \\
+            ${chromosomes_args} \\
+            ${chunk_args}
+        """
 }
 
 process generate_chunks_vcf {
@@ -196,7 +205,16 @@ process generate_chunks_vcf {
         if(params.chunk){ chunk = params.chunk } else{ chunk='' }
         chromosomes = chrms
         chunkFile = "chunks.txt"
-        template "improved/generate_chunks.py"
+        chunk_args = chunk ? "--region ${chunk}" : ""
+        chromosomes_args = chromosomes ? "--chromosomes ${chromosomes}" : ""
+        """
+        python3 ${projectDir}/templates/improved/generate_chunks.py \\
+            ${mapFile} \\
+            ${chunkFile} \\
+            --chunk-size ${chunk_size} \\
+            ${chromosomes_args} \\
+            ${chunk_args}
+        """
 }
 
 
