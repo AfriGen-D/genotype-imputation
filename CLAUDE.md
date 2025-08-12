@@ -1,0 +1,1 @@
+- not building docker locally, commit and push to GH, GH Actions will build the container.

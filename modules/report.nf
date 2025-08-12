@@ -29,6 +29,7 @@ if (params.help){
 process filter_info {
     tag "filter_${dataset_name}_${tagName}_${ref_panels.join('-')}"
     label "bigmem"
+    label "python_plotting"
 
     input:
         tuple val(dataset_name), val(ref_panels), val(ref_infos), val(tagName), val(info_cutoff)
@@ -54,6 +55,7 @@ process filter_info {
 process report_site_by_maf {
     tag "site_by_maf_${dataset_name}"
     label "bigmem"
+    label "python_plotting"
 
     input:
         tuple val(dataset_name), file(sites)
@@ -79,6 +81,7 @@ process report_well_imputed_by_target {
     tag "report_wellImputed_${target_name}_${ref_panels.split(',').join('-')}"
     publishDir "${params.outDir}/reports/${ref_panels}", overwrite: true, mode:'copy'
     label "medium"
+    label "python_plotting"
     
     input:
         tuple val(target_name), val(ref_panels), file(inWell_imputed)
@@ -126,6 +129,7 @@ process report_accuracy_target {
     tag "report_acc_${target_name}_${ref_panels}"
     publishDir "${params.outDir}/reports/${ref_panels}/", overwrite: true, mode:'copy'
     label "medium"
+    label "python_plotting"
     input:
         tuple val(target_name), val(ref_panels), file(inSNP_acc), val(group)
     output:

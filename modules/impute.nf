@@ -210,6 +210,7 @@ process filter_info_by_target {
     tag "filter_${target_name}_${ref_panels}_${chrms}"
     publishDir "${params.outDir}/reports/${ref_panels}", overwrite: true, mode:'copy', pattern: "${comb_info}*"
     label "medium"
+    label "python_plotting"
     
     input:
         tuple val(target_name), val(ref_panels), val(chrms), val(ref_infos) //from target_infos.values()

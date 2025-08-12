@@ -196,6 +196,7 @@ process generate_chunks {
 process generate_chunks_vcf {
     tag "generate_chunks_${target_name}"
     label "small"
+    label "python_plotting"
 
     input:
         tuple val(target_name), file(vcf), file(mapFile), val(chrms), val(chunk_size)

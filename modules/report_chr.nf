@@ -13,6 +13,7 @@ nextflow.enable.dsl=2
 process filter_info_by_target_chr {
     tag "filter_${dataset_name}_${tagName}_${ref_panels.join('-')}_chr${chr}"
     label "bigmem"
+    label "python_plotting"
     publishDir "${params.outDir}/reports_chr/chr${chr}/${ref_panels}", overwrite: true, mode:'copy'
 
     input:
@@ -40,6 +41,7 @@ process filter_info_by_target_chr {
 process filter_info_by_target_chr2 {
     tag "filter_${dataset_name}_${ref_panels.join('-')}_chr${chr}"
     label "bigmem"
+    label "python_plotting"
     publishDir "${params.outDir}/reports_chr/chr${chr}/${dataset_name}", overwrite: true, mode:'copy'
 
     input:
@@ -68,6 +70,7 @@ process report_well_imputed_by_target_chr {
     tag "report_wellImputed_${target_name}_${ref_panels}_chr${chr}"
     publishDir "${params.outDir}/reports_chr/chr${chr}/${ref_panels}", overwrite: true, mode:'copy'
     label "medium"
+    label "python_plotting"
     
     input:
         tuple val(target_name), val(ref_panels), val(chr), file(inWell_imputed)
@@ -93,6 +96,7 @@ process report_well_imputed_by_target_chr2 {
     tag "report_wellImputed_${target_name}_${ref_panels}_chr${chr}"
     publishDir "${params.outDir}/reports_chr/chr${chr}/${target_name}", overwrite: true, mode:'copy'
     label "medium"
+    label "python_plotting"
     
     input:
         tuple val(target_name), val(ref_panels), val(chr), file(inWell_imputed)
@@ -154,6 +158,7 @@ process report_accuracy_target_chr {
     tag "report_acc_${target_name}_${ref_panels}_chr${chr}"
     publishDir "${params.outDir}/reports_chr/chr${chr}/${ref_panels}/", overwrite: true, mode:'copy'
     label "medium"
+    label "python_plotting"
     
     input:
         tuple val(target_name), val(ref_panels), val(chr), file(inSNP_acc), val(group)
@@ -177,6 +182,7 @@ process report_accuracy_target_chr2 {
     tag "report_acc_${target_name}_${ref_panels}_chr${chr}"
     publishDir "${params.outDir}/reports_chr/chr${chr}/${target_name}/", overwrite: true, mode:'copy'
     label "medium"
+    label "python_plotting"
     
     input:
         tuple val(target_name), val(ref_panels), val(chr), file(inSNP_acc), val(group)

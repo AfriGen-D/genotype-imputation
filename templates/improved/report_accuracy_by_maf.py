@@ -479,7 +479,8 @@ def main():
         
         # Generate reports
         output_prefix = Path(args.output_prefix)
-        reporter.generate_report(output_prefix.with_suffix('.report.txt'))
+        # Generate main output file without suffix (expected by Nextflow)
+        reporter.generate_report(str(output_prefix))
         
         if args.summary_table:
             reporter.generate_summary_table(output_prefix.with_suffix('.summary.tsv'))

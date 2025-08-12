@@ -412,7 +412,12 @@ def main():
         
         # Generate reports
         output_prefix = Path(args.output_prefix)
-        reporter.generate_summary_report(output_prefix.with_suffix('.summary.txt'))
+        
+        # Generate main TSV report (detailed per-MAF bin stats)
+        reporter.generate_detailed_report(f"{output_prefix}.tsv")
+        
+        # Generate summary TSV report  
+        reporter.generate_summary_report(f"{output_prefix}_summary.tsv")
         
         if args.variant_list:
             reporter.generate_variant_list(output_prefix.with_suffix('.variants.txt'))
