@@ -32,4 +32,4 @@ average = filtered_data['Rsq'].mean()
 
 # Write the result to output file
 with open(meanr2_out, 'w') as f:
-    f.write(f"{average}\n")
+    f.write(str(average) + "\\n")

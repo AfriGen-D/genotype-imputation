@@ -8,6 +8,9 @@ include { impute_minimac4; extract_impute_info; impute_minimac4_1; combineImpute
 include { filter_info; report_site_by_maf; plot_freq_comparison; report_well_imputed_by_target; plot_performance_target; 
 report_accuracy_target; plot_accuracy_target; generate_frequency; plot_r2_SNPpos; plot_r2_SNPcount; plot_hist_r2_SNPcount; plot_MAF_r2; 
 average_r2 } from './modules/report'
+include { filter_info_by_target_chr; filter_info_by_target_chr2; report_well_imputed_by_target_chr; report_well_imputed_by_target_chr2;
+plot_performance_target_chr; plot_performance_target_chr2; report_accuracy_target_chr; report_accuracy_target_chr2;
+plot_accuracy_target_chr; plot_accuracy_target_chr2; plot_r2_SNPcount_chr; plot_hist_r2_SNPcount_chr; plot_MAF_r2_chr } from './modules/report_chr'
 include { run_qc_plots } from './modules/qc_plots'
 
 
@@ -275,6 +278,97 @@ workflow report_by_dataset{
         data
 }
 
+workflow report_by_ref_chromosome {
+    take: data_with_chr
+
+    main:
+        /// By Reference panel - chromosome level
+        // Group by chromosome and reference panel
+        imputeCombine_ref_chr = data_with_chr
+                .groupTuple( by:[0, 2] )  // Group by chromosome and ref_panel
+                .map{ chr, datasets, refpanel, vcfs, imputed_vcfs, imputed_infos -> 
+                    [ refpanel, datasets.join(','), chr, imputed_infos.join(',') ] 
+                }
+        
+        filter_info_by_target_chr( imputeCombine_ref_chr )
+
+        // Plot performance by chromosome
+        report_well_imputed_by_target_chr( 
+            filter_info_by_target_chr.out.map{ target_name, ref_panels, chr, wellInfo, accInfo -> 
+                [ target_name, ref_panels, chr, file(wellInfo) ]
+            } 
+        )
+        
+        plot_performance_target_chr( 
+            report_well_imputed_by_target_chr.out.map{ target_name, ref_panels, chr, wellInfo, wellInfo_summary -> 
+                [ target_name, ref_panels, chr, file(wellInfo), file(wellInfo_summary), 'DATASETS' ]
+            } 
+        )
+
+        // Accuracy/Concordance by chromosome
+        report_accuracy_target_chr( 
+            filter_info_by_target_chr.out.map{ target_name, ref_panels, chr, wellInfo, accInfo -> 
+                [ target_name, ref_panels, chr, file(accInfo), 'DATASETS' ]
+            } 
+        )
+        plot_accuracy_target_chr( report_accuracy_target_chr.out )
+
+    emit:
+        data = filter_info_by_target_chr.out
+}
+
+workflow report_by_dataset_chromosome {
+    take: data_with_chr
+
+    main:
+        /// By Dataset - chromosome level
+        // Group by chromosome and dataset
+        imputeCombine_dataset_chr = data_with_chr
+                .groupTuple( by:[0, 1] )  // Group by chromosome and dataset
+                .map{ chr, dataset, refpanels, vcfs, imputed_vcfs, imputed_infos -> 
+                    [ dataset, refpanels.join(','), chr, imputed_infos.join(',') ] 
+                }
+        
+        filter_info_by_target_chr2( imputeCombine_dataset_chr )
+
+        // Plot performance by chromosome
+        report_well_imputed_by_target_chr2( 
+            filter_info_by_target_chr2.out.map{ target_name, ref_panels, chr, wellInfo, accInfo -> 
+                [ target_name, ref_panels, chr, file(wellInfo) ]
+            } 
+        )
+        
+        plot_performance_target_chr2( 
+            report_well_imputed_by_target_chr2.out.map{ target_name, ref_panels, chr, wellInfo, wellInfo_summary -> 
+                [ target_name, ref_panels, chr, file(wellInfo), file(wellInfo_summary), 'REFERENCE_PANELS' ]
+            } 
+        )
+
+        // Accuracy/Concordance by chromosome
+        report_accuracy_target_chr2( 
+            filter_info_by_target_chr2.out.map{ target_name, ref_panels, chr, wellInfo, accInfo -> 
+                [ target_name, ref_panels, chr, file(accInfo), 'REFERENCE_PANELS' ]
+            } 
+        )
+        plot_accuracy_target_chr2( report_accuracy_target_chr2.out )
+
+        // R2 and MAF plots by chromosome
+        plot_r2_SNPcount_chr( imputeCombine_dataset_chr.map{ dataset, refpanels, chr, infos -> 
+            [dataset, refpanels, chr, infos]
+        })
+        
+        plot_hist_r2_SNPcount_chr( imputeCombine_dataset_chr.map{ dataset, refpanels, chr, infos -> 
+            [dataset, refpanels, chr, infos]
+        })
+        
+        plot_MAF_r2_chr( imputeCombine_dataset_chr.map{ dataset, refpanels, chr, infos -> 
+            [dataset, refpanels, chr, infos]
+        })
+
+    emit:
+        data = filter_info_by_target_chr2.out
+}
+
 workflow {
 
     intro()
@@ -314,11 +408,27 @@ workflow {
                 .map {test_data, ref, imputed_vcf, imputed_info, orig_vcf 
                 -> [test_data, ref, orig_vcf, imputed_vcf, imputed_info]}
 
-    // //// Report by Reference
+    // //// GENOME-WIDE REPORTING
+    // //// Report by Reference - Genome-wide
     report_by_ref( impute_data )
 
-    // //// Report by datasets
+    // //// Report by datasets - Genome-wide
     report_by_dataset( impute_data )
+    
+    // //// CHROMOSOME-LEVEL REPORTING
+    // Prepare data with chromosome information
+    impute_data_chr_ref = impute.out.chunks_imputed
+        .map{chr, fwd, rev, test_data, ref, imputed_vcf, imputed_info, tst_data -> 
+            [chr, test_data, ref, imputed_vcf, imputed_info]}
+        .combine(params.target_datasets, by:1)
+        .map {test_data, chr, ref, imputed_vcf, imputed_info, orig_vcf -> 
+            [chr, test_data, ref, orig_vcf, imputed_vcf, imputed_info]}
+    
+    // //// Report by Reference - Chromosome level
+    report_by_ref_chromosome( impute_data_chr_ref )
+    
+    // //// Report by datasets - Chromosome level  
+    report_by_dataset_chromosome( impute_data_chr_ref )
 
     // // Generate dataset frequencies - need chromosome for ref panel path
     impute_data_with_chr = impute.out.chunks_imputed
