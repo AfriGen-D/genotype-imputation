@@ -21,7 +21,7 @@ process CHECK_VCF_FORMAT {
     bcftools view -h ${vcf} > header_check.txt
     
     # Validate VCF
-    bcftools +fixploidy ${vcf} -- -d 2>&1 | tee ${prefix}.validation.log
+    bcftools +fixploidy ${vcf} -- -d 2 2>&1 | tee ${prefix}.validation.log
     
     # Check for required fields
     if ! bcftools view -h ${vcf} | grep -q "##FORMAT=<ID=GT"; then
