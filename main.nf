@@ -223,7 +223,12 @@ workflow report_by_ref{
         // combine by chrom, dataset, refpanel
         imputeCombine_ref = data
                 .groupTuple( by:[1] )
-                .map{ datasets, refpanel, vcfs, imputed_vcfs, imputed_infos -> [ refpanel, datasets.join(','), '', imputed_infos.join(',') ] }
+                .map{ datasets, refpanel, vcfs, imputed_vcfs, imputed_infos -> 
+                    // Create one refpanel name per info file
+                    def num_files = imputed_infos.size()
+                    def datasets_replicated = ([refpanel] * num_files).join(',')
+                    [ refpanel, datasets_replicated, '', imputed_infos.join(',') ] 
+                }
         filter_info_by_target( imputeCombine_ref )
 
         /// change to group_by_maf
@@ -234,7 +239,7 @@ workflow report_by_ref{
 
         //// Accuracy/Concordance
         report_accuracy_target( filter_info_by_target.out.map{ target_name, ref_panels, wellInfo, accInfo -> [ target_name, ref_panels, file(accInfo), 'DATASETS' ]} )
-        plot_accuracy_target ( report_accuracy_target.out )
+        plot_accuracy_target ( report_accuracy_target.out.map{ target_name, ref_panels, report, tsv, group -> [target_name, ref_panels, report, tsv, group] } )
     emit:
         data
 }
@@ -248,7 +253,12 @@ workflow report_by_dataset{
         
         imputeCombine_ref = data
                 .groupTuple( by:[0] )
-                .map{ dataset, refpanels, vcfs, imputed_vcfs, imputed_infos -> [ dataset, refpanels.join(','), '', imputed_infos.join(',') ] }
+                .map{ dataset, refpanels, vcfs, imputed_vcfs, imputed_infos -> 
+                    // Create one dataset name per info file
+                    def num_files = imputed_infos.size()
+                    def datasets_replicated = ([dataset] * num_files).join(',')
+                    [ dataset, datasets_replicated, '', imputed_infos.join(',') ] 
+                }
         filter_info_by_target( imputeCombine_ref )
 
         ///// Number of well imputed snps
@@ -259,7 +269,7 @@ workflow report_by_dataset{
 
         //// Accuracy/Concordance
         report_accuracy_target( filter_info_by_target.out.map{ target_name, ref_panels, wellInfo, accInfo -> [ target_name, ref_panels, file(accInfo), 'REFERENCE_PANELS' ]} )
-        plot_accuracy_target ( report_accuracy_target.out )
+        plot_accuracy_target ( report_accuracy_target.out.map{ target_name, ref_panels, report, tsv, group -> [target_name, ref_panels, report, tsv, group] } )
 
         // Plot number of imputed SNPs over the mean r2 for all reference panels
         input = imputeCombine_ref
@@ -283,11 +293,15 @@ workflow report_by_ref_chromosome {
 
     main:
         /// By Reference panel - chromosome level
-        // Group by chromosome and reference panel
+        // For single chunk scenarios, we simplify the grouping logic
+        // Map directly to the expected structure without complex grouping
         imputeCombine_ref_chr = data_with_chr
-                .groupTuple( by:[0, 2] )  // Group by chromosome and ref_panel
-                .map{ chr, datasets, refpanel, vcfs, imputed_vcfs, imputed_infos -> 
-                    [ refpanel, datasets.join(','), chr, imputed_infos.join(',') ] 
+                .map{ chr, dataset, refpanel, vcf, imputed_vcf, imputed_info ->
+                    // For chromosome-level reporting, we just pass through the data
+                    // This handles both single and multiple chunks per chromosome
+                    // Convert file object to path string for the info file
+                    // Process expects: [dataset_name, ref_panels, chr, ref_infos]
+                    [ dataset, refpanel, chr, imputed_info.toString() ]
                 }
         
         filter_info_by_target_chr( imputeCombine_ref_chr )
@@ -322,11 +336,14 @@ workflow report_by_dataset_chromosome {
 
     main:
         /// By Dataset - chromosome level
-        // Group by chromosome and dataset
+        // For single chunk scenarios, we simplify the grouping logic
+        // Map directly to the expected structure without complex grouping
         imputeCombine_dataset_chr = data_with_chr
-                .groupTuple( by:[0, 1] )  // Group by chromosome and dataset
-                .map{ chr, dataset, refpanels, vcfs, imputed_vcfs, imputed_infos -> 
-                    [ dataset, refpanels.join(','), chr, imputed_infos.join(',') ] 
+                .map{ chr, dataset, refpanel, vcf, imputed_vcf, imputed_info ->
+                    // For chromosome-level reporting, we just pass through the data
+                    // This handles both single and multiple chunks per chromosome
+                    // Convert file object to path string for the info file
+                    [ dataset, refpanel, chr, imputed_info.toString() ]
                 }
         
         filter_info_by_target_chr2( imputeCombine_dataset_chr )
@@ -417,12 +434,13 @@ workflow {
     
     // //// CHROMOSOME-LEVEL REPORTING
     // Prepare data with chromosome information
+    // First map: reorder to have target_name first for combine
     impute_data_chr_ref = impute.out.chunks_imputed
-        .map{chr, fwd, rev, test_data, ref, imputed_vcf, imputed_info, tst_data -> 
-            [chr, test_data, ref, imputed_vcf, imputed_info]}
-        .combine(params.target_datasets, by:1)
-        .map {test_data, chr, ref, imputed_vcf, imputed_info, orig_vcf -> 
-            [chr, test_data, ref, orig_vcf, imputed_vcf, imputed_info]}
+        .map{chrm, chunk_start, chunk_end, target_name, ref_name, imputed_bcf, info_file, tagName -> 
+            [target_name, chrm, ref_name, imputed_bcf, info_file]}
+        .combine(Channel.from(params.target_datasets), by:0)  // by:0 since target_name is now at position 0
+        .map {target_name, chrm, ref_name, imputed_vcf, imputed_info, orig_vcf -> 
+            [chrm, target_name, ref_name, orig_vcf, imputed_vcf, imputed_info]}
     
     // //// Report by Reference - Chromosome level
     report_by_ref_chromosome( impute_data_chr_ref )

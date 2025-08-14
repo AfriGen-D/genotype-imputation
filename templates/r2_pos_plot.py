@@ -44,6 +44,15 @@ if '_' in frq['SNP'].iloc[0]:
 # Merge tables
 full = pd.merge(frq, info, on='SNP', how='inner')
 
+# Check if merge produced any results
+if len(full) == 0:
+    print(f"Warning: No matching SNPs found between frequency file and info file.")
+    print(f"  Frequency file has {len(frq)} SNPs")
+    print(f"  Info file has {len(info)} SNPs")
+    if len(frq) > 0 and len(info) > 0:
+        print(f"  Sample SNP IDs from frequency: {frq['SNP'].head(3).tolist()}")
+        print(f"  Sample SNP IDs from info: {info['SNP'].head(3).tolist()}")
+
 # Change chromosome names for display
 full['CHR'] = 'Chromosome ' + full['CHR'].astype(str)
 
@@ -90,6 +99,21 @@ imputed['MAF_category'] = imputed['MAF'].apply(categorize_maf)
 
 # Get unique chromosomes
 chromosomes = sorted(imputed['CHR'].unique())
+
+# Check if there's data to plot
+if len(imputed) == 0 or len(chromosomes) == 0:
+    print("Warning: No imputed data found after filtering. Creating empty plot.")
+    fig, ax = plt.subplots(1, 1, figsize=(10, 5.5))
+    ax.text(0.5, 0.5, 'No imputed data available\\nafter filtering', 
+            ha='center', va='center', transform=ax.transAxes, fontsize=12)
+    ax.set_xlabel('Position [bp]', fontsize=10)
+    ax.set_ylabel('Imputation accuracy (r-squared)', fontsize=10)
+    ax.set_title('No Data', fontsize=10)
+    plt.tight_layout()
+    plt.savefig(output_file, dpi=150, bbox_inches='tight')
+    plt.close()
+    import sys
+    sys.exit(0)
 
 # Create the plot
 n_chr = len(chromosomes)

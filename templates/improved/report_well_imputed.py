@@ -26,11 +26,6 @@ class VariantStats:
     info_score: float = 0.0
     empirical_rsq: Optional[float] = None
     genotyped: bool = False
-    
-    @property
-    def is_well_imputed(self) -> bool:
-        """Check if variant meets well-imputed criteria."""
-        return self.rsq >= 0.8  # Default threshold
 
 
 @dataclass
@@ -287,6 +282,35 @@ class WellImputedReporter:
                 pct = 100 * count / total_all if total_all > 0 else 0
                 f.write(f"{bin_name:<15} {count:<12,} {pct:>9.1f}%\n")
     
+    def _get_maf_bin(self, maf: float) -> str:
+        """Get the MAF bin label for a given MAF value."""
+        for min_maf, max_maf, bin_label in self.maf_bins:
+            if min_maf <= maf < max_maf:
+                return bin_label
+        # If MAF is exactly 0.5 or greater, put it in the last bin
+        if maf >= 0.5:
+            return "10-50%"
+        return "Unknown"
+    
+    def generate_plot_data(self, output_file: Path) -> None:
+        """Generate TSV data for plotting MAF distribution."""
+        logger.info(f"Generating plot data TSV: {output_file}")
+        
+        with open(output_file, 'w') as f:
+            # Header row
+            header = ["Dataset"] + [label for _, _, label in self.maf_bins]
+            f.write("\t".join(header) + "\n")
+            
+            # Data rows - one per dataset
+            for dataset in sorted(self.dataset_stats.keys()):
+                row = [dataset]
+                for _, _, bin_label in self.maf_bins:
+                    # Count well-imputed variants in this MAF bin
+                    count = sum(1 for v in self.variants_by_dataset[dataset].values()
+                              if v.rsq >= self.rsq_threshold and self._get_maf_bin(v.maf) == bin_label)
+                    row.append(str(count))
+                f.write("\t".join(row) + "\n")
+    
     def generate_variant_list(self, output_file: Path, dataset: Optional[str] = None) -> None:
         """Generate list of well-imputed variant IDs."""
         logger.info(f"Generating well-imputed variant list: {output_file}")
@@ -398,6 +422,12 @@ def main():
     info_files = [Path(f.strip()) for f in args.info_files.split(',')]
     datasets = [d.strip() for d in args.datasets.split(',')]
     
+    # Handle case where the same dataset appears multiple times (e.g., from multiple chunks)
+    # If we have duplicate datasets but only one info file, replicate the file for each dataset
+    if len(info_files) == 1 and len(datasets) > 1 and len(set(datasets)) == 1:
+        logger.info(f"Single info file for {len(datasets)} instances of dataset {datasets[0]}")
+        info_files = info_files * len(datasets)
+    
     if len(info_files) != len(datasets):
         logger.error(f"Number of info files ({len(info_files)}) must match datasets ({len(datasets)})")
         return 1
@@ -413,11 +443,11 @@ def main():
         # Generate reports
         output_prefix = Path(args.output_prefix)
         
-        # Generate main TSV report (detailed per-MAF bin stats)
-        reporter.generate_detailed_report(f"{output_prefix}.tsv")
-        
-        # Generate summary TSV report  
-        reporter.generate_summary_report(f"{output_prefix}_summary.tsv")
+        # Generate both required output files
+        # Main report (text format)
+        reporter.generate_summary_report(f"{output_prefix}.tsv")
+        # Summary report (TSV data for plotting)
+        reporter.generate_plot_data(f"{output_prefix}_summary.tsv")
         
         if args.variant_list:
             reporter.generate_variant_list(output_prefix.with_suffix('.variants.txt'))

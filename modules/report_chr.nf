@@ -11,7 +11,7 @@ nextflow.enable.dsl=2
 
 // Filter info files by chromosome
 process filter_info_by_target_chr {
-    tag "filter_${dataset_name}_${tagName}_${ref_panels.join('-')}_chr${chr}"
+    tag "filter_${dataset_name}_${tagName}_${ref_panels.join('-')}_${chr}"
     label "bigmem"
     label "python_plotting"
     publishDir "${params.outDir}/reports_chr/chr${chr}/${ref_panels}", overwrite: true, mode:'copy'
@@ -19,10 +19,10 @@ process filter_info_by_target_chr {
     input:
         tuple val(dataset_name), val(ref_panels), val(chr), val(ref_infos)
     output:
-        tuple val(dataset_name), val(ref_panels), val(chr), file("${well_out}_${info_cutoff}.tsv"), file("${acc_out}_${info_cutoff}.tsv")
+        tuple val(dataset_name), val(ref_panels), val(chr), file("${well_out}.tsv"), file("${acc_out}.tsv")
     script:
         tagName = "${ref_panels.join('-')}"
-        comb_info = "${dataset_name}_${tagName}_chr${chr}.imputed_info"
+        comb_info = "${dataset_name}_${tagName}_${chr}.imputed_info"
         well_out = "${comb_info}_well_imputed"
         acc_out = "${comb_info}_accuracy"
         infos = ref_infos  // Already joined
@@ -47,10 +47,10 @@ process filter_info_by_target_chr2 {
     input:
         tuple val(dataset_name), val(ref_panels), val(chr), val(ref_infos)
     output:
-        tuple val(dataset_name), val(ref_panels), val(chr), file("${well_out}_${info_cutoff}.tsv"), file("${acc_out}_${info_cutoff}.tsv")
+        tuple val(dataset_name), val(ref_panels), val(chr), file("${well_out}.tsv"), file("${acc_out}.tsv")
     script:
         tagName = "${ref_panels.join('-')}"
-        comb_info = "${dataset_name}_${tagName}_chr${chr}.imputed_info"
+        comb_info = "${dataset_name}_${tagName}_${chr}.imputed_info"
         well_out = "${comb_info}_well_imputed"
         acc_out = "${comb_info}_accuracy"
         infos = ref_infos  // Already joined
@@ -79,7 +79,7 @@ process report_well_imputed_by_target_chr {
         tuple val(target_name), val(ref_panels), val(chr), file("${out_prefix}.tsv"), file("${out_prefix}_summary.tsv")
     
     script:
-        out_prefix = "${inWell_imputed.baseName}.chr${chr}.imputed_info_performance_by_maf_report"
+        out_prefix = "${inWell_imputed.baseName}.${chr}.imputed_info_performance_by_maf_report"
         datasets = ref_panels.split(',').join(',')
         """
         python3 ${projectDir}/templates/improved/report_well_imputed.py \\
@@ -105,7 +105,7 @@ process report_well_imputed_by_target_chr2 {
         tuple val(target_name), val(ref_panels), val(chr), file("${out_prefix}.tsv"), file("${out_prefix}_summary.tsv")
     
     script:
-        out_prefix = "${inWell_imputed.baseName}.chr${chr}.imputed_info_performance_by_maf_report"
+        out_prefix = "${inWell_imputed.baseName}.${chr}.imputed_info_performance_by_maf_report"
         datasets = ref_panels.split(',').join(',')
         """
         python3 ${projectDir}/templates/improved/report_well_imputed.py \\
@@ -128,7 +128,7 @@ process plot_performance_target_chr {
     output:
         tuple val(target_name), val(ref_panels), val(chr), file(plot_by_maf)
     script:
-        plot_by_maf = "${well_imputed_report.baseName}_chr${chr}.pdf"
+        plot_by_maf = "${well_imputed_report.baseName}_${chr}.pdf"
         report = well_imputed_report
         xlab = "MAF bins"
         ylab = "Number of well imputed SNPs (Chr ${chr})"
@@ -146,7 +146,7 @@ process plot_performance_target_chr2 {
     output:
         tuple val(target_name), val(ref_panels), val(chr), file(plot_by_maf)
     script:
-        plot_by_maf = "${well_imputed_report.baseName}_chr${chr}.pdf"
+        plot_by_maf = "${well_imputed_report.baseName}_${chr}.pdf"
         report = well_imputed_report
         xlab = "MAF bins"
         ylab = "Number of well imputed SNPs (Chr ${chr})"
@@ -165,7 +165,7 @@ process report_accuracy_target_chr {
     output:
         tuple val(target_name), val(ref_panels), val(chr), file(outSNP_acc), val(group)
     script:
-        outSNP_acc = "${inSNP_acc.baseName}.chr${chr}.imputed_info_report_accuracy"
+        outSNP_acc = "${inSNP_acc.baseName}.${chr}.imputed_info_report_accuracy"
         datasets = ref_panels.split(',').join(',')
         """
         python3 ${projectDir}/templates/improved/report_accuracy_by_maf.py \\
@@ -189,7 +189,7 @@ process report_accuracy_target_chr2 {
     output:
         tuple val(target_name), val(ref_panels), val(chr), file(outSNP_acc), val(group)
     script:
-        outSNP_acc = "${inSNP_acc.baseName}.chr${chr}.imputed_info_report_accuracy"
+        outSNP_acc = "${inSNP_acc.baseName}.${chr}.imputed_info_report_accuracy"
         datasets = ref_panels.split(',').join(',')
         """
         python3 ${projectDir}/templates/improved/report_accuracy_by_maf.py \\
@@ -212,7 +212,7 @@ process plot_accuracy_target_chr {
     output:
         tuple val(target_name), val(ref_panels), val(chr), file(plot_by_maf)
     script:
-        plot_by_maf = "${accuracy_report.baseName}_accuracy_by_maf_chr${chr}.pdf"
+        plot_by_maf = "${accuracy_report.baseName}_accuracy_by_maf_${chr}.pdf"
         report = accuracy_report
         xlab = "MAF bins"
         ylab = "Concordance rate (Chr ${chr})"
@@ -230,7 +230,7 @@ process plot_accuracy_target_chr2 {
     output:
         tuple val(target_name), val(ref_panels), val(chr), file(plot_by_maf)
     script:
-        plot_by_maf = "${accuracy_report.baseName}_accuracy_by_maf_chr${chr}.pdf"
+        plot_by_maf = "${accuracy_report.baseName}_accuracy_by_maf_${chr}.pdf"
         report = accuracy_report
         xlab = "MAF bins"
         ylab = "Concordance rate (Chr ${chr})"
@@ -249,7 +249,7 @@ process plot_r2_SNPcount_chr {
     output:
         tuple val(target_name), val(ref_panels), val(chr), file(plot_out)
     script:
-        plot_out = "${target_name}_${ref_panels}_chr${chr}_r2_SNPcount.pdf"
+        plot_out = "${target_name}_${ref_panels}_${chr}_r2_SNPcount.pdf"
         impute_info_cutoff = params.impute_info_cutoff
         template "r2_Frequency_plot.py"
 }
@@ -266,7 +266,7 @@ process plot_hist_r2_SNPcount_chr {
     output:
         tuple val(target_name), val(ref_panels), val(chr), file(plot_out)
     script:
-        plot_out = "${target_name}_${ref_panels}_chr${chr}_r2_SNPcount_hist.pdf"
+        plot_out = "${target_name}_${ref_panels}_${chr}_r2_SNPcount_hist.pdf"
         impute_info_cutoff = params.impute_info_cutoff
         template "r2_Frequency_plot_histogram.py"
 }
@@ -283,7 +283,7 @@ process plot_MAF_r2_chr {
     output:
         tuple val(target_name), val(ref_panels), val(chr), file(plot_out)
     script:
-        plot_out = "${target_name}_${ref_panels}_chr${chr}_MAF_r2.pdf"
+        plot_out = "${target_name}_${ref_panels}_${chr}_MAF_r2.pdf"
         impute_info_cutoff = params.impute_info_cutoff
         template "Frequency_r2_MAF_plot.py"
 }

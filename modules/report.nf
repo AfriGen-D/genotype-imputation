@@ -39,13 +39,31 @@ process filter_info {
         comb_info = "${dataset_name}_${tagName}_${ref_panels.join('-')}.imputed_info"
         well_out = "${comb_info}_well_imputed"
         acc_out = "${comb_info}_accuracy"
-        infos = ref_infos.join(',')
-        datasets = ref_panels.join(',')
+        infos = ref_infos  // Already a comma-separated string
         impute_info_cutoff = params.impute_info_cutoff
+        // Get the first ref panel name to use as dataset name
+        dataset_name_single = ref_panels[0]
         """
+        # Count the number of info files
+        num_infos=\$(echo "${infos}" | tr ',' '\n' | wc -l)
+        
+        # Create matching dataset names - replicate for each info file
+        datasets=""
+        for i in \$(seq 1 \$num_infos); do
+            if [ -z "\$datasets" ]; then
+                datasets="${dataset_name_single}"
+            else
+                datasets="\${datasets},${dataset_name_single}"
+            fi
+        done
+        
+        echo "Info files: ${infos}"
+        echo "Number of info files: \$num_infos"
+        echo "Datasets: \$datasets"
+        
         python3 ${projectDir}/templates/improved/filter_info_minimac.py \\
             --infoFiles ${infos} \\
-            --datasets ${datasets} \\
+            --datasets "\$datasets" \\
             --out_prefix ${comb_info} \\
             --infoCutoff ${impute_info_cutoff}
         """
@@ -116,7 +134,7 @@ process plot_performance_target{
         tuple val(target_name), val(ref_panels), file(plot_by_maf)
     script:
         plot_by_maf = "${well_imputed_report.baseName}.pdf"
-        report = well_imputed_report
+        report = well_imputed_report_summary
         xlab = "MAF bins"
         ylab = "Number of well imputed SNPs"
         template "plot_results_by_maf.py"
@@ -133,7 +151,7 @@ process report_accuracy_target {
     input:
         tuple val(target_name), val(ref_panels), file(inSNP_acc), val(group)
     output:
-        tuple val(target_name), val(ref_panels), file(outSNP_acc), val(group)
+        tuple val(target_name), val(ref_panels), file(outSNP_acc), file("${outSNP_acc}.summary.tsv"), val(group)
     script:
         outSNP_acc = "${inSNP_acc.baseName}.imputed_info_report_accuracy"
         datasets = ref_panels.split(',').join(',')
@@ -155,12 +173,12 @@ process plot_accuracy_target{
     publishDir "${params.outDir}/plots/${ref_panels}", overwrite: true, mode:'copy'
     label "python_plotting"
     input:
-        tuple val(target_name), val(ref_panels), file(accuracy_report), val(group)
+        tuple val(target_name), val(ref_panels), file(accuracy_report), file(accuracy_tsv), val(group)
     output:
         tuple val(target_name), val(ref_panels), file(plot_by_maf)
     script:
         plot_by_maf = "${accuracy_report.baseName}_accuracy_by_maf.pdf"
-        report = accuracy_report
+        report = accuracy_tsv
         xlab = "MAF bins"
         ylab = "Concordance rate"
         template "plot_results_by_maf.py"
@@ -172,7 +190,7 @@ Step: generate allele frequency
 process generate_frequency {
     tag "frq_${target_name}_${ref_name}"
     publishDir "${params.outDir}/frqs/${ref_name}", overwrite: true, mode:'copy', pattern: '*frq'
-    label "medium"
+    label "bigmem"
     label "bcftools"
     input:
         tuple val(target_name), val(ref_name), file(impute_vcf),  file(ref_vcf)
@@ -183,14 +201,15 @@ process generate_frequency {
         ref_frq = "${file(ref_vcf.baseName).baseName}.frq"
         
         """
-        # For datastet
+        # For dataset - process in streaming mode
         echo -e 'CHR\tPOS\tSNP\tREF\tALT\tAF' > ${dataset_frq}
-        bcftools view -m2 -M2 -v snps ${impute_vcf} | bcftools query -f '%CHROM\t%POS\t%CHROM\\_%POS\\_%REF\\_%ALT\t%REF\t%ALT\t%INFO/AF\\n' >> ${dataset_frq}
+        bcftools view -m2 -M2 -v snps ${impute_vcf} | \\
+            bcftools query -f '%CHROM\t%POS\t%CHROM\\_%POS\\_%REF\\_%ALT\t%REF\t%ALT\t%INFO/AF\\n' >> ${dataset_frq}
         
-        # For the reference panel
+        # For the reference panel - AF should already be present, just query directly
         echo -e 'CHR\tPOS\tSNP\tREF\tALT\tAF' > ${ref_frq}
-        bcftools view -m2 -M2 -v snps ${ref_vcf} | bcftools +fill-tags -Oz -o ${ref_name}_AF.vcf.gz -- -t AF
-        bcftools query -f '%CHROM\t%POS\t%CHROM\\_%POS\\_%REF\\_%ALT\t%REF\t%ALT\t%INFO/AF\\n' ${ref_name}_AF.vcf.gz >> ${ref_frq}
+        bcftools view -m2 -M2 -v snps --threads 4 ${ref_vcf} | \\
+            bcftools query -f '%CHROM\t%POS\t%CHROM\\_%POS\\_%REF\\_%ALT\t%REF\t%ALT\t%INFO/AF\\n' >> ${ref_frq}
         
         """
 }

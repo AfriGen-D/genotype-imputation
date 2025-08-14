@@ -57,3 +57,7 @@ sample_data/
 # SpecStory history (if not needed)
 .specstory/
 .history/*
+.github
+.claude
+CLAUDE.md
+create_eagle_tabix_container.sh

@@ -456,6 +456,12 @@ def main():
     info_files = [Path(f.strip()) for f in args.info_files.split(',')]
     datasets = [d.strip() for d in args.datasets.split(',')]
     
+    # Handle case where the same dataset appears multiple times (e.g., from multiple chunks)
+    # If we have duplicate datasets but only one info file, replicate the file for each dataset
+    if len(info_files) == 1 and len(datasets) > 1 and len(set(datasets)) == 1:
+        logger.info(f"Single info file for {len(datasets)} instances of dataset {datasets[0]}")
+        info_files = info_files * len(datasets)
+    
     if len(info_files) != len(datasets):
         logger.error(f"Number of info files ({len(info_files)}) must match datasets ({len(datasets)})")
         return 1
@@ -483,7 +489,7 @@ def main():
         reporter.generate_report(str(output_prefix))
         
         if args.summary_table:
-            reporter.generate_summary_table(output_prefix.with_suffix('.summary.tsv'))
+            reporter.generate_summary_table(Path(str(output_prefix) + '.summary.tsv'))
         
         if args.json:
             reporter.export_json(output_prefix.with_suffix('.metrics.json'))
