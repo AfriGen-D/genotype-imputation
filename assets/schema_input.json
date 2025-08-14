@@ -1,0 +1,37 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "https://raw.githubusercontent.com/h3abionet/chipimputation/master/assets/schema_input.json",
+    "title": "h3abionet/chipimputation pipeline - params.input schema",
+    "description": "Schema for the file provided with params.input",
+    "type": "object",
+    "properties": {
+        "sample": {
+            "type": "string",
+            "pattern": "^\\S+$",
+            "errorMessage": "Sample name must be provided and cannot contain spaces",
+            "meta": ["id"]
+        },
+        "vcf": {
+            "type": "string",
+            "pattern": "^\\S+\\.(vcf|vcf\\.gz)$",
+            "errorMessage": "VCF file must be provided and have .vcf or .vcf.gz extension",
+            "format": "file-path",
+            "exists": true
+        },
+        "population": {
+            "type": "string",
+            "pattern": "^(AFR|AMR|EAS|EUR|SAS|Unknown)$",
+            "errorMessage": "Population must be one of: AFR, AMR, EAS, EUR, SAS, or Unknown",
+            "default": "Unknown",
+            "meta": ["population"]
+        },
+        "sex": {
+            "type": "string",
+            "pattern": "^(Male|Female|Unknown)$",
+            "errorMessage": "Sex must be one of: Male, Female, or Unknown",
+            "default": "Unknown",
+            "meta": ["sex"]
+        }
+    },
+    "required": ["sample", "vcf"]
+}
