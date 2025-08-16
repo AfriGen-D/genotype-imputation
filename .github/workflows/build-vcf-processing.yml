@@ -1,16 +1,16 @@
-name: Build Python Plotting Container
+name: Build VCF Processing Container
 
 on:
   push:
     branches: [ main, master, develop ]
     paths:
-      - 'containers/python-plotting/**'
-      - '.github/workflows/build-python-plotting.yml'
+      - 'containers/vcf-processing/**'
+      - '.github/workflows/build-vcf-processing.yml'
   pull_request:
     branches: [ main, master ]
     paths:
-      - 'containers/python-plotting/**'
-      - '.github/workflows/build-python-plotting.yml'
+      - 'containers/vcf-processing/**'
+      - '.github/workflows/build-vcf-processing.yml'
   workflow_dispatch:
     inputs:
       force_build:
@@ -20,11 +20,11 @@ on:
         type: boolean
 
 env:
-  CONTAINER_NAME: python-plotting
+  CONTAINER_NAME: vcf-processing
   GHCR_REGISTRY: ghcr.io
   DOCKERHUB_REGISTRY: docker.io
-  PRIMARY_VERSION: "1.1.0"
-  ADDITIONAL_TAGS: python3.11,matplotlib,seaborn,pyyaml
+  PRIMARY_VERSION: bcftools-1.20
+  ADDITIONAL_TAGS: vcftools-0.1.16,htslib-1.20,python3
 
 jobs:
   build:
@@ -95,24 +95,25 @@ jobs:
           fi
           
           echo "Testing container: $IMAGE"
-          docker run --rm $IMAGE python --version
-          docker run --rm $IMAGE python -c "import yaml; print(f'PyYAML {yaml.__version__} OK')"
-          docker run --rm $IMAGE python -c "import numpy, pandas, matplotlib, seaborn; print('All packages OK')"
+          docker run --rm $IMAGE bcftools --version
+          docker run --rm $IMAGE vcftools --version
+          docker run --rm $IMAGE tabix --version
+          docker run --rm $IMAGE python3 -c "import numpy, pandas; print('Python packages OK')"
           
           # Check container size
           SIZE=$(docker image inspect $IMAGE --format='{{.Size}}' 2>/dev/null || echo 0)
           SIZE_MB=$((SIZE / 1024 / 1024))
           echo "Container size: ${SIZE_MB} MB"
           
-          if [ $SIZE_MB -gt 600 ]; then
-            echo "Warning: Container size exceeds 600 MB"
+          if [ $SIZE_MB -gt 400 ]; then
+            echo "Warning: Container size exceeds 400 MB"
           fi
 
       - name: Summary
         if: always()
         run: |
-          echo "## Python Plotting Container Build" >> $GITHUB_STEP_SUMMARY
+          echo "## VCF Processing Container Build" >> $GITHUB_STEP_SUMMARY
           echo "- **Container**: ${{ env.CONTAINER_NAME }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Version**: ${{ env.PRIMARY_VERSION }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Tools**: Python 3.11, PyYAML, NumPy, Pandas, Matplotlib, Seaborn" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tools**: BCFtools 1.20, VCFtools 0.1.16, HTSlib 1.20, Python 3" >> $GITHUB_STEP_SUMMARY
           echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY

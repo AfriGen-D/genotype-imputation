@@ -1,0 +1,240 @@
+name: Test Refactored Pipeline
+
+on:
+  push:
+    branches: [ main, develop, refactor-v2 ]
+    paths:
+      - 'workflows/**'
+      - '.github/workflows/test_refactored.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'workflows/**'
+
+jobs:
+  validate:
+    name: Validate Pipeline Structure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Run validation script
+        run: |
+          cd workflows
+          bash bin/validate_pipeline.sh
+
+  test-syntax:
+    name: Test Nextflow Syntax
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Nextflow
+        uses: nf-core/setup-nextflow@v1
+        with:
+          version: '23.10.0'
+      
+      - name: Check workflow syntax
+        run: |
+          cd workflows
+          nextflow config -flat main.nf
+          nextflow config -flat conf/base.config
+          nextflow config -flat conf/modules.config
+      
+      - name: Run stub test
+        run: |
+          cd workflows
+          nextflow run main.nf -stub -profile test
+
+  test-modules:
+    name: Test Individual Modules
+    runs-on: ubuntu-latest
+    needs: validate
+    strategy:
+      matrix:
+        module:
+          - qc/check_vcf_format
+          - qc/remove_duplicates
+          - qc/split_multiallelic
+          - qc/filter_variants
+          - phasing/eagle
+          - imputation/minimac4
+          - visualization/calculate_metrics
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Nextflow
+        uses: nf-core/setup-nextflow@v1
+        with:
+          version: '23.10.0'
+      
+      - name: Test module ${{ matrix.module }}
+        run: |
+          cd workflows
+          # Create minimal test for module
+          cat > test_module.nf << EOF
+          nextflow.enable.dsl = 2
+          include { $(basename ${{ matrix.module }} .nf | tr '[:lower:]' '[:upper:]') } from './modules/local/${{ matrix.module }}'
+          
+          workflow {
+            // Stub test for module
+            println "Module ${{ matrix.module }} loaded successfully"
+          }
+          EOF
+          
+          nextflow run test_module.nf -stub
+
+  test-docker:
+    name: Test with Docker
+    runs-on: ubuntu-latest
+    needs: [validate, test-syntax]
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Nextflow
+        uses: nf-core/setup-nextflow@v1
+        with:
+          version: '23.10.0'
+      
+      - name: Setup Docker
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Create test data
+        run: |
+          cd workflows
+          mkdir -p test_data/reference
+          
+          # Create minimal test VCF
+          cat > test_data/test_sample1.vcf << EOF
+          ##fileformat=VCFv4.3
+          ##contig=<ID=22,length=50818468>
+          ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+          #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	sample1
+          22	16050075	rs1	A	G	30	PASS	.	GT	0/1
+          22	16050115	rs2	T	C	30	PASS	.	GT	1/1
+          EOF
+          
+          bgzip test_data/test_sample1.vcf
+          bcftools index test_data/test_sample1.vcf.gz
+          
+          cp test_data/test_sample1.vcf.gz test_data/test_sample2.vcf.gz
+          cp test_data/test_sample1.vcf.gz test_data/test_sample3.vcf.gz
+          
+          # Create minimal reference
+          cp test_data/test_sample1.vcf.gz test_data/reference/test.vcf.gz
+          touch test_data/reference/test.m3vcf.gz
+          
+          echo ">chr22" > test_data/reference/GRCh38.fa
+          echo "ACTGACTGACTGACTGACTG" >> test_data/reference/GRCh38.fa
+          samtools faidx test_data/reference/GRCh38.fa
+          
+          # Create minimal genetic map
+          echo -e "chr\tpos\tcM" > test_data/reference/genetic_map_b38.txt
+          echo -e "22\t16000000\t0.0" >> test_data/reference/genetic_map_b38.txt
+          echo -e "22\t17000000\t1.0" >> test_data/reference/genetic_map_b38.txt
+          gzip test_data/reference/genetic_map_b38.txt
+      
+      - name: Run pipeline with Docker
+        run: |
+          cd workflows
+          nextflow run main.nf \
+            -profile test,docker \
+            -stub \
+            --max_memory 3.GB \
+            --max_cpus 2
+
+  test-singularity:
+    name: Test with Singularity
+    runs-on: ubuntu-latest
+    needs: [validate, test-syntax]
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Nextflow
+        uses: nf-core/setup-nextflow@v1
+        with:
+          version: '23.10.0'
+      
+      - name: Setup Singularity
+        uses: eWaterCycle/setup-singularity@v7
+        with:
+          singularity-version: 3.8.3
+      
+      - name: Run pipeline with Singularity  
+        run: |
+          cd workflows
+          nextflow run main.nf \
+            -profile test,singularity \
+            -stub \
+            --max_memory 3.GB \
+            --max_cpus 2
+
+  migration-test:
+    name: Test Configuration Migration
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Test migration script
+        run: |
+          cd workflows
+          
+          # Create old format config
+          cat > old_test.config << EOF
+          params {
+            target_datasets = "sample1:/path/to/sample1.vcf.gz,sample2:/path/to/sample2.vcf.gz"
+            ref_panels = "1000G:/ref/1000g.m3vcf.gz:/ref/1000g.vcf.gz"
+            outDir = "./output"
+            site_miss = "0.05"
+            hwe = "0.00001" 
+            mac = "2"
+            NE = "20000"
+            chunk_size = "5000000"
+            buffer_size = "250000"
+            chromosomes = "chr22"
+          }
+          EOF
+          
+          # Run migration
+          python bin/migrate_config.py old_test.config -o migrated_test.config --create-samplesheet
+          
+          # Check output files exist
+          test -f migrated_test.config
+          test -f migrated_test_samplesheet.csv
+          
+          echo "Migration successful!"
+
+  integration-test:
+    name: Integration Test
+    runs-on: ubuntu-latest
+    needs: [test-docker, migration-test]
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Nextflow
+        uses: nf-core/setup-nextflow@v1
+        with:
+          version: '23.10.0'
+      
+      - name: Run full integration test
+        run: |
+          cd workflows
+          echo "Integration test would run here with real test data"
+          echo "Skipping for now - requires test datasets"
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-results
+          path: |
+            workflows/test_results/
+            workflows/.nextflow.log
