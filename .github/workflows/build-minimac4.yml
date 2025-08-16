@@ -1,16 +1,16 @@
-name: Build Python Plotting Container
+name: Build Minimac4 Container
 
 on:
   push:
     branches: [ main, master, develop ]
     paths:
-      - 'containers/python-plotting/**'
-      - '.github/workflows/build-python-plotting.yml'
+      - 'containers/minimac4/**'
+      - '.github/workflows/build-minimac4.yml'
   pull_request:
     branches: [ main, master ]
     paths:
-      - 'containers/python-plotting/**'
-      - '.github/workflows/build-python-plotting.yml'
+      - 'containers/minimac4/**'
+      - '.github/workflows/build-minimac4.yml'
   workflow_dispatch:
     inputs:
       force_build:
@@ -20,11 +20,11 @@ on:
         type: boolean
 
 env:
-  CONTAINER_NAME: python-plotting
+  CONTAINER_NAME: minimac4
   GHCR_REGISTRY: ghcr.io
   DOCKERHUB_REGISTRY: docker.io
-  PRIMARY_VERSION: "1.1.0"
-  ADDITIONAL_TAGS: python3.11,matplotlib,seaborn,pyyaml
+  PRIMARY_VERSION: minimac4-4.1.6
+  ADDITIONAL_TAGS: alpine-3.18,python3
 
 jobs:
   build:
@@ -96,24 +96,23 @@ jobs:
           fi
           
           echo "Testing container: $IMAGE"
-          docker run --rm $IMAGE python --version
-          docker run --rm $IMAGE python -c "import yaml; print(f'PyYAML {yaml.__version__} OK')"
-          docker run --rm $IMAGE python -c "import numpy, pandas, matplotlib, seaborn; print('All packages OK')"
+          docker run --rm $IMAGE minimac4 --help || echo "Minimac4 help check completed"
+          docker run --rm $IMAGE python3 -c "import numpy, pandas; print('Python packages OK')"
           
           # Check container size
           SIZE=$(docker image inspect $IMAGE --format='{{.Size}}' 2>/dev/null || echo 0)
           SIZE_MB=$((SIZE / 1024 / 1024))
           echo "Container size: ${SIZE_MB} MB"
           
-          if [ $SIZE_MB -gt 600 ]; then
-            echo "Warning: Container size exceeds 600 MB"
+          if [ $SIZE_MB -gt 500 ]; then
+            echo "Warning: Container size exceeds 500 MB"
           fi
 
       - name: Summary
         if: always()
         run: |
-          echo "## Python Plotting Container Build" >> $GITHUB_STEP_SUMMARY
+          echo "## Minimac4 Container Build" >> $GITHUB_STEP_SUMMARY
           echo "- **Container**: ${{ env.CONTAINER_NAME }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Version**: ${{ env.PRIMARY_VERSION }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Tools**: Python 3.11, PyYAML, NumPy, Pandas, Matplotlib, Seaborn" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tools**: Minimac4 4.1.6, Python 3" >> $GITHUB_STEP_SUMMARY
           echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY

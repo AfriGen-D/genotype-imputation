@@ -89,7 +89,8 @@ jobs:
       - name: Test container
         if: success()
         run: |
-          IMAGE="${{ env.GHCR_REGISTRY }}/${{ github.repository_owner }}/${{ env.CONTAINER_NAME }}:${{ env.PRIMARY_VERSION }}"
+          OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE="${{ env.GHCR_REGISTRY }}/${OWNER_LC}/${{ env.CONTAINER_NAME }}:${{ env.PRIMARY_VERSION }}"
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             IMAGE="localhost:5000/${{ env.CONTAINER_NAME }}:pr-${{ github.event.number }}"
           fi

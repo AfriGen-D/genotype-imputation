@@ -1,16 +1,16 @@
-name: Build Python Plotting Container
+name: Build R Analysis Container
 
 on:
   push:
     branches: [ main, master, develop ]
     paths:
-      - 'containers/python-plotting/**'
-      - '.github/workflows/build-python-plotting.yml'
+      - 'containers/r-analysis/**'
+      - '.github/workflows/build-r-analysis.yml'
   pull_request:
     branches: [ main, master ]
     paths:
-      - 'containers/python-plotting/**'
-      - '.github/workflows/build-python-plotting.yml'
+      - 'containers/r-analysis/**'
+      - '.github/workflows/build-r-analysis.yml'
   workflow_dispatch:
     inputs:
       force_build:
@@ -20,11 +20,11 @@ on:
         type: boolean
 
 env:
-  CONTAINER_NAME: python-plotting
+  CONTAINER_NAME: r-analysis
   GHCR_REGISTRY: ghcr.io
   DOCKERHUB_REGISTRY: docker.io
-  PRIMARY_VERSION: "1.1.0"
-  ADDITIONAL_TAGS: python3.11,matplotlib,seaborn,pyyaml
+  PRIMARY_VERSION: "1.0"
+  ADDITIONAL_TAGS: r-4.3.2,dplyr,ggplot2,data.table
 
 jobs:
   build:
@@ -96,24 +96,23 @@ jobs:
           fi
           
           echo "Testing container: $IMAGE"
-          docker run --rm $IMAGE python --version
-          docker run --rm $IMAGE python -c "import yaml; print(f'PyYAML {yaml.__version__} OK')"
-          docker run --rm $IMAGE python -c "import numpy, pandas, matplotlib, seaborn; print('All packages OK')"
+          docker run --rm $IMAGE R --version | head -1
+          docker run --rm $IMAGE Rscript -e "library(ggplot2); library(dplyr); library(data.table); cat('R packages OK\n')"
           
           # Check container size
           SIZE=$(docker image inspect $IMAGE --format='{{.Size}}' 2>/dev/null || echo 0)
           SIZE_MB=$((SIZE / 1024 / 1024))
           echo "Container size: ${SIZE_MB} MB"
           
-          if [ $SIZE_MB -gt 600 ]; then
-            echo "Warning: Container size exceeds 600 MB"
+          if [ $SIZE_MB -gt 1000 ]; then
+            echo "Warning: Container size exceeds 1000 MB"
           fi
 
       - name: Summary
         if: always()
         run: |
-          echo "## Python Plotting Container Build" >> $GITHUB_STEP_SUMMARY
+          echo "## R Analysis Container Build" >> $GITHUB_STEP_SUMMARY
           echo "- **Container**: ${{ env.CONTAINER_NAME }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Version**: ${{ env.PRIMARY_VERSION }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Tools**: Python 3.11, PyYAML, NumPy, Pandas, Matplotlib, Seaborn" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tools**: R 4.3.2, dplyr, ggplot2, data.table" >> $GITHUB_STEP_SUMMARY
           echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
