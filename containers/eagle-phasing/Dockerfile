@@ -21,11 +21,16 @@ LABEL maintainer="AfriGen-D <info@afrigen.org>"
 LABEL version="2.4.1"
 LABEL org.opencontainers.image.description="Eagle v2.4.1 haplotype phasing software for genotype imputation workflows. Alpine Linux based container with Eagle phasing tool."
 
-# Install runtime dependencies
+# Install runtime dependencies and Python
 RUN apk add --no-cache \
     libgomp \
     libgcc \
-    libstdc++
+    libstdc++ \
+    python3 \
+    python3-dev \
+    py3-pip \
+    py3-numpy \
+    py3-pandas
 
 # Copy Eagle binary from builder
 COPY --from=builder /tmp/Eagle_v2.4.1/eagle /usr/local/bin/eagle

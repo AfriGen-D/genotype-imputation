@@ -21,13 +21,18 @@ RUN wget -O plink2_linux_x86_64.zip "http://s3.amazonaws.com/plink2-assets/plink
 # Production stage  
 FROM alpine:3.19
 
-# Install runtime dependencies
+# Install runtime dependencies and Python
 RUN apk add --no-cache \
     libgcc \
     libstdc++ \
     zlib \
     bzip2 \
-    xz
+    xz \
+    python3 \
+    python3-dev \
+    py3-pip \
+    py3-numpy \
+    py3-pandas
 
 # Copy PLINK2 binary from builder
 COPY --from=builder /usr/local/bin/plink2 /usr/local/bin/plink2

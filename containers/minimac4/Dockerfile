@@ -5,7 +5,7 @@ LABEL maintainer="AfriGen-D <info@afrigen.org>"
 LABEL version="4.1.6"
 LABEL org.opencontainers.image.description="Minimac4 v4.1.6 genotype imputation software. Alpine Linux based container with Minimac4 imputation tool."
 
-# Install runtime dependencies
+# Install runtime dependencies and Python
 RUN apk add --no-cache \
     bash \
     ca-certificates \
@@ -15,7 +15,12 @@ RUN apk add --no-cache \
     bzip2 \
     xz \
     curl \
-    libstdc++
+    libstdc++ \
+    python3 \
+    python3-dev \
+    py3-pip \
+    py3-numpy \
+    py3-pandas
 
 # Download and install prebuilt Minimac4 binary
 RUN cd /tmp && \

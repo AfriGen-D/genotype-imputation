@@ -32,7 +32,12 @@ RUN apk add --no-cache \
     unzip \
     bzip2 \
     tar \
-    gzip
+    gzip \
+    python3 \
+    python3-dev \
+    py3-pip \
+    py3-numpy \
+    py3-pandas
 
 WORKDIR /opt/tools
 

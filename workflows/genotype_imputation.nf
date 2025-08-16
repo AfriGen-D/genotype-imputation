@@ -119,12 +119,14 @@ workflow GENOTYPE_IMPUTATION {
     ========================================================================================
     */
     
+    // Process chunks directly through phasing (no merge needed - using genomic chunks)
+    // The phasing subworkflow will skip its own chunking if already chunked
     PHASING(
         QUALITY_CONTROL.out.vcf,
         ch_reference_panels,
         params.eagle_genetic_map ? file(params.eagle_genetic_map) : null,
         params.phasing_tool,
-        params.chunk_size
+        params.chunk_size  // Same chunk size (genomic regions)
     )
     ch_versions = ch_versions.mix(PHASING.out.versions)
     
@@ -136,7 +138,7 @@ workflow GENOTYPE_IMPUTATION {
     
     def impute_params = [
         window: params.impute_window,
-        min_ratio: params.impute_min_ratio,
+        min_ratio: params.overlap_min_ratio,  // Now using overlap_min_ratio for Minimac4 too
         ne: params.impute_ne,
         buffer: params.impute_buffer,
         info_cutoff: params.impute_info_cutoff

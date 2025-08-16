@@ -21,15 +21,28 @@ workflow PHASING {
     main:
     ch_versions = Channel.empty()
     
-    // Create genomic chunks for parallel processing
+    // Check if input is already chunked (has chunk_id in meta)
+    // If already chunked, use directly; otherwise create chunks
+    ch_vcfs
+        .branch {
+            chunked: it[0].containsKey('chunk_id')
+            not_chunked: !it[0].containsKey('chunk_id')
+        }
+        .set { ch_vcf_branched }
+    
+    // Create chunks only for non-chunked VCFs
     CHUNK_GENOME(
-        ch_vcfs,
+        ch_vcf_branched.not_chunked,
         chunk_size
     )
     ch_versions = ch_versions.mix(CHUNK_GENOME.out.versions)
     
+    // Combine already chunked and newly chunked VCFs
+    ch_chunks_combined = ch_vcf_branched.chunked
+        .mix(CHUNK_GENOME.out.chunks)
+    
     // Combine chunks with reference panels
-    ch_chunks_with_ref = CHUNK_GENOME.out.chunks
+    ch_chunks_with_ref = ch_chunks_combined
         .combine(ch_reference)
     
     // Phase using selected tool

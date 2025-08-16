@@ -22,3 +22,5 @@
 - Monitor container builds on GitHub Actions after commits
 - Verify all Python scripts work correctly with their assigned containers
 - Always do deep analysis and research
+- run test with nextflow run main.nf --input samplesheet_chr21.csv -c v6_chr21_phased_v2.config
+      -profile slurm,singularity -resume

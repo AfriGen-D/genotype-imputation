@@ -18,53 +18,66 @@ workflow QUALITY_CONTROL {
 
     main:
     ch_versions = Channel.empty()
+    ch_current_vcf = ch_vcfs
+    ch_qc_metrics = Channel.empty()
     
-    // Remove duplicate variants
-    REMOVE_DUPLICATES(ch_vcfs)
-    ch_versions = ch_versions.mix(REMOVE_DUPLICATES.out.versions)
+    // ESSENTIAL: Remove duplicate variants (always run)
+    if (params.remove_duplicates) {
+        REMOVE_DUPLICATES(ch_current_vcf)
+        ch_versions = ch_versions.mix(REMOVE_DUPLICATES.out.versions)
+        ch_current_vcf = REMOVE_DUPLICATES.out.vcf
+        ch_qc_metrics = ch_qc_metrics.mix(REMOVE_DUPLICATES.out.stats)
+    }
     
-    // Split multi-allelic variants
-    SPLIT_MULTIALLELIC(REMOVE_DUPLICATES.out.vcf)
-    ch_versions = ch_versions.mix(SPLIT_MULTIALLELIC.out.versions)
+    // ESSENTIAL: Split multi-allelic variants (always run for correct imputation)
+    if (params.split_multiallelic) {
+        SPLIT_MULTIALLELIC(ch_current_vcf)
+        ch_versions = ch_versions.mix(SPLIT_MULTIALLELIC.out.versions)
+        ch_current_vcf = SPLIT_MULTIALLELIC.out.vcf
+        ch_qc_metrics = ch_qc_metrics.mix(SPLIT_MULTIALLELIC.out.stats)
+    }
     
-    // Filter variants based on quality metrics
+    // ESSENTIAL: Filter variants based on quality metrics
     FILTER_VARIANTS(
-        SPLIT_MULTIALLELIC.out.vcf,
+        ch_current_vcf,
         qc_params.min_ac ?: 2,
         qc_params.min_maf ?: 0.01,
         qc_params.max_missing ?: 0.05
     )
     ch_versions = ch_versions.mix(FILTER_VARIANTS.out.versions)
+    ch_current_vcf = FILTER_VARIANTS.out.vcf
+    ch_qc_metrics = ch_qc_metrics.mix(FILTER_VARIANTS.out.stats)
     
-    // Calculate sample and variant missingness
-    CALCULATE_MISSINGNESS(FILTER_VARIANTS.out.vcf)
-    ch_versions = ch_versions.mix(CALCULATE_MISSINGNESS.out.versions)
+    // OPTIONAL: Calculate missingness (skip in minimal mode)
+    if (!params.skip_missingness_calc && !params.minimal_qc_mode) {
+        CALCULATE_MISSINGNESS(ch_current_vcf)
+        ch_versions = ch_versions.mix(CALCULATE_MISSINGNESS.out.versions)
+        ch_qc_metrics = ch_qc_metrics.mix(CALCULATE_MISSINGNESS.out.report)
+    }
     
-    // Hardy-Weinberg equilibrium check
-    CHECK_HWE(
-        FILTER_VARIANTS.out.vcf,
-        qc_params.hwe_pvalue ?: 1e-6
-    )
-    ch_versions = ch_versions.mix(CHECK_HWE.out.versions)
+    // OPTIONAL: Hardy-Weinberg equilibrium check (skip in minimal mode)
+    if (!params.skip_hwe_check && !params.minimal_qc_mode) {
+        CHECK_HWE(
+            ch_current_vcf,
+            qc_params.hwe_pvalue ?: 1e-6
+        )
+        ch_versions = ch_versions.mix(CHECK_HWE.out.versions)
+        ch_qc_metrics = ch_qc_metrics.mix(CHECK_HWE.out.stats)
+    }
     
-    // Annotate variants with AF and other tags
-    // Pass null as annotation_db if not available
-    ANNOTATE_VARIANTS(
-        FILTER_VARIANTS.out.vcf,
-        file("NO_FILE")
-    )
-    ch_versions = ch_versions.mix(ANNOTATE_VARIANTS.out.versions)
-    
-    // Collect QC metrics
-    ch_qc_metrics = REMOVE_DUPLICATES.out.stats
-        .join(SPLIT_MULTIALLELIC.out.stats)
-        .join(FILTER_VARIANTS.out.stats)
-        .join(CALCULATE_MISSINGNESS.out.report)
-        .join(CHECK_HWE.out.stats)
-        .join(ANNOTATE_VARIANTS.out.stats)
+    // OPTIONAL: Annotate variants (skip in minimal mode)
+    if (!params.skip_annotation && !params.minimal_qc_mode) {
+        ANNOTATE_VARIANTS(
+            ch_current_vcf,
+            file("NO_FILE")
+        )
+        ch_versions = ch_versions.mix(ANNOTATE_VARIANTS.out.versions)
+        ch_current_vcf = ANNOTATE_VARIANTS.out.vcf
+        ch_qc_metrics = ch_qc_metrics.mix(ANNOTATE_VARIANTS.out.stats)
+    }
     
     emit:
-    vcf      = ANNOTATE_VARIANTS.out.vcf
+    vcf      = ch_current_vcf
     metrics  = ch_qc_metrics
     versions = ch_versions
 }

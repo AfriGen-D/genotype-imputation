@@ -12,7 +12,7 @@ LABEL maintainer="AfriGen-D Consortium"
 LABEL version="2.0"
 LABEL org.opencontainers.image.description="Phasing toolkit with Eagle v2.4.1 and HTSlib v1.20. Alpine Linux based container for haplotype phasing in genotype imputation workflows."
 
-# Install system dependencies and build tools
+# Install system dependencies, build tools, and Python
 RUN apk add --no-cache \
     build-base \
     pkgconf \
@@ -29,7 +29,12 @@ RUN apk add --no-cache \
     unzip \
     bzip2 \
     tar \
-    gzip
+    gzip \
+    python3 \
+    python3-dev \
+    py3-pip \
+    py3-numpy \
+    py3-pandas
 
 WORKDIR /opt/tools
 

@@ -11,7 +11,7 @@ LABEL maintainer="AfriGen-D Consortium"
 LABEL version="2.0"
 LABEL org.opencontainers.image.description="Comprehensive imputation toolkit with Minimac4 v4.1.6, BCFtools v1.20, and VCFtools v0.1.16. Alpine Linux based container for genotype imputation workflows."
 
-# Install system dependencies and build tools
+# Install system dependencies, build tools, and Python
 RUN apk add --no-cache \
     build-base \
     autoconf \
@@ -31,7 +31,12 @@ RUN apk add --no-cache \
     unzip \
     bzip2 \
     tar \
-    gzip
+    gzip \
+    python3 \
+    python3-dev \
+    py3-pip \
+    py3-numpy \
+    py3-pandas
 
 WORKDIR /opt/tools
 
