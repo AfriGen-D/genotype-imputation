@@ -29,6 +29,19 @@ process PLOT_R2_SNPPOS {
         ${output} \\
         --sample-id "${meta.id}" \\
         --ref-name "${ref_name}"
+    
+    # Ensure filesystem sync
+    sync
+    
+    # Verify file exists
+    if [ ! -f "${output}" ]; then
+        echo "ERROR: Expected output file ${output} was not created!"
+        ls -la *.pdf || echo "No PDF files found"
+        exit 1
+    fi
+    
+    echo "Output file verified: ${output}"
+    ls -la ${output}
     """
     
     stub:

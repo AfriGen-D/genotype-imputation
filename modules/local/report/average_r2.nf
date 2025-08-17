@@ -31,6 +31,25 @@ process AVERAGE_R2 {
         --ref-name "${ref_name}" \\
         --output-txt ${meanr2_out} \\
         --output-csv ${summary_out}
+    
+    # Ensure filesystem sync
+    sync
+    
+    # Verify files exist
+    if [ ! -f "${meanr2_out}" ]; then
+        echo "ERROR: Expected output file ${meanr2_out} was not created!"
+        ls -la *.txt || echo "No TXT files found"
+        exit 1
+    fi
+    
+    if [ ! -f "${summary_out}" ]; then
+        echo "ERROR: Expected output file ${summary_out} was not created!"
+        ls -la *.csv || echo "No CSV files found"
+        exit 1
+    fi
+    
+    echo "Output files verified:"
+    ls -la ${meanr2_out} ${summary_out}
     """
     
     stub:

@@ -30,6 +30,19 @@ process PLOT_R2_SNPCOUNT {
         --sample-id "${meta.id}" \\
         --ref-name "${ref_name}" \\
         --info-cutoff ${impute_info_cutoff}
+    
+    # Ensure filesystem sync
+    sync
+    
+    # Verify file exists
+    if [ ! -f "${plot_out}" ]; then
+        echo "ERROR: Expected output file ${plot_out} was not created!"
+        ls -la *.pdf || echo "No PDF files found"
+        exit 1
+    fi
+    
+    echo "Output file verified: ${plot_out}"
+    ls -la ${plot_out}
     """
     
     stub:
