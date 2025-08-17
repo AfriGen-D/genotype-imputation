@@ -12,6 +12,11 @@ include { PLOT_ACCURACY             } from '../../modules/local/report/plot_accu
 include { PLOT_R2_MAF               } from '../../modules/local/report/plot_r2_maf'
 include { PLOT_FREQ_COMPARISON      } from '../../modules/local/report/plot_freq_comparison'
 include { COLLECT_WARNINGS          } from '../../modules/local/report/collect_warnings'
+include { PLOT_R2_SNPPOS            } from '../../modules/local/report/plot_r2_snppos'
+include { PLOT_R2_SNPCOUNT          } from '../../modules/local/report/plot_r2_snpcount'
+include { PLOT_HIST_R2_SNPCOUNT     } from '../../modules/local/report/plot_hist_r2_snpcount'
+include { PLOT_MAF_R2               } from '../../modules/local/report/plot_maf_r2'
+include { AVERAGE_R2                } from '../../modules/local/report/average_r2'
 
 workflow REPORT {
     take:
@@ -63,6 +68,27 @@ workflow REPORT {
     ch_versions = ch_versions.mix(PLOT_FREQ_COMPARISON.out.versions)
     
     //
+    // MODULE: Additional R² analysis plots
+    //
+    PLOT_R2_SNPPOS ( ch_imputed )
+    ch_versions = ch_versions.mix(PLOT_R2_SNPPOS.out.versions)
+    
+    PLOT_R2_SNPCOUNT ( ch_imputed )
+    ch_versions = ch_versions.mix(PLOT_R2_SNPCOUNT.out.versions)
+    
+    PLOT_HIST_R2_SNPCOUNT ( ch_imputed )
+    ch_versions = ch_versions.mix(PLOT_HIST_R2_SNPCOUNT.out.versions)
+    
+    PLOT_MAF_R2 ( ch_imputed )
+    ch_versions = ch_versions.mix(PLOT_MAF_R2.out.versions)
+    
+    //
+    // MODULE: Calculate average R²
+    //
+    AVERAGE_R2 ( ch_imputed )
+    ch_versions = ch_versions.mix(AVERAGE_R2.out.versions)
+    
+    //
     // MODULE: Collect warnings from pipeline log
     //
     // Create a channel with the Nextflow log file
@@ -79,12 +105,18 @@ workflow REPORT {
     reports  = REPORT_WELL_IMPUTED.out.report.mix(
                    REPORT_ACCURACY.out.report,
                    COLLECT_WARNINGS.out.warnings,
-                   COLLECT_WARNINGS.out.summary
+                   COLLECT_WARNINGS.out.summary,
+                   AVERAGE_R2.out.average,
+                   AVERAGE_R2.out.summary
                )
     plots    = PLOT_PERFORMANCE.out.plot.mix(
                    PLOT_ACCURACY.out.plot,
                    PLOT_R2_MAF.out.plot,
-                   PLOT_FREQ_COMPARISON.out.plot
+                   PLOT_FREQ_COMPARISON.out.plot,
+                   PLOT_R2_SNPPOS.out.plot,
+                   PLOT_R2_SNPCOUNT.out.plot,
+                   PLOT_HIST_R2_SNPCOUNT.out.plot,
+                   PLOT_MAF_R2.out.plot
                )
     versions = ch_versions
 }
