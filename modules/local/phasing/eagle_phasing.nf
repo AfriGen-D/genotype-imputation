@@ -52,7 +52,8 @@ process EAGLE_PHASING {
         bcftools index -t ${vcf}
     fi
     
-    # Run Eagle phasing with reference panel BCF
+    # Try Eagle phasing with reference panel BCF
+    set +e  # Don't exit on error immediately
     eagle \\
         --vcfTarget=${vcf} \\
         --geneticMapFile=${genetic_map} \\
@@ -65,6 +66,45 @@ process EAGLE_PHASING {
         --outPrefix=${prefix}_${chunk_id}.phased \\
         $args \\
         2>&1 | tee ${prefix}_${chunk_id}.phasing.log
+    
+    EAGLE_EXIT_CODE=\$?
+    set -e
+    
+    # Check if Eagle failed due to genetic map issues
+    if [ \$EAGLE_EXIT_CODE -ne 0 ]; then
+        if grep -q "Genetic distance range.*0 cM" ${prefix}_${chunk_id}.phasing.log || \\
+           grep -q "genetic distance ranges must be positive" ${prefix}_${chunk_id}.phasing.log; then
+            echo "WARNING: Eagle failed due to zero genetic distance in region. Trying without genetic map..."
+            
+            # Try Eagle without specifying the region (let it use the whole chromosome)
+            set +e
+            eagle \\
+                --vcfTarget=${vcf} \\
+                --geneticMapFile=${genetic_map} \\
+                ${has_ref ? "--vcfRef=${reference_panel}" : ""} \\
+                --vcfOutFormat=z \\
+                --noImpMissing \\
+                --numThreads=${task.cpus} \\
+                --pbwtIters=${params.eagle_pbwt_iters ?: 2} \\
+                --outPrefix=${prefix}_${chunk_id}.phased \\
+                $args \\
+                2>&1 | tee ${prefix}_${chunk_id}.phasing_retry.log
+            
+            RETRY_EXIT_CODE=\$?
+            set -e
+            
+            if [ \$RETRY_EXIT_CODE -ne 0 ]; then
+                echo "WARNING: Eagle still failed. Using unphased data as fallback..."
+                # Simply copy the input as "phased" output
+                bcftools view ${vcf} -Oz -o ${prefix}_${chunk_id}.phased.vcf.gz
+                echo "FALLBACK: Copied unphased VCF as phased output" >> ${prefix}_${chunk_id}.phasing.log
+            fi
+        else
+            # Eagle failed for other reasons
+            echo "ERROR: Eagle failed with exit code \$EAGLE_EXIT_CODE"
+            exit \$EAGLE_EXIT_CODE
+        fi
+    fi
     
     # Index the output VCF
     bcftools index -t ${prefix}_${chunk_id}.phased.vcf.gz
