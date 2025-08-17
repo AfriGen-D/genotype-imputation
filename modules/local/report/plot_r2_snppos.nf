@@ -53,6 +53,14 @@ process PLOT_R2_SNPPOS {
     
     # Small delay to ensure filesystem operations complete
     sleep 1
+    
+    # Create versions file
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        python: \$(python3 --version | sed 's/Python //')
+        pandas: \$(python3 -c "import pandas; print(pandas.__version__)")
+        matplotlib: \$(python3 -c "import matplotlib; print(matplotlib.__version__)")
+    END_VERSIONS
     """
     
     stub:
