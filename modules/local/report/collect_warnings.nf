@@ -10,8 +10,8 @@ process COLLECT_WARNINGS {
     tuple val(meta), path(log_file)
     
     output:
-    tuple val(meta), path("${prefix}_warnings.txt"), emit: warnings
-    tuple val(meta), path("${prefix}_skipped_chunks_summary.txt"), emit: summary
+    tuple val(meta), path("*_warnings.txt"), emit: warnings
+    tuple val(meta), path("*_skipped_chunks_summary.txt"), emit: summary
     path "versions.yml", emit: versions
     
     when:

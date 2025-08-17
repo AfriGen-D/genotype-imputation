@@ -1,34 +1,17 @@
-process PLOT_R2_SNPPOS {
-    tag "$meta.id"
-    label 'process_single'
-    
-    container 'mamana/python-plotting:1.0.0'
-    
-    publishDir "${params.outdir}/plots/${meta.id}", mode: 'copy'
-    
-    input:
-    tuple val(meta), val(ref_name), path(info_file)
-    
-    output:
-    tuple val(meta), val(ref_name), path("*.r2_snppos.pdf"), emit: plot
-    path "versions.yml", emit: versions
-    
-    when:
-    task.ext.when == null || task.ext.when
-    
-    script:
-    def prefix = task.ext.prefix ?: "${meta.id}"
-    def output = "${prefix}_${ref_name}_r2_SNPpos.pdf"
-    """
-    cat > plot_r2_snppos.py << 'EOF'
 #!/usr/bin/env python3
+"""
+Plot R² imputation quality vs SNP position from Minimac4 sites VCF file
+"""
+
 import sys
+import argparse
 import pandas as pd
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import gzip
+
 
 def parse_info_field(info_str):
     """Parse VCF INFO field to extract key-value pairs"""
@@ -40,6 +23,7 @@ def parse_info_field(info_str):
         else:
             info_dict[item] = True
     return info_dict
+
 
 def read_sites_vcf(vcf_file):
     """Read sites VCF file and extract relevant information"""
@@ -56,7 +40,7 @@ def read_sites_vcf(vcf_file):
             if line.startswith('#'):
                 continue
             
-            parts = line.strip().split('\\t')
+            parts = line.strip().split('\t')
             if len(parts) < 8:
                 continue
             
@@ -77,19 +61,9 @@ def read_sites_vcf(vcf_file):
     
     return pd.DataFrame(data)
 
-# Read VCF data
-print(f"Reading sites VCF: ${info_file}")
-df = read_sites_vcf("${info_file}")
 
-if df.empty:
-    print("Warning: No data found in VCF file")
-    # Create empty plot
-    fig, ax = plt.subplots(figsize=(12, 6))
-    ax.text(0.5, 0.5, 'No data available', ha='center', va='center')
-    ax.set_title(f'Imputation Quality (R²) vs SNP Position\\n${meta.id} - ${ref_name}')
-    plt.savefig("${output}")
-else:
-    # Create plot
+def plot_r2_vs_position(df, output_file, sample_id, ref_name):
+    """Create R² vs position plot"""
     fig, ax = plt.subplots(figsize=(12, 6))
     
     # Plot R² vs position
@@ -110,7 +84,7 @@ else:
     
     ax.set_xlabel('Position')
     ax.set_ylabel('R²')
-    ax.set_title(f'Imputation Quality (R²) vs SNP Position\\n${meta.id} - ${ref_name}')
+    ax.set_title(f'Imputation Quality (R²) vs SNP Position\n{sample_id} - {ref_name}')
     ax.legend()
     ax.grid(True, alpha=0.3)
     
@@ -118,43 +92,47 @@ else:
     plt.colorbar(scatter, ax=ax, label='R²')
     
     # Add statistics text
-    stats_text = f"Mean R²: {df['r2'].mean():.3f}\\n"
-    stats_text += f"Median R²: {df['r2'].median():.3f}\\n"
-    stats_text += f"SNPs with R²≥0.3: {(df['r2'] >= 0.3).sum():,} ({(df['r2'] >= 0.3).mean()*100:.1f}%)\\n"
+    stats_text = f"Mean R²: {df['r2'].mean():.3f}\n"
+    stats_text += f"Median R²: {df['r2'].median():.3f}\n"
+    stats_text += f"SNPs with R²≥0.3: {(df['r2'] >= 0.3).sum():,} ({(df['r2'] >= 0.3).mean()*100:.1f}%)\n"
     stats_text += f"SNPs with R²≥0.8: {(df['r2'] >= 0.8).sum():,} ({(df['r2'] >= 0.8).mean()*100:.1f}%)"
     
     ax.text(0.02, 0.98, stats_text, transform=ax.transAxes, 
             verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
     
     plt.tight_layout()
-    plt.savefig("${output}", dpi=150)
+    plt.savefig(output_file, dpi=150)
     plt.close()
     
-    print(f"Plot saved: ${output}")
+    print(f"Plot saved: {output_file}")
     print(f"Total variants analyzed: {len(df):,}")
     print(f"Mean R²: {df['r2'].mean():.4f}")
 
-# Write versions
-with open("versions.yml", "w") as f:
-    f.write('"${task.process}":\\n')
-    f.write(f'    python: {sys.version.split()[0]}\\n')
-    f.write(f'    pandas: {pd.__version__}\\n')
-    f.write(f'    matplotlib: {matplotlib.__version__}\\n')
-EOF
 
-    python3 plot_r2_snppos.py
-    """
+def main():
+    parser = argparse.ArgumentParser(description='Plot R² vs SNP position from sites VCF')
+    parser.add_argument('input_vcf', help='Input sites VCF file from Minimac4')
+    parser.add_argument('output_pdf', help='Output PDF file')
+    parser.add_argument('--sample-id', required=True, help='Sample ID for plot title')
+    parser.add_argument('--ref-name', required=True, help='Reference panel name for plot title')
     
-    stub:
-    def prefix = task.ext.prefix ?: "${meta.id}"
-    """
-    touch ${prefix}_${ref_name}_r2_SNPpos.pdf
+    args = parser.parse_args()
     
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        python: 3.11.0
-        pandas: 2.0.0
-        matplotlib: 3.7.0
-    END_VERSIONS
-    """
-}
+    # Read VCF data
+    print(f"Reading sites VCF: {args.input_vcf}")
+    df = read_sites_vcf(args.input_vcf)
+    
+    if df.empty:
+        print("Warning: No data found in VCF file")
+        # Create empty plot
+        fig, ax = plt.subplots(figsize=(12, 6))
+        ax.text(0.5, 0.5, 'No data available', ha='center', va='center')
+        ax.set_title(f'Imputation Quality (R²) vs SNP Position\n{args.sample_id} - {args.ref_name}')
+        plt.savefig(args.output_pdf)
+    else:
+        # Create plot
+        plot_r2_vs_position(df, args.output_pdf, args.sample_id, args.ref_name)
+
+
+if __name__ == '__main__':
+    main()

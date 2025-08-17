@@ -93,21 +93,23 @@ workflow REPORT {
     //
     // MODULE: Collect warnings from pipeline log
     //
-    // Create a channel with the Nextflow log file
-    ch_log = ch_imputed
-        .first()
-        .map { meta, ref_name, info ->
-            [meta, file("${workflow.launchDir}/.nextflow.log")]
-        }
-    
-    COLLECT_WARNINGS ( ch_log )
-    ch_versions = ch_versions.mix(COLLECT_WARNINGS.out.versions)
+    // Skip COLLECT_WARNINGS for now as it requires access to .nextflow.log
+    // which may not be accessible during execution
+    // TODO: Implement alternative warning collection mechanism
+    // ch_log = ch_imputed
+    //     .first()
+    //     .map { meta, ref_name, info ->
+    //         [meta, file("${workflow.launchDir}/.nextflow.log")]
+    //     }
+    // 
+    // COLLECT_WARNINGS ( ch_log )
+    // ch_versions = ch_versions.mix(COLLECT_WARNINGS.out.versions)
     
     emit:
     reports  = REPORT_WELL_IMPUTED.out.report.mix(
                    REPORT_ACCURACY.out.report,
-                   COLLECT_WARNINGS.out.warnings,
-                   COLLECT_WARNINGS.out.summary,
+                   // COLLECT_WARNINGS.out.warnings,  // Disabled - needs alternative implementation
+                   // COLLECT_WARNINGS.out.summary,   // Disabled - needs alternative implementation
                    AVERAGE_R2.out.average,
                    AVERAGE_R2.out.summary
                )
