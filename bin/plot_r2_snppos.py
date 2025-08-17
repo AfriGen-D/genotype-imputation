@@ -107,6 +107,14 @@ def plot_r2_vs_position(df, output_file, sample_id, ref_name):
     print(f"Plot saved: {output_file}")
     print(f"Total variants analyzed: {len(df):,}")
     print(f"Mean R²: {df['r2'].mean():.4f}")
+    
+    # Ensure file is written
+    import os
+    if os.path.exists(output_file):
+        print(f"File size: {os.path.getsize(output_file)} bytes")
+    else:
+        print(f"ERROR: File {output_file} was not created!")
+        sys.exit(1)
 
 
 def main():

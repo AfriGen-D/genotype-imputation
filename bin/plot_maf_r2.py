@@ -103,6 +103,8 @@ def main():
         ax.text(0.5, 0.5, 'No data available', ha='center', va='center')
         ax.set_title('MAF vs R²')
         plt.savefig(args.output_pdf)
+        plt.close()
+        print(f"Empty plot saved: {args.output_pdf}")
     else:
         combined = pd.concat(all_data, ignore_index=True)
         combined = combined.dropna()
@@ -179,10 +181,19 @@ def main():
         
         plt.tight_layout()
         plt.savefig(args.output_pdf)
+        plt.close()
         
         print(f"Plot saved: {args.output_pdf}")
         print(f"Total variants analyzed: {len(combined):,}")
         print(f"Mean R²: {combined['r2'].mean():.4f}")
+        
+        # Ensure file is written
+        import os
+        if os.path.exists(args.output_pdf):
+            print(f"File size: {os.path.getsize(args.output_pdf)} bytes")
+        else:
+            print(f"ERROR: File {args.output_pdf} was not created!")
+            sys.exit(1)
 
 
 if __name__ == '__main__':

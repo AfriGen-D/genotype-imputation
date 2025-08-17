@@ -87,6 +87,8 @@ def main():
         ax.text(0.5, 0.5, 'No data available', ha='center', va='center')
         ax.set_title('R² vs SNP Count')
         plt.savefig(args.output_pdf)
+        plt.close()
+        print(f"Empty plot saved: {args.output_pdf}")
     else:
         all_r2 = np.array(all_r2)
         
@@ -140,10 +142,19 @@ def main():
         
         plt.tight_layout()
         plt.savefig(args.output_pdf)
+        plt.close()
         
         print(f"Plot saved: {args.output_pdf}")
         print(f"Total SNPs: {len(all_r2):,}")
         print(f"Mean R²: {mean_r2:.4f}")
+        
+        # Ensure file is written
+        import os
+        if os.path.exists(args.output_pdf):
+            print(f"File size: {os.path.getsize(args.output_pdf)} bytes")
+        else:
+            print(f"ERROR: File {args.output_pdf} was not created!")
+            sys.exit(1)
 
 
 if __name__ == '__main__':
