@@ -20,7 +20,7 @@ include { AVERAGE_R2                } from '../../modules/local/report/average_r
 
 workflow REPORT {
     take:
-    ch_imputed // channel: [ val(meta), path(vcf), path(info) ]
+    ch_imputed // channel: [ val(meta), val(ref_name), path(info) ]
 
     main:
     ch_versions = Channel.empty()
@@ -62,10 +62,12 @@ workflow REPORT {
     ch_versions = ch_versions.mix(PLOT_R2_MAF.out.versions)
     
     //
-    // MODULE: Plot frequency comparison
+    // MODULE: Plot frequency comparison - Skip for now due to missing VCF
     //
-    PLOT_FREQ_COMPARISON ( ch_imputed )
-    ch_versions = ch_versions.mix(PLOT_FREQ_COMPARISON.out.versions)
+    // PLOT_FREQ_COMPARISON requires the actual VCF file which we don't have in this channel
+    // Would need to join with the imputed VCF channel from IMPUTE workflow
+    // PLOT_FREQ_COMPARISON ( ch_imputed )
+    // ch_versions = ch_versions.mix(PLOT_FREQ_COMPARISON.out.versions)
     
     //
     // MODULE: Additional R² analysis plots
@@ -112,7 +114,7 @@ workflow REPORT {
     plots    = PLOT_PERFORMANCE.out.plot.mix(
                    PLOT_ACCURACY.out.plot,
                    PLOT_R2_MAF.out.plot,
-                   PLOT_FREQ_COMPARISON.out.plot,
+                   // PLOT_FREQ_COMPARISON.out.plot,  // Disabled - needs VCF file
                    PLOT_R2_SNPPOS.out.plot,
                    PLOT_R2_SNPCOUNT.out.plot,
                    PLOT_HIST_R2_SNPCOUNT.out.plot,
