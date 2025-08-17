@@ -18,7 +18,7 @@ process PLOT_HIST_R2_SNPCOUNT {
     
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
-    def plot_out = "${prefix}_${ref_name}_r2_SNPcount_hist.pdf"
+    def plot_out = "${prefix}_${ref_name}_r2_snpcount_hist.pdf"
     def impute_info_cutoff = params.impute_info_cutoff ?: 0.3
     """
     # Copy the Python script from bin directory
@@ -35,7 +35,7 @@ process PLOT_HIST_R2_SNPCOUNT {
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_${ref_name}_r2_SNPcount_hist.pdf
+    touch ${prefix}_${ref_name}_r2_snpcount_hist.pdf
     
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

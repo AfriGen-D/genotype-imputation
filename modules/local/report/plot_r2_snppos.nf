@@ -18,7 +18,7 @@ process PLOT_R2_SNPPOS {
     
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
-    def output = "${prefix}_${ref_name}_r2_SNPpos.pdf"
+    def output = "${prefix}_${ref_name}_r2_snppos.pdf"
     """
     # Copy the Python script from bin directory
     cp ${projectDir}/bin/plot_r2_snppos.py .
@@ -34,7 +34,7 @@ process PLOT_R2_SNPPOS {
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_${ref_name}_r2_SNPpos.pdf
+    touch ${prefix}_${ref_name}_r2_snppos.pdf
     
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
