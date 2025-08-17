@@ -21,7 +21,15 @@ process PLOT_MAF_R2 {
     def plot_out = "${prefix}_${ref_name}_MAF_r2.pdf"
     def impute_info_cutoff = params.impute_info_cutoff ?: 0.3
     """
-    #!/usr/bin/env python3
+    # Copy the Python script from bin directory
+    cp ${projectDir}/bin/plot_maf_r2.py .
+    
+    # Run the script with appropriate arguments
+    python3 plot_maf_r2.py \\
+        ${plot_out} \\
+        --sample-id "${meta.id}" \\
+        --ref-name "${ref_name}" \\
+        --info-cutoff ${impute_info_cutoff}
     
     import pandas as pd
     import matplotlib.pyplot as plt

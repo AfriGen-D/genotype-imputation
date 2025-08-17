@@ -21,7 +21,15 @@ process PLOT_R2_SNPCOUNT {
     def plot_out = "${prefix}_${ref_name}_r2_SNPcount.pdf"
     def impute_info_cutoff = params.impute_info_cutoff ?: 0.3
     """
-    #!/usr/bin/env python3
+    # Copy the Python script from bin directory
+    cp ${projectDir}/bin/plot_r2_snpcount.py .
+    
+    # Run the script with appropriate arguments
+    python3 plot_r2_snpcount.py \\
+        ${plot_out} \\
+        --sample-id "${meta.id}" \\
+        --ref-name "${ref_name}" \\
+        --info-cutoff ${impute_info_cutoff}
     
     import pandas as pd
     import matplotlib.pyplot as plt
@@ -97,14 +105,6 @@ process PLOT_R2_SNPCOUNT {
         
         plt.tight_layout()
         plt.savefig("${plot_out}")
-    
-    # Version info
-    import sys
-    with open("versions.yml", "w") as f:
-        f.write('"${task.process}":\\n')
-        f.write(f'    python: {sys.version.split()[0]}\\n')
-        f.write(f'    pandas: {pd.__version__}\\n')
-        f.write(f'    matplotlib: {plt.matplotlib.__version__}\\n')
     """
     
     stub:
