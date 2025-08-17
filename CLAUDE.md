@@ -22,3 +22,4 @@
 - Monitor container builds on GitHub Actions after commits
 - Verify all Python scripts work correctly with their assigned containers
 - Always do deep analysis and research
+- remember to add it at the end when wverything is working fine

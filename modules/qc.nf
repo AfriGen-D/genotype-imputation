@@ -105,7 +105,7 @@ def get_chromosome_vcf(vcf){
 /*
  * Check user's provided chromosomes vs those in map file
  */
-process check_chromosome {
+process CHECK_CHROMOSOME {
     tag "check_chromosome_${target}"
     label "bcftools"
     input:
@@ -120,7 +120,7 @@ process check_chromosome {
         """
 }
 
-process get_chromosome {
+process GET_CHROMOSOME {
     tag "get_chromosome_${dataset}"
     label "bigmem1"
     label "bcftools"

@@ -1,0 +1,4 @@
+sample,vcf,population,study
+sample1,/path/to/sample1.vcf.gz,AFR,study1
+sample2,/path/to/sample2.vcf.gz,EUR,study1
+sample3,/path/to/sample3.vcf.gz,EAS,study2

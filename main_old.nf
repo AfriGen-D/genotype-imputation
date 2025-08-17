@@ -402,7 +402,7 @@ workflow {
         .combine(subset.out.chunks)
         .flatMap{ ref_name, ref_msav, ref_vcf, dataset, chrm, start, end, dataset_, dataset_vcf ->
             vcf = sprintf(ref_vcf, chrm)
-            msav = sprintf(ref_msav, chrm)
+            m3vcf = sprintf(ref_m3vcf, chrm)
             if(vcf.endsWith("vcf.gz")){
                 vcf_idx = "${vcf}.tbi" 
             }

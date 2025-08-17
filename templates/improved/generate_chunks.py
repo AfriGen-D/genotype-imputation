@@ -316,7 +316,11 @@ def main():
         # Parse chromosomes if specified
         chromosomes = None
         if args.chromosomes:
-            chromosomes = [c.strip() for c in args.chromosomes.split(',')]
+            # Handle special case of "ALL" or empty string to process all chromosomes
+            if args.chromosomes.upper() == 'ALL' or args.chromosomes.strip() == '':
+                chromosomes = None  # None means process all
+            else:
+                chromosomes = [c.strip() for c in args.chromosomes.split(',') if c.strip()]
         
         # Generate chunks
         chunks = generator.generate_chunks(chromosomes, args.region)

@@ -1,0 +1,93 @@
+process REPORT_ACCURACY {
+    tag "$meta.id"
+    label 'process_single'
+    
+    container 'mamana/python-plotting:1.0.0'
+    
+    input:
+    tuple val(meta), val(ref_name), path(well_info), path(acc_info)
+    
+    output:
+    tuple val(meta), val(ref_name), path("*.accuracy.txt"), path("*.accuracy.tsv"), emit: report
+    path "versions.yml"                                                            , emit: versions
+    
+    when:
+    task.ext.when == null || task.ext.when
+    
+    script:
+    def args = task.ext.args ?: ''
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    #!/usr/bin/env python3
+    
+    import sys
+    import numpy as np
+    
+    acc_info_file = "${acc_info}"
+    report_file = "${prefix}_${ref_name}.accuracy.txt"
+    tsv_file = "${prefix}_${ref_name}.accuracy.tsv"
+    
+    # Calculate accuracy metrics by MAF bins
+    maf_bins = [(0, 0.01), (0.01, 0.05), (0.05, 0.1), (0.1, 0.2), (0.2, 0.3), (0.3, 0.4), (0.4, 0.5)]
+    bin_metrics = {bin_range: {'count': 0, 'rsq_sum': 0} for bin_range in maf_bins}
+    
+    with open(acc_info_file, 'r') as f:
+        header = f.readline()
+        
+        for line in f:
+            if line.strip():
+                parts = line.strip().split('\\t')
+                if len(parts) >= 7:
+                    try:
+                        maf = float(parts[4])  # MAF
+                        rsq = float(parts[6])  # Rsq
+                        
+                        for bin_range in maf_bins:
+                            if bin_range[0] <= maf < bin_range[1]:
+                                bin_metrics[bin_range]['count'] += 1
+                                bin_metrics[bin_range]['rsq_sum'] += rsq
+                                break
+                    except (ValueError, IndexError):
+                        continue
+    
+    # Write detailed report
+    with open(report_file, 'w') as f:
+        f.write("Accuracy Report\\n")
+        f.write("="*50 + "\\n")
+        f.write(f"Sample: ${meta.id}\\n")
+        f.write(f"Reference: ${ref_name}\\n")
+        f.write("="*50 + "\\n\\n")
+        
+        f.write("MAF Bin\\tCount\\tMean Rsq\\n")
+        for bin_range, metrics in sorted(bin_metrics.items()):
+            mean_rsq = metrics['rsq_sum'] / metrics['count'] if metrics['count'] > 0 else 0
+            f.write(f"{bin_range[0]:.2f}-{bin_range[1]:.2f}\\t{metrics['count']}\\t{mean_rsq:.4f}\\n")
+    
+    # Write TSV for plotting
+    with open(tsv_file, 'w') as f:
+        f.write("MAF_BIN\\tCOUNT\\tMEAN_RSQ\\n")
+        for bin_range, metrics in sorted(bin_metrics.items()):
+            mean_rsq = metrics['rsq_sum'] / metrics['count'] if metrics['count'] > 0 else 0
+            f.write(f"{bin_range[0]:.2f}-{bin_range[1]:.2f}\\t{metrics['count']}\\t{mean_rsq:.4f}\\n")
+    
+    print(f"Accuracy report: {report_file}")
+    print(f"Accuracy TSV: {tsv_file}")
+    
+    # Write versions
+    with open("versions.yml", "w") as f:
+        f.write('"${task.process}":\\n')
+        f.write(f'    python: {sys.version.split()[0]}\\n')
+    """
+    
+    stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    touch ${prefix}_${ref_name}.accuracy.txt
+    touch ${prefix}_${ref_name}.accuracy.tsv
+    
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        python: 3.11.0
+    END_VERSIONS
+    """
+}

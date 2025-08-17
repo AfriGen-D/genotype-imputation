@@ -193,7 +193,7 @@ process generate_chunks {
         """
 }
 
-process generate_chunks_vcf {
+process GENERATE_CHUNKS_VCF {
     tag "generate_chunks_${target_name}"
     label "small"
     label "python_plotting"
@@ -219,7 +219,7 @@ process generate_chunks_vcf {
 }
 
 
-process split_target_to_chunk {
+process SPLIT_TARGET_TO_CHUNK {
     tag "split_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${tagName}"
     label "bigmem"
     label "bcftools"
