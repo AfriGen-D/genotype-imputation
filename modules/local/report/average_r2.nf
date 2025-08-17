@@ -58,6 +58,9 @@ process AVERAGE_R2 {
     echo "Current directory contents:"
     pwd
     ls -la *.txt *.csv 2>/dev/null || true
+    
+    # Small delay to ensure filesystem operations complete
+    sleep 1
     """
     
     stub:

@@ -51,6 +51,9 @@ process PLOT_MAF_R2 {
     echo "Current directory contents:"
     pwd
     ls -la *.pdf 2>/dev/null || true
+    
+    # Small delay to ensure filesystem operations complete
+    sleep 1
     """
     
     stub:

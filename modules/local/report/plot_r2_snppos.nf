@@ -50,6 +50,9 @@ process PLOT_R2_SNPPOS {
     echo "Current directory contents:"
     pwd
     ls -la *.pdf 2>/dev/null || true
+    
+    # Small delay to ensure filesystem operations complete
+    sleep 1
     """
     
     stub:
