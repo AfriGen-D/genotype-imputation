@@ -43,6 +43,14 @@ process PLOT_MAF_R2 {
     
     echo "Output file verified: ${plot_out}"
     ls -la ${plot_out}
+    
+    # Ensure file has proper permissions
+    chmod 644 ${plot_out}
+    
+    # Double-check file is in current directory
+    echo "Current directory contents:"
+    pwd
+    ls -la *.pdf 2>/dev/null || true
     """
     
     stub:

@@ -42,6 +42,14 @@ process PLOT_R2_SNPPOS {
     
     echo "Output file verified: ${output}"
     ls -la ${output}
+    
+    # Ensure file has proper permissions
+    chmod 644 ${output}
+    
+    # Double-check file is in current directory
+    echo "Current directory contents:"
+    pwd
+    ls -la *.pdf 2>/dev/null || true
     """
     
     stub:

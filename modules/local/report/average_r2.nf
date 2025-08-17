@@ -50,6 +50,14 @@ process AVERAGE_R2 {
     
     echo "Output files verified:"
     ls -la ${meanr2_out} ${summary_out}
+    
+    # Ensure files have proper permissions
+    chmod 644 ${meanr2_out} ${summary_out}
+    
+    # Double-check files are in current directory
+    echo "Current directory contents:"
+    pwd
+    ls -la *.txt *.csv 2>/dev/null || true
     """
     
     stub:
