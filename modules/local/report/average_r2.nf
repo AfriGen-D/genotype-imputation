@@ -10,8 +10,8 @@ process AVERAGE_R2 {
     tuple val(meta), val(ref_name), path(info_files)
     
     output:
-    tuple val(meta), val(ref_name), path("*.average_r2.txt"), emit: average
-    tuple val(meta), val(ref_name), path("*.r2_summary.csv"), emit: summary
+    tuple val(meta), val(ref_name), path("*average_r2.txt"), emit: average
+    tuple val(meta), val(ref_name), path("*r2_summary.csv"), emit: summary
     path "versions.yml", emit: versions
     
     when:

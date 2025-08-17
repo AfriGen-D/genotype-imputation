@@ -10,7 +10,7 @@ process PLOT_R2_SNPPOS {
     tuple val(meta), val(ref_name), path(info_file)
     
     output:
-    tuple val(meta), val(ref_name), path("*.r2_snppos.pdf"), emit: plot
+    tuple val(meta), val(ref_name), path("*_r2_snppos.pdf"), emit: plot
     path "versions.yml", emit: versions
     
     when:

@@ -10,7 +10,7 @@ process PLOT_R2_SNPCOUNT {
     tuple val(meta), val(ref_name), path(info_files)
     
     output:
-    tuple val(meta), val(ref_name), path("*.r2_snpcount.pdf"), emit: plot
+    tuple val(meta), val(ref_name), path("*_r2_snpcount.pdf"), emit: plot
     path "versions.yml", emit: versions
     
     when:

@@ -23,3 +23,10 @@
 - Verify all Python scripts work correctly with their assigned containers
 - Always do deep analysis and research
 - remember to add it at the end when wverything is working fine
+
+## Instructions for Claude
+- Always think deeply and thoroughly analyze problems before providing solutions
+- Do comprehensive research and exploration before making changes
+- Consider edge cases and potential impacts of any modifications
+- Verify assumptions by checking actual code and configurations
+- Use extended thinking for complex problems requiring careful analysis

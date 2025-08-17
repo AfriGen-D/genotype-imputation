@@ -10,7 +10,7 @@ process PLOT_MAF_R2 {
     tuple val(meta), val(ref_name), path(info_files)
     
     output:
-    tuple val(meta), val(ref_name), path("*.maf_r2.pdf"), emit: plot
+    tuple val(meta), val(ref_name), path("*_maf_r2.pdf"), emit: plot
     path "versions.yml", emit: versions
     
     when:
