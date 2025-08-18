@@ -25,6 +25,7 @@ params.chromosomes = 'ALL'
 params.chunk_size = 5000000
 params.minRatio = 0.01
 params.qc_plots = true
+params.generate_chunk_plots = false
 params.max_cpus = 16
 params.max_memory = '128.GB'
 params.version = '1.0.0'
@@ -87,8 +88,7 @@ Input Configuration:
 
 Processing Parameters:
   Chromosomes    : ${params.chromosomes}
-  Chunk size     : ${params.chunk_size} bp
-  Buffer size    : ${params.buffer_size} bp
+  Chunk size     : ${params.chunk_size} bp (Buffer size: ${params.buffer_size} bp)
 
 Reference Panels:
   Panel name     : ${params.ref_panels ? params.ref_panels[0][0] : 'None'}
@@ -96,33 +96,20 @@ Reference Panels:
   Reference genome: ${params.reference_genome}
 
 Quality Control:
-  Site miss      : ${params.site_miss}
-  HWE threshold  : ${params.hwe}
-  Min allele count: ${params.mac}
-  Min alt count  : ${params.min_ac}
-  MAF threshold  : ${params.maf_thresh}
-  Max mismatch   : ${params.max_mismatch_rate * 100}%
+  Site miss : ${params.site_miss} | HWE threshold  : ${params.hwe} | Min allele count: ${params.mac} | Min alt count  : ${params.min_ac} 
+  MAF threshold  : ${params.maf_thresh} | Max mismatch   : ${params.max_mismatch_rate * 100}%
 
 Overlap Checking:
-  Min ratio      : ${params.minRatio}
-  Min overlap    : 50 variants (hardcoded)
+  Min ratio : ${params.minRatio} | Min overlap : 50 variants (hardcoded)
 
 Phasing:
-  Method         : ${params.phasing_method}
-  PBWT iterations: ${params.eagle_pbwt_iters}
+  Method : ${params.phasing_method} | PBWT iterations: ${params.eagle_pbwt_iters}
 
 Imputation:
-  Method         : ${params.impute_method}
-  NE (pop size)  : ${params.NE}
-  Iterations     : ${params.impute_iter}
-  Burn-in        : ${params.impute_burnin}
-  Info cutoff    : ${params.impute_info_cutoff}
-  R2 threshold   : ${params.r2_threshold}
+  Method : ${params.impute_method} | NE (pop size) : ${params.NE} | Iterations : ${params.impute_iter} | Burn-in : ${params.impute_burnin} | Info cutoff : ${params.impute_info_cutoff} | R2 threshold : ${params.r2_threshold}
 
 Resources:
-  Max CPUs       : ${params.max_cpus}
-  Max memory     : ${params.max_memory}
-  Max time       : ${params.max_time}
+  Max CPUs : ${params.max_cpus} | Max memory : ${params.max_memory} | Max time : ${params.max_time}
 =========================================
 """
 
@@ -137,9 +124,13 @@ if (params.input) {
     Channel
         .fromPath(params.input)
         .splitCsv(header: true)
+        .filter { row ->
+            // Skip rows where dataset starts with # (comment lines)
+            !row.dataset.startsWith('#')
+        }
         .map { row ->
             def meta = [:]
-            meta.id = row.sample
+            meta.id = row.dataset
             meta.population = row.population ?: 'ALL'
             meta.study = row.study ?: params.project_name
             [ meta, file(row.vcf) ]
@@ -180,7 +171,8 @@ workflow H3ABIONET_CHIPIMPUTATION {
 // See: https://github.com/nf-core/rnaseq/issues/619
 //
 workflow {
-    H3ABIONET_CHIPIMPUTATION ( ch_input )
+    // Call CHIPIMPUTATION directly to reduce nesting level
+    CHIPIMPUTATION ( ch_input )
 }
 
 //

@@ -106,7 +106,7 @@ def get_chromosome_vcf(vcf){
  * Check user's provided chromosomes vs those in map file
  */
 process CHECK_CHROMOSOME {
-    tag "check_chromosome_${target}"
+    tag "${target}"
     label "bcftools"
     input:
         tuple val(target), file(target_vcf)
@@ -121,7 +121,7 @@ process CHECK_CHROMOSOME {
 }
 
 process GET_CHROMOSOME {
-    tag "get_chromosome_${dataset}"
+    tag "${dataset}"
     label "bigmem1"
     label "bcftools"
 
@@ -138,7 +138,7 @@ process GET_CHROMOSOME {
 }
 
 process split_vcf_chromosome {
-    tag "split_vcf_chrm_${dataset}"
+    tag "${dataset}"
     label "bigmem1"
     label "bcftools"
 
@@ -162,7 +162,7 @@ process split_vcf_chromosome {
 }
 
 process split_vcf_chunk {
-    tag "split_vcf_${dataset}_${chunk_size}"
+    tag "${dataset}"
     label "bigmem1"
     label "bcftools"
 
@@ -185,7 +185,7 @@ process split_vcf_chunk {
 }
 
 process check_mismatch {
-    tag "check_mismatch_${target}_${chrm}_${start}_${end}"
+    tag "${target}_${chrm}:${start}-${end}"
     label "medium"
     label "bcftools"
     
@@ -218,7 +218,7 @@ def no_mismatch(target_name, warn, summary){
 }
 
 process target_qc {
-    tag "target_qc_${target_name}"
+    tag "${target_name}"
     label "bigmem"
     label "bcftools"
 
@@ -236,7 +236,7 @@ process target_qc {
 }
 
 process qc_dupl {
-    tag "dupl_qc_${dataset}_${chrm}_${start}_${end}"
+    tag "${dataset}_${chrm}:${start}-${end}"
     label "bigmem"
     label "bcftools"
 
@@ -255,7 +255,7 @@ process qc_dupl {
 }
 
 process split_multi_allelic {
-    tag "split_multi_${dataset}_${chrm}_${start}_${end}"
+    tag "${dataset}_${chrm}:${start}-${end}"
     label "bigmem"
     label "bcftools"
 
@@ -273,7 +273,7 @@ process split_multi_allelic {
 }
 
 process fill_tags_vcf {
-    tag "fill_tags_${dataset}_${chrm}"
+    tag "${dataset}_${chrm}"
     label "bigmem"
     label "bcftools"
 
@@ -290,7 +290,7 @@ process fill_tags_vcf {
 }
 
 process filter_min_ac {
-    tag "min_ac_${dataset}_${chrm}_${start}_${end}"
+    tag "${dataset}_${chrm}:${start}-${end}"
     label "bigmem"
     label "bcftools"
 
@@ -313,7 +313,7 @@ process filter_min_ac {
 
 
 process qc_site_missingness {
-    tag "site_missingness_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${ref_name}_${tagName}"
+    tag "${target_name}_chr${chrm}_${chunk_start}_${chunk_end}"
     label "bigmem"
     label "bcftools"
 
@@ -331,7 +331,7 @@ process qc_site_missingness {
 }
 
 process sites_only {
-    tag "sites_only_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${ref_name}_${tagName}"
+    tag "${target_name}_chr${chrm}_${chunk_start}_${chunk_end}"
     label "bigmem"
     label "bcftools"
 
@@ -352,7 +352,7 @@ process sites_only {
 }
 
 process combine_vcfs_chrm {
-   tag "combine_${chrm}_${target_name}_${ref_name}_${tagName}"
+   tag "${target_name}"
    publishDir "${params.outDir}/imputed/vcfs/${ref_name}/all/${target_name}/${tagName}", overwrite: true, mode:'copy', pattern: '*vcf.gz*'
    label "bigmem"
    label "bcftools"
@@ -380,7 +380,7 @@ process combine_vcfs_chrm {
 
 
 process combine_vcfs {
-   tag "combine_${dataset}_${ref_name}"
+   tag "${dataset}"
    label "bigmem"
    label "bcftools"
    
@@ -430,7 +430,7 @@ process combine_vcfs {
 Combine impute info chunks to chromosomes
 """
 process combine_infos {
-    tag "combine_infos_${target_name}_${ref_name}_${tagName}"
+    tag "${target_name}"
     publishDir "${params.outDir}/imputed/infos/${ref_name}", overwrite: true, mode:'copy', pattern: '*imputed_info'
     label "medium"
 
@@ -451,7 +451,7 @@ process combine_infos {
 Combine csvs
 """
 process combine_csvs {
-    tag "combine_csvs_${target_name}_${ref_name}"
+    tag "${target_name}"
     publishDir "${params.outDir}/imputed/${ref_name}", overwrite: true, mode:'copy', pattern: "*${out_ext}"
     label "medium"
 

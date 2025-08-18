@@ -2,7 +2,7 @@ process MERGE_CHUNKS_FOR_PHASING {
     tag "$meta.id"
     label 'process_single'
     
-    container 'quay.io/biocontainers/bcftools:1.11--h7c999a4_0'
+    container 'mamana/vcf-processing:bcftools-1.20'
     
     input:
     tuple val(meta), path(vcf1), path(vcf1_index), path(vcf2), path(vcf2_index)

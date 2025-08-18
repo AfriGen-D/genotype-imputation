@@ -1,0 +1,4 @@
+dataset,vcf,population,study
+test_small1,/users/mamana/genotype-imputation/test_data/vcf_chunks/v6_chr21_phased_chunk_0000.vcf.gz,ALL,test_study_fast
+test_small2,/users/mamana/genotype-imputation/test_data/vcf_chunks/v6_chr21_phased_chunk_0001.vcf.gz,ALL,test_study_fast
+test_small3,/users/mamana/genotype-imputation/test_data/vcf_chunks/v6_chr21_phased_chunk_0002.vcf.gz,ALL,test_study_fast

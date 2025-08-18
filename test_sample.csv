@@ -1,3 +1,4 @@
-sample,vcf,population,study
-test1,/users/mamana/genotype-imputation/test_data/vcf_chunks/v6_chr21_phased_chunk_0002.vcf.gz,ALL,test_study
-test2,/users/mamana/genotype-imputation/test_data/vcf_chunks/v6_chr21_phased_chunk_0003.vcf.gz,ALL,test_study
+dataset,vcf,population,study
+test_quick,/users/mamana/genotype-imputation/test_data/vcf_chunks/v6_chr21_phased_chunk_0002.vcf.gz,ALL,test_study
+#test_quick,/users/mamana/genotype-imputation/test_data/vcf_chunks/v6_chr21_phased_chunk_0003.vcf.gz,ALL,test_study
+test_quick,/users/mamana/genotype-imputation/test_data/vcf_chunks/v6_chr21_phased_chunk_0003.vcf.gz,ALL,test_study_fast

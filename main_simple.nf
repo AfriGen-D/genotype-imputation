@@ -405,6 +405,10 @@ workflow {
         Channel
             .fromPath(params.input)
             .splitCsv(header: true)
+            .filter { row ->
+                // Skip rows where sample starts with # (comment lines)
+                !row.sample.startsWith('#')
+            }
             .map { row ->
                 [ row.sample, file(row.vcf) ]
             }

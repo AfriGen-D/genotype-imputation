@@ -27,7 +27,7 @@ if (params.help){
 //     tag "perform QC on the imputed files"
 
 process filter_info {
-    tag "filter_${dataset_name}_${tagName}_${ref_panels.join('-')}"
+    tag "${tagName}"
     label "bigmem"
     label "python_plotting"
 
@@ -71,7 +71,7 @@ process filter_info {
 
 
 process report_site_by_maf {
-    tag "site_by_maf_${dataset_name}"
+    tag "${dataset_name}"
     label "bigmem"
     label "python_plotting"
 
@@ -96,7 +96,7 @@ Report 1: Generate a file of well imputed snps by maf for a dataset (key) for al
 """
 //TODO do this by chromosomes for each dataset
 process report_well_imputed_by_target {
-    tag "report_wellImputed_${target_name}_${ref_panels.split(',').join('-')}"
+    tag "${target_name}"
     publishDir "${params.outDir}/reports/${ref_panels}", overwrite: true, mode:'copy'
     label "medium"
     label "python_plotting"
@@ -124,7 +124,7 @@ process report_well_imputed_by_target {
 Plot performance all reference panels by maf for a dataset
 """
 process plot_performance_target{
-    tag "plot_performance_dataset_${target_name}_${ref_panels}_${chrms}"
+    tag "${target_name}"
     publishDir "${params.outDir}/plots/${ref_panels}", overwrite: true, mode:'copy'
     label "python_plotting"
     
@@ -144,7 +144,7 @@ process plot_performance_target{
 Repor 2: Accuracy all reference panels by maf for a dataset
 """
 process report_accuracy_target {
-    tag "report_acc_${target_name}_${ref_panels}"
+    tag "${target_name}"
     publishDir "${params.outDir}/reports/${ref_panels}/", overwrite: true, mode:'copy'
     label "medium"
     label "python_plotting"
@@ -169,7 +169,7 @@ process report_accuracy_target {
 Plot accuracy all reference panels by maf for a dataset
 """
 process plot_accuracy_target{
-    tag "plot_accuracy_dataset_${target_name}_${ref_panels}"
+    tag "${target_name}"
     publishDir "${params.outDir}/plots/${ref_panels}", overwrite: true, mode:'copy'
     label "python_plotting"
     input:
@@ -188,7 +188,7 @@ process plot_accuracy_target{
 Step: generate allele frequency
 """
 process generate_frequency {
-    tag "frq_${target_name}_${ref_name}"
+    tag "${target_name}"
     publishDir "${params.outDir}/frqs/${ref_name}", overwrite: true, mode:'copy', pattern: '*frq'
     label "bigmem"
     label "bcftools"
@@ -218,7 +218,7 @@ process generate_frequency {
 Plot number of imputed SNPs over the mean r2 for all reference panels
 """
 process plot_r2_SNPpos {
-    tag "plot_r2_SNPpos_${target_name}_${ref_name}_${chrm}"
+    tag "${target_name}"
     publishDir "${params.outDir}/plots/${ref_name}", overwrite: true, mode:'copy'
     label "medium"
     label "python_plotting"
@@ -238,7 +238,7 @@ process plot_r2_SNPpos {
 Plot frequency of imputed SNPs against SNP frequencies in reference panels
 """
 process plot_freq_comparison {
-    tag "plot_freq_comparison_${target_name}_${ref_name}"
+    tag "${target_name}"
     publishDir "${params.outDir}/plots/${ref_name}/freq_comparison", overwrite: true, mode:'copy'
     label "medium"
     label "python_plotting"
@@ -260,7 +260,7 @@ process plot_freq_comparison {
 Plot number of imputed SNPs over the mean r2 for all reference panels
 """
 process plot_r2_SNPcount {
-    tag "plot_r2_SNPcount_${target_name}_${ref_panels}"
+    tag "${target_name}"
     publishDir "${params.outDir}/plots/${ref_panels}", overwrite: true, mode:'copy'
     label "medium"
     label "python_plotting"
@@ -278,7 +278,7 @@ process plot_r2_SNPcount {
 Plot histograms of number of imputed SNPs over the mean r2 for all reference panels
 """
 process plot_hist_r2_SNPcount {
-    tag "plot_hist_r2_SNPcount_${target_name}_${ref_panels}"
+    tag "${target_name}"
     publishDir "${params.outDir}/plots/${ref_panels}/", overwrite: true, mode:'copy'
     label "medium"
     label "python_plotting"
@@ -296,7 +296,7 @@ process plot_hist_r2_SNPcount {
 Plot MAF of imputed SNPs over r2 for all references
 """
 process plot_MAF_r2 {
-    tag "plot_MAF_r2_${target_name}_${ref_panels}"
+    tag "${target_name}"
     publishDir "${params.outDir}/plots/${ref_panels}", overwrite: true, mode:'copy'
     label "medium"
     label "python_plotting"
@@ -311,7 +311,7 @@ process plot_MAF_r2 {
 }
 
 process average_r2 {
-    tag "average_r2_${target_name}_${ref_panels}"
+    tag "${target_name}"
     publishDir "${params.outDir}/rsquared/${ref_panels}", overwrite: true, mode:'copy'
     label "python_plotting"
   

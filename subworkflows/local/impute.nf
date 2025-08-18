@@ -15,6 +15,7 @@ workflow IMPUTE {
 
     main:
     ch_versions = Channel.empty()
+    ch_ref_vcf = Channel.empty()
     
     // Simplified imputation - handle ref_panels properly
     // For testing, create a dummy reference panel if none provided
@@ -54,14 +55,21 @@ workflow IMPUTE {
         ch_versions = ch_versions.mix(IMPUTE_MINIMAC4.out.versions)
         ch_imputed = IMPUTE_MINIMAC4.out.imputed
         ch_info = IMPUTE_MINIMAC4.out.info
+        
+        // Extract reference VCF paths for frequency comparison
+        ch_ref_vcf = ch_phased_with_ref.map { meta, vcf, vcf_index, ref_data ->
+            [meta, ref_data[0], ref_data[2]]   // [ val(meta), val(ref_name), path(ref_vcf) ]
+        }
     } else {
         // If no reference panels, just pass through
         ch_imputed = ch_phased
         ch_info = Channel.empty()
+        ch_ref_vcf = Channel.empty()
     }
 
     emit:
-    imputed  = ch_imputed                  // channel: [ val(meta), path(vcf) ]
+    imputed  = ch_imputed                  // channel: [ val(meta), val(ref_name), path(vcf), path(vcf_index) ]
     info     = ch_info                      // channel: [ val(meta), path(info) ]
+    ref_vcf  = ch_ref_vcf                   // channel: [ val(meta), val(ref_name), path(ref_vcf) ]
     versions = ch_versions                  // channel: [ path(versions.yml) ]
 }

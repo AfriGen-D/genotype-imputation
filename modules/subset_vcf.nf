@@ -24,7 +24,7 @@ if (params.help){
 }
 
 process extract_site_from_vcf {
-    tag "extract_site_${target_name}_${site_name}"
+    tag "${target_name}"
     label "bigmem"
     label "bcftools"
 
@@ -170,7 +170,7 @@ process get_vcf_sites {
 }
 
 process generate_chunks {
-    tag "generate_chunks_${target_name}"
+    tag "${target_name}"
     label "small"
 
     input:
@@ -194,7 +194,7 @@ process generate_chunks {
 }
 
 process GENERATE_CHUNKS_VCF {
-    tag "generate_chunks_${target_name}"
+    tag "${target_name}"
     label "small"
     label "python_plotting"
 
@@ -220,7 +220,7 @@ process GENERATE_CHUNKS_VCF {
 
 
 process SPLIT_TARGET_TO_CHUNK {
-    tag "split_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${tagName}"
+    tag "${tagName}"
     label "bigmem"
     label "bcftools"
     maxForks 30

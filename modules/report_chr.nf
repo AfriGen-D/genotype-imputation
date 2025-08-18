@@ -11,7 +11,7 @@ nextflow.enable.dsl=2
 
 // Filter info files by chromosome
 process filter_info_by_target_chr {
-    tag "filter_${dataset_name}_${tagName}_${ref_panels.join('-')}_${chr}"
+    tag "${tagName}"
     label "bigmem"
     label "python_plotting"
     publishDir "${params.outDir}/reports_chr/chr${chr}/${ref_panels}", overwrite: true, mode:'copy'
@@ -39,7 +39,7 @@ process filter_info_by_target_chr {
 
 // Duplicate for dataset grouping (different tagging)
 process filter_info_by_target_chr2 {
-    tag "filter_${dataset_name}_${ref_panels.join('-')}_chr${chr}"
+    tag "${dataset_name}_chr${chr}"
     label "bigmem"
     label "python_plotting"
     publishDir "${params.outDir}/reports_chr/chr${chr}/${dataset_name}", overwrite: true, mode:'copy'
@@ -67,7 +67,7 @@ process filter_info_by_target_chr2 {
 
 // Report well imputed by target - chromosome level
 process report_well_imputed_by_target_chr {
-    tag "report_wellImputed_${target_name}_${ref_panels}_chr${chr}"
+    tag "${target_name}_chr${chr}"
     publishDir "${params.outDir}/reports_chr/chr${chr}/${ref_panels}", overwrite: true, mode:'copy'
     label "medium"
     label "python_plotting"
@@ -93,7 +93,7 @@ process report_well_imputed_by_target_chr {
 
 // Duplicate for dataset grouping
 process report_well_imputed_by_target_chr2 {
-    tag "report_wellImputed_${target_name}_${ref_panels}_chr${chr}"
+    tag "${target_name}_chr${chr}"
     publishDir "${params.outDir}/reports_chr/chr${chr}/${target_name}", overwrite: true, mode:'copy'
     label "medium"
     label "python_plotting"
@@ -119,7 +119,7 @@ process report_well_imputed_by_target_chr2 {
 
 // Plot performance target - chromosome level
 process plot_performance_target_chr {
-    tag "plot_performance_${target_name}_${ref_panels}_chr${chr}"
+    tag "${target_name}_chr${chr}"
     publishDir "${params.outDir}/plots_chr/chr${chr}/${ref_panels}", overwrite: true, mode:'copy'
     label "python_plotting"
     
@@ -137,7 +137,7 @@ process plot_performance_target_chr {
 
 // Duplicate for dataset grouping
 process plot_performance_target_chr2 {
-    tag "plot_performance_${target_name}_${ref_panels}_chr${chr}"
+    tag "${target_name}_chr${chr}"
     publishDir "${params.outDir}/plots_chr/chr${chr}/${target_name}", overwrite: true, mode:'copy'
     label "python_plotting"
     
@@ -155,7 +155,7 @@ process plot_performance_target_chr2 {
 
 // Report accuracy target - chromosome level
 process report_accuracy_target_chr {
-    tag "report_acc_${target_name}_${ref_panels}_chr${chr}"
+    tag "${target_name}_chr${chr}"
     publishDir "${params.outDir}/reports_chr/chr${chr}/${ref_panels}/", overwrite: true, mode:'copy'
     label "medium"
     label "python_plotting"
@@ -179,7 +179,7 @@ process report_accuracy_target_chr {
 
 // Duplicate for dataset grouping
 process report_accuracy_target_chr2 {
-    tag "report_acc_${target_name}_${ref_panels}_chr${chr}"
+    tag "${target_name}_chr${chr}"
     publishDir "${params.outDir}/reports_chr/chr${chr}/${target_name}/", overwrite: true, mode:'copy'
     label "medium"
     label "python_plotting"
@@ -203,7 +203,7 @@ process report_accuracy_target_chr2 {
 
 // Plot accuracy target - chromosome level
 process plot_accuracy_target_chr {
-    tag "plot_accuracy_${target_name}_${ref_panels}_chr${chr}"
+    tag "${target_name}_chr${chr}"
     publishDir "${params.outDir}/plots_chr/chr${chr}/${ref_panels}", overwrite: true, mode:'copy'
     label "python_plotting"
     
@@ -221,7 +221,7 @@ process plot_accuracy_target_chr {
 
 // Duplicate for dataset grouping
 process plot_accuracy_target_chr2 {
-    tag "plot_accuracy_${target_name}_${ref_panels}_chr${chr}"
+    tag "${target_name}_chr${chr}"
     publishDir "${params.outDir}/plots_chr/chr${chr}/${target_name}", overwrite: true, mode:'copy'
     label "python_plotting"
     
@@ -239,7 +239,7 @@ process plot_accuracy_target_chr2 {
 
 // Plot R2 vs SNP count - chromosome level
 process plot_r2_SNPcount_chr {
-    tag "plot_r2_SNPcount_${target_name}_${ref_panels}_chr${chr}"
+    tag "${target_name}_chr${chr}"
     publishDir "${params.outDir}/plots_chr/chr${chr}/${target_name}", overwrite: true, mode:'copy'
     label "medium"
     label "python_plotting"
@@ -256,7 +256,7 @@ process plot_r2_SNPcount_chr {
 
 // Plot histogram R2 vs SNP count - chromosome level
 process plot_hist_r2_SNPcount_chr {
-    tag "plot_hist_r2_SNPcount_${target_name}_${ref_panels}_chr${chr}"
+    tag "${target_name}_chr${chr}"
     publishDir "${params.outDir}/plots_chr/chr${chr}/${target_name}/", overwrite: true, mode:'copy'
     label "medium"
     label "python_plotting"
@@ -273,7 +273,7 @@ process plot_hist_r2_SNPcount_chr {
 
 // Plot MAF vs R2 - chromosome level
 process plot_MAF_r2_chr {
-    tag "plot_MAF_r2_${target_name}_${ref_panels}_chr${chr}"
+    tag "${target_name}_chr${chr}"
     publishDir "${params.outDir}/plots_chr/chr${chr}/${target_name}", overwrite: true, mode:'copy'
     label "medium"
     label "python_plotting"
