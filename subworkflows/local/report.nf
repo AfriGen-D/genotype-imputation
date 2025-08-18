@@ -19,13 +19,13 @@ include { PLOT_HIST_R2_SNPCOUNT     } from '../../modules/local/report/plot_hist
 include { PLOT_MAF_R2               } from '../../modules/local/report/plot_maf_r2'
 include { AVERAGE_R2                } from '../../modules/local/report/average_r2'
 // New advanced QC modules
-include { PLOT_DOSAGE_DISTRIBUTION  } from '../../modules/local/report/plot_dosage_distribution'
-include { PLOT_CALIBRATION          } from '../../modules/local/report/plot_calibration'
-include { PLOT_CONCORDANCE_MAF      } from '../../modules/local/report/plot_concordance_maf'
-include { PLOT_CROSS_VALIDATION     } from '../../modules/local/report/plot_cross_validation'
-include { PLOT_HETEROZYGOSITY       } from '../../modules/local/report/plot_heterozygosity'
-include { PLOT_HWE_DEVIATION        } from '../../modules/local/report/plot_hwe_deviation'
-include { GENERATE_SUMMARY_REPORT   } from '../../modules/local/report/generate_summary'
+// include { PLOT_DOSAGE_DISTRIBUTION  } from '../../modules/local/report/plot_dosage_distribution'
+// include { PLOT_CALIBRATION          } from '../../modules/local/report/plot_calibration'
+// include { PLOT_CONCORDANCE_MAF      } from '../../modules/local/report/plot_concordance_maf'
+// include { PLOT_CROSS_VALIDATION     } from '../../modules/local/report/plot_cross_validation'
+// include { PLOT_HETEROZYGOSITY       } from '../../modules/local/report/plot_heterozygosity'
+// include { PLOT_HWE_DEVIATION        } from '../../modules/local/report/plot_hwe_deviation'
+// include { GENERATE_SUMMARY_REPORT   } from '../../modules/local/report/generate_summary'
 
 workflow REPORT {
     take:
