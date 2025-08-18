@@ -2,16 +2,16 @@ process COLLECT_WARNINGS {
     tag "$meta.id"
     label 'process_single'
     
-    container 'quay.io/biocontainers/python:3.11'
+    container 'mamana/python-plotting:1.0.0'
     
-    publishDir "${params.outdir}/reports", mode: 'copy'
+    publishDir "${params.outdir}/reports/${meta.id}", mode: 'copy'
     
     input:
-    tuple val(meta), path(log_file)
+    tuple val(meta), val(ref_name), path(log_file)
     
     output:
-    tuple val(meta), path("*_warnings.txt"), emit: warnings
-    tuple val(meta), path("*_skipped_chunks_summary.txt"), emit: summary
+    tuple val(meta), val(ref_name), path("*_warnings.txt"), emit: warnings
+    tuple val(meta), val(ref_name), path("*_warnings_summary.json"), emit: summary
     path "versions.yml", emit: versions
     
     when:
@@ -19,84 +19,57 @@ process COLLECT_WARNINGS {
     
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
+    def warnings_out = "${prefix}_${ref_name}_warnings.txt"
+    def summary_out = "${prefix}_${ref_name}_warnings_summary.json"
     """
-    #!/usr/bin/env python3
+    # Copy the Python script from bin directory
+    cp ${projectDir}/bin/collect_warnings.py .
     
-    import re
-    from collections import defaultdict
+    # Run the warning collection script
+    python3 collect_warnings.py \\
+        ${log_file} \\
+        --output-warnings ${warnings_out} \\
+        --output-summary ${summary_out} \\
+        --sample-id "${meta.id}" \\
+        --ref-name "${ref_name}"
     
-    warnings_file = "${prefix}_warnings.txt"
-    summary_file = "${prefix}_skipped_chunks_summary.txt"
+    # Ensure filesystem sync
+    sync
     
-    # Parse log file for warnings
-    warnings = []
-    skipped_overlap = []
-    skipped_mismatch = []
+    # Verify files exist
+    if [ ! -f "${warnings_out}" ]; then
+        echo "ERROR: Expected output file ${warnings_out} was not created!"
+        exit 1
+    fi
     
-    with open("${log_file}", 'r') as f:
-        for line in f:
-            if 'WARN' in line:
-                warnings.append(line.strip())
-                
-                # Parse specific warning types
-                if 'Skipping chunk' in line and 'insufficient overlap' in line:
-                    match = re.search(r'Skipping chunk (\\S+) due to insufficient overlap', line)
-                    if match:
-                        skipped_overlap.append(match.group(1))
-                        
-                elif 'Skipping chunk' in line and 'high allele mismatch' in line:
-                    match = re.search(r'Skipping chunk (\\S+) due to high allele mismatch', line)
-                    if match:
-                        skipped_mismatch.append(match.group(1))
+    if [ ! -f "${summary_out}" ]; then
+        echo "ERROR: Expected output file ${summary_out} was not created!"
+        exit 1
+    fi
     
-    # Write all warnings
-    with open(warnings_file, 'w') as f:
-        f.write("PIPELINE WARNINGS\\n")
-        f.write("=" * 50 + "\\n\\n")
-        
-        if warnings:
-            for warning in warnings:
-                f.write(warning + "\\n")
-        else:
-            f.write("No warnings generated during pipeline execution.\\n")
+    echo "Output files verified:"
+    ls -la ${warnings_out} ${summary_out}
     
-    # Write summary of skipped chunks
-    with open(summary_file, 'w') as f:
-        f.write("SKIPPED CHUNKS SUMMARY\\n")
-        f.write("=" * 50 + "\\n\\n")
-        
-        if skipped_overlap:
-            f.write(f"Chunks skipped due to insufficient overlap ({len(skipped_overlap)}):\\n")
-            for chunk in sorted(skipped_overlap):
-                f.write(f"  - {chunk}\\n")
-            f.write("\\n")
-        
-        if skipped_mismatch:
-            f.write(f"Chunks skipped due to high allele mismatch ({len(skipped_mismatch)}):\\n")
-            for chunk in sorted(skipped_mismatch):
-                f.write(f"  - {chunk}\\n")
-            f.write("\\n")
-        
-        if not skipped_overlap and not skipped_mismatch:
-            f.write("No chunks were skipped during processing.\\n")
-        else:
-            total_skipped = len(skipped_overlap) + len(skipped_mismatch)
-            f.write(f"\\nTotal chunks skipped: {total_skipped}\\n")
-            f.write(f"  - Due to overlap issues: {len(skipped_overlap)}\\n")
-            f.write(f"  - Due to mismatch issues: {len(skipped_mismatch)}\\n")
+    # Ensure files have proper permissions
+    chmod 644 ${warnings_out} ${summary_out}
     
-    # Write versions
-    import sys
-    with open("versions.yml", "w") as f:
-        f.write('"${task.process}":\\n')
-        f.write(f'    python: {sys.version.split()[0]}\\n')
+    # Small delay to ensure filesystem operations complete
+    sleep 1
+    
+    # Create versions file
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        python: \$(python3 --version | sed 's/Python //')
+    END_VERSIONS
     """
     
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
+    def warnings_out = "${prefix}_${ref_name}_warnings.txt"
+    def summary_out = "${prefix}_${ref_name}_warnings_summary.json"
     """
-    echo "No warnings" > ${prefix}_warnings.txt
-    echo "No skipped chunks" > ${prefix}_skipped_chunks_summary.txt
+    echo "No warnings" > ${warnings_out}
+    echo '{"total_warnings": 0, "total_errors": 0}' > ${summary_out}
     
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

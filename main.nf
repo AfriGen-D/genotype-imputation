@@ -1,8 +1,8 @@
 #!/usr/bin/env nextflow
 nextflow.enable.dsl=2  // Updated to stable DSL2 syntax (from deprecated preview mode)
 
-include { get_chromosome; fill_tags_vcf; check_chromosome; check_files; check_chromosome_vcf; check_mismatch; no_mismatch ; qc_dupl; split_multi_allelic; filter_min_ac; target_qc as target_qc; target_qc as target_qc1; qc_site_missingness as qc_site_missingness1; qc_site_missingness as qc_site_missingness2; sites_only ; combine_vcfs ; combine_infos; combine_csvs as combine_freqs; combine_vcfs_chrm; } from './modules/qc' 
-include { vcf_map_simple; extract_site_from_vcf; generate_chunks_vcf; split_target_to_chunk; vcf_map; vcf_freq; info_freq; fill_tags_VCF; sort_vcf ; get_vcf_sites; extract_pop } from './modules/subset_vcf'
+include { GET_CHROMOSOME as get_chromosome; fill_tags_vcf; CHECK_CHROMOSOME as check_chromosome; check_files; check_chromosome_vcf; check_mismatch; no_mismatch ; qc_dupl; split_multi_allelic; filter_min_ac; target_qc as target_qc; target_qc as target_qc1; qc_site_missingness as qc_site_missingness1; qc_site_missingness as qc_site_missingness2; sites_only ; combine_vcfs ; combine_infos; combine_csvs as combine_freqs; combine_vcfs_chrm; } from './modules/qc' 
+include { vcf_map_simple; extract_site_from_vcf; generate_chunks as generate_chunks_vcf; SPLIT_TARGET_TO_CHUNK as split_target_to_chunk; vcf_map; vcf_freq; info_freq; fill_tags_VCF; sort_vcf ; get_vcf_sites; extract_pop } from './modules/subset_vcf'
 include { minimac4_phasing_eagle } from './modules/phasing'
 include { impute_minimac4; extract_impute_info; impute_minimac4_1; combineImpute; combineInfo; filter_info_by_target } from './modules/impute'
 include { filter_info; report_site_by_maf; plot_freq_comparison; report_well_imputed_by_target; plot_performance_target; 
