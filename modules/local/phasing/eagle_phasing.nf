@@ -22,7 +22,9 @@ process EAGLE_PHASING {
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     def chunk_id = meta.chunk ?: ''
-    def chrm = meta.contig ?: ''
+    // Chromosome is required for Eagle phasing
+    if (!meta.contig) error "ERROR: meta.contig is required for EAGLE_PHASING but was not provided"
+    def chrm = meta.contig
     def chunk_start = meta.start ?: ''
     def chunk_end = meta.end ?: ''
     
@@ -53,8 +55,7 @@ process EAGLE_PHASING {
         bcftools index -t ${vcf}
     fi
     
-    # Try Eagle phasing with reference panel BCF
-    set +e  # Don't exit on error immediately
+    # Run Eagle phasing
     eagle \\
         --vcfTarget=${vcf} \\
         --geneticMapFile=${genetic_map} \\
@@ -67,126 +68,6 @@ process EAGLE_PHASING {
         --outPrefix=${prefix}_${chunk_id}.phased \\
         $args \\
         2>&1 | tee ${prefix}_${chunk_id}.phasing.log
-    
-    EAGLE_EXIT_CODE=\$?
-    set -e
-    
-    # Check if Eagle failed due to genetic map issues
-    if [ \$EAGLE_EXIT_CODE -ne 0 ]; then
-        if grep -q "Genetic distance range.*0 cM" ${prefix}_${chunk_id}.phasing.log || \\
-           grep -q "genetic distance ranges must be positive" ${prefix}_${chunk_id}.phasing.log; then
-            echo "WARNING: Eagle failed due to zero genetic distance in region ${chunk_id}"
-            echo "This chunk (${chrm}:${chunk_start}-${chunk_end}) appears to be in a low-recombination region"
-            echo "Attempting alternative strategies to preserve this region..."
-            
-            # Strategy 1: Try phasing without region boundaries (use whole chromosome context)
-            echo "Strategy 1: Phasing without region boundaries to use broader genetic context..."
-            set +e
-            eagle \\
-                --vcfTarget=${vcf} \\
-                --geneticMapFile=${genetic_map} \\
-                ${has_ref ? "--vcfRef=${reference_panel}" : ""} \\
-                --vcfOutFormat=z \\
-                --noImpMissing \\
-                --numThreads=${task.cpus} \\
-                --pbwtIters=${params.eagle_pbwt_iters ?: 2} \\
-                --chrom=${chrm} \\
-                --outPrefix=${prefix}_${chunk_id}.phased \\
-                $args \\
-                2>&1 | tee ${prefix}_${chunk_id}.phasing_retry1.log
-            
-            RETRY1_EXIT_CODE=\$?
-            set -e
-            
-            if [ \$RETRY1_EXIT_CODE -eq 0 ]; then
-                echo "SUCCESS: Phased using whole chromosome context"
-                echo "STRATEGY: whole_chromosome" > ${prefix}_${chunk_id}.phasing_strategy.txt
-                echo "REASON: zero_genetic_distance" >> ${prefix}_${chunk_id}.phasing_strategy.txt
-            else
-                # Strategy 2: Try with extended flanking regions (double the buffer)
-                echo "Strategy 2: Expanding flanking regions for more genetic context..."
-                extended_buffer=\$((${params.buffer_size ?: 1000000} * 2))
-                extended_start=\$((${chunk_start} - \$extended_buffer))
-                extended_end=\$((${chunk_end} + \$extended_buffer))
-                
-                # Ensure start is not negative
-                if [ \$extended_start -lt 1 ]; then
-                    extended_start=1
-                fi
-                
-                set +e
-                eagle \\
-                    --vcfTarget=${vcf} \\
-                    --geneticMapFile=${genetic_map} \\
-                    ${has_ref ? "--vcfRef=${reference_panel}" : ""} \\
-                    --vcfOutFormat=z \\
-                    --noImpMissing \\
-                    --numThreads=${task.cpus} \\
-                    --pbwtIters=${params.eagle_pbwt_iters ?: 2} \\
-                    --chrom=${chrm} \\
-                    --bpStart=\$extended_start \\
-                    --bpEnd=\$extended_end \\
-                    --bpFlanking=\$extended_buffer \\
-                    --outPrefix=${prefix}_${chunk_id}.phased \\
-                    $args \\
-                    2>&1 | tee ${prefix}_${chunk_id}.phasing_retry2.log
-                
-                RETRY2_EXIT_CODE=\$?
-                set -e
-                
-                if [ \$RETRY2_EXIT_CODE -eq 0 ]; then
-                    echo "SUCCESS: Phased using extended flanking regions"
-                    echo "STRATEGY: extended_flanking" > ${prefix}_${chunk_id}.phasing_strategy.txt
-                    echo "REASON: zero_genetic_distance" >> ${prefix}_${chunk_id}.phasing_strategy.txt
-                    echo "BUFFER: \$extended_buffer" >> ${prefix}_${chunk_id}.phasing_strategy.txt
-                else
-                    # Strategy 3: Try without genetic map (uses LD patterns only)
-                    echo "Strategy 3: Phasing without genetic map (LD-based only)..."
-                    set +e
-                    eagle \\
-                        --vcfTarget=${vcf} \\
-                        ${has_ref ? "--vcfRef=${reference_panel}" : ""} \\
-                        --vcfOutFormat=z \\
-                        --noImpMissing \\
-                        --numThreads=${task.cpus} \\
-                        --pbwtIters=${params.eagle_pbwt_iters ?: 2} \\
-                        --chrom=${chrm} \\
-                        --bpStart=${chunk_start} \\
-                        --bpEnd=${chunk_end} \\
-                        --bpFlanking=${params.buffer_size ?: 1000000} \\
-                        --outPrefix=${prefix}_${chunk_id}.phased \\
-                        $args \\
-                        2>&1 | tee ${prefix}_${chunk_id}.phasing_retry3.log
-                    
-                    RETRY3_EXIT_CODE=\$?
-                    set -e
-                    
-                    if [ \$RETRY3_EXIT_CODE -eq 0 ]; then
-                        echo "SUCCESS: Phased using LD patterns without genetic map"
-                        echo "WARNING: Phasing quality may be reduced in low-recombination region" >> ${prefix}_${chunk_id}.phasing.log
-                        echo "STRATEGY: ld_only" > ${prefix}_${chunk_id}.phasing_strategy.txt
-                        echo "REASON: zero_genetic_distance" >> ${prefix}_${chunk_id}.phasing_strategy.txt
-                        echo "WARNING: no_genetic_map" >> ${prefix}_${chunk_id}.phasing_strategy.txt
-                    else
-                        echo "ERROR: All phasing strategies failed for this region"
-                        echo "This region may require specialized handling or alternative phasing tools"
-                        # Exit with special code to mark for further investigation
-                        exit 199
-                    fi
-                fi
-            fi
-        else
-            # Eagle failed for other reasons
-            echo "ERROR: Eagle failed with exit code \$EAGLE_EXIT_CODE"
-            exit \$EAGLE_EXIT_CODE
-        fi
-    fi
-    
-    # Create strategy file for normal phasing if successful
-    if [ \$EAGLE_EXIT_CODE -eq 0 ]; then
-        echo "STRATEGY: standard" > ${prefix}_${chunk_id}.phasing_strategy.txt
-        echo "REASON: normal_phasing" >> ${prefix}_${chunk_id}.phasing_strategy.txt
-    fi
     
     # Index the output VCF
     bcftools index -t ${prefix}_${chunk_id}.phased.vcf.gz

@@ -1,6 +1,7 @@
 process PLOT_CHR_PERFORMANCE {
     tag "${meta.dataset}_${meta.chromosome}"
     label 'python_plotting'
+    container 'mamana/python-plotting:1.0.0'
     publishDir "${params.outdir}/reports/chromosome/${meta.dataset}", mode: 'copy'
     
     input:

@@ -3,7 +3,7 @@ process PLOT_R2_GENOMIC_WINDOWS {
     label 'process_medium'
     label 'python_plotting'
     
-    publishDir "/scratch3/users/mamana/results/reports/imputation_quality/${meta.id}", mode: 'copy'
+    publishDir "${params.outdir}/reports/imputation_quality/${meta.id}", mode: 'copy'
     
     input:
     tuple val(meta), val(ref_name), path(info_file)

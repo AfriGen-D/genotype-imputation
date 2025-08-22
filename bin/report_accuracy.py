@@ -26,10 +26,10 @@ def main():
         for line in f:
             if line.strip():
                 parts = line.strip().split('\t')
-                if len(parts) >= 7:
+                if len(parts) >= 6:
                     try:
-                        maf = float(parts[4])  # MAF
-                        rsq = float(parts[6])  # Rsq
+                        maf = float(parts[3])  # MAF is in column 4 (index 3)
+                        rsq = float(parts[5])  # Rsq is in column 6 (index 5)
                         
                         for bin_range in maf_bins:
                             if bin_range[0] <= maf < bin_range[1]:

@@ -40,28 +40,73 @@ params.project_name = 'h3achipimputation'
 // Print help message if needed
 if (params.help) {
     log.info """
-    =========================================
-    h3abionet/chipimputation v${params.version}
-    =========================================
+    ╔═══════════════════════════════════════════════════════════════════════════════╗
+    ║                    ChiPImputation Genotype Imputation Pipeline                   ║
+    ║                              Version ${params.version}                                       ║
+    ╚═══════════════════════════════════════════════════════════════════════════════╝
     
-    Usage:
-    nextflow run ${workflow.projectDir}/main_nfcore.nf --input samplesheet.csv --outdir results -profile docker
+    USAGE:
+      nextflow run ${workflow.projectDir}/main_nfcore.nf --input samplesheet.csv --outdir results
     
-    Mandatory arguments:
-      --input               Path to input samplesheet CSV file
-      --outdir              The output directory where results will be saved
+    DESCRIPTION:
+      A comprehensive Nextflow pipeline for genotype imputation with advanced QC,
+      phasing, imputation, and reporting capabilities. Supports multiple reference
+      panels and provides detailed quality metrics.
+    
+    ┌───────────────────────────────────────────────────────────────────────────────┐
+    │ MANDATORY ARGUMENTS                                                          │
+    └───────────────────────────────────────────────────────────────────────────────┘
+      --input <file>        Path to input samplesheet CSV file
+                           Format: dataset,vcf,population,study
+      --outdir <path>       Directory where results will be saved
       
-    Optional arguments:
-      --chromosomes         Chromosomes to process (default: ALL)
-      --chunk_size          Chunk size for processing (default: 5000000)
-      --minRatio           Minimum ratio for imputation (default: 0.01)
-      --qc_plots           Generate QC plots (default: true)
+    ┌───────────────────────────────────────────────────────────────────────────────┐
+    │ PROCESSING OPTIONS                                                           │
+    └───────────────────────────────────────────────────────────────────────────────┘
+      --chromosomes <str>   Chromosomes to process (default: ALL)
+                           Options: ALL, 1-22, X, Y, or comma-separated list
+      --chunk_size <int>    Size of genomic chunks in bp (default: 5000000)
+      --buffer_size <int>   Buffer size for chunk boundaries (default: 500000)
       
-    Profiles:
+    ┌───────────────────────────────────────────────────────────────────────────────┐
+    │ QUALITY CONTROL                                                              │
+    └───────────────────────────────────────────────────────────────────────────────┘
+      --site_miss <float>   Max site missingness rate (default: 0.05)
+      --hwe <float>         Hardy-Weinberg p-value threshold (default: 1e-5)
+      --mac <int>           Minimum allele count (default: 1)
+      --maf_thresh <float>  Minor allele frequency threshold (default: 0.1)
+      --r2_threshold        R² threshold for quality (default: 0.3)
+      
+    ┌───────────────────────────────────────────────────────────────────────────────┐
+    │ PHASING & IMPUTATION                                                         │
+    └───────────────────────────────────────────────────────────────────────────────┘
+      --phasing_method      Phasing algorithm: eagle, shapeit4 (default: eagle)
+      --impute_method       Imputation: minimac4, impute5 (default: minimac4)
+      --NE <int>            Effective population size (default: 20000)
+      
+    ┌───────────────────────────────────────────────────────────────────────────────┐
+    │ EXECUTION PROFILES                                                           │
+    └───────────────────────────────────────────────────────────────────────────────┘
       -profile docker       Use Docker containers
-      -profile singularity  Use Singularity containers
-      -profile conda        Use Conda environments
+      -profile singularity  Use Singularity containers  
+      -profile slurm        Submit jobs to SLURM cluster
       -profile test         Run with test dataset
+      
+    ┌───────────────────────────────────────────────────────────────────────────────┐
+    │ EXAMPLES                                                                      │
+    └───────────────────────────────────────────────────────────────────────────────┘
+      # Basic run with singularity
+      nextflow run main_nfcore.nf --input samples.csv --outdir results -profile singularity
+      
+      # SLURM cluster with specific chromosomes
+      nextflow run main_nfcore.nf --input samples.csv --outdir results --chromosomes 1,2,3 -profile slurm,singularity
+      
+    ┌───────────────────────────────────────────────────────────────────────────────┐
+    │ DOCUMENTATION & SUPPORT                                                      │
+    └───────────────────────────────────────────────────────────────────────────────┘
+      Documentation: https://github.com/h3abionet/chipimputation
+      Issues:        https://github.com/h3abionet/chipimputation/issues
+      Slack:         h3abionet.slack.com #imputation
     """.stripIndent()
     System.exit(0)
 }
@@ -77,40 +122,103 @@ if (!params.outdir) {
     System.exit(1)
 }
 
+// Determine executor configuration
+def executorInfo = "local"
+def queueInfo = "N/A"
+def queueSizeInfo = "N/A"
+if (workflow.profile.contains('slurm')) {
+    executorInfo = "SLURM"
+    queueInfo = workflow.configFiles.any { it.text.contains('process.queue') } ? "Main" : "default"
+    queueSizeInfo = "100 jobs"
+}
+
+// ASCII art banner
+def banner = """
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║     ____ _     _ ____ ___                       _        _   _               ║
+║    / ___| |__ (_)  _ \\\\_ _|_ __ ___  _ __  _   _| |_ __ _| |_(_) ___  _ __    ║
+║   | |   | '_ \\\\| | |_) || || '_ ` _ \\\\| '_ \\\\| | | | __/ _` | __| |/ _ \\\\| '_ \\\\  ║
+║   | |___| | | | |  __/ | || | | | | | |_) | |_| | || (_| | |_| | (_) | | | | ║
+║    \\\\____|_| |_|_|_|   |___|_| |_| |_| .__/ \\\\__,_|\\\\__\\\\__,_|\\\\__|_|\\\\___/|_| |_| ║
+║                                      |_|                                      ║
+║         G E N O T Y P E   I M P U T A T I O N   P I P E L I N E              ║
+║                          Version ${params.version}                                    ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+""".stripIndent()
+
+log.info banner
+
+// Determine resource usage
+def memoryGB = params.max_memory.toString().replaceAll(' GB', '')
+def isHighMem = memoryGB.toInteger() >= 32
+def performanceMode = isHighMem ? 'High Performance' : 'Standard'
+
+// Calculate estimated variants
+def estimatedVariants = params.chunk_size > 0 ? "~${(50000000 / params.chunk_size).round()} chunks per chromosome" : "N/A"
+
 log.info """
-=========================================
-h3abionet/chipimputation v${params.version}
-=========================================
-Input Configuration:
-  Input file     : ${params.input}
-  Output dir     : ${params.outdir}
-  Project name   : ${params.project_name}
+┌───────────────────────────────────────────────────────────────────────────────┐
+│ EXECUTION ENVIRONMENT                                                         │
+├───────────────────────────────────────────────────────────────────────────────┤
+│ Executor       : ${executorInfo.padRight(20)} Profile: ${workflow.profile ?: 'standard'}         │
+│ Queue          : ${queueInfo.padRight(20)} Jobs:    ${queueSizeInfo}                   │
+│ Work Directory : ${workflow.workDir}                                              
+│ Mode           : ${performanceMode}                                               
+└───────────────────────────────────────────────────────────────────────────────┘
 
-Processing Parameters:
-  Chromosomes    : ${params.chromosomes}
-  Chunk size     : ${params.chunk_size} bp (Buffer size: ${params.buffer_size} bp)
+┌───────────────────────────────────────────────────────────────────────────────┐
+│ INPUT DATA                                                                    │
+├───────────────────────────────────────────────────────────────────────────────┤
+│ Samplesheet    : ${params.input}
+│ Output Dir     : ${params.outdir}
+│ Project        : ${params.project_name}
+│ Genome Build   : ${params.genome_build ?: 'b38'}
+└───────────────────────────────────────────────────────────────────────────────┘
 
-Reference Panels:
-  Panel name     : ${params.ref_panels ? params.ref_panels[0][0] : 'None'}
-  Genetic map    : ${params.eagle_genetic_map}
-  Reference genome: ${params.reference_genome}
+┌───────────────────────────────────────────────────────────────────────────────┐
+│ PROCESSING STRATEGY                                                           │
+├───────────────────────────────────────────────────────────────────────────────┤
+│ Chromosomes    : ${params.chromosomes == 'ALL' ? 'All autosomes + X' : params.chromosomes}
+│ Chunking       : ${params.chunk_size} bp chunks with ${params.buffer_size} bp buffer
+│ Estimated      : ${estimatedVariants}
+└───────────────────────────────────────────────────────────────────────────────┘
 
-Quality Control:
-  Site miss : ${params.site_miss} | HWE threshold  : ${params.hwe} | Min allele count: ${params.mac} | Min alt count  : ${params.min_ac} 
-  MAF threshold  : ${params.maf_thresh} | Max mismatch   : ${params.max_mismatch_rate * 100}%
+┌───────────────────────────────────────────────────────────────────────────────┐
+│ REFERENCE PANELS                                                              │
+├───────────────────────────────────────────────────────────────────────────────┤
+│ Panel Name     : ${params.ref_panels ? params.ref_panels[0][0] : 'None configured'}
+│ Genetic Map    : ${params.eagle_genetic_map ? params.eagle_genetic_map.split('/')[-1] : 'Not specified'}
+│ Reference      : ${params.reference_genome ? params.reference_genome.split('/')[-1] : 'Not specified'}
+└───────────────────────────────────────────────────────────────────────────────┘
 
-Overlap Checking:
-  Min ratio : ${params.minRatio} | Min overlap : 50 variants (hardcoded)
+┌───────────────────────────────────────────────────────────────────────────────┐
+│ QUALITY CONTROL THRESHOLDS                                                    │
+├───────────────────────────────────────────────────────────────────────────────┤
+│ Site Missingness : ≤ ${params.site_miss}        Hardy-Weinberg : p > ${params.hwe}
+│ Min Allele Count : ≥ ${params.mac}             Min Alt Count  : ≥ ${params.min_ac}
+│ MAF Threshold    : ≥ ${params.maf_thresh}        Max Mismatch   : ≤ ${params.max_mismatch_rate * 100}%
+│ R² Threshold     : ≥ ${params.r2_threshold}        Info Cutoff    : ≥ ${params.impute_info_cutoff}
+└───────────────────────────────────────────────────────────────────────────────┘
 
-Phasing:
-  Method : ${params.phasing_method} | PBWT iterations: ${params.eagle_pbwt_iters}
+┌───────────────────────────────────────────────────────────────────────────────┐
+│ ALGORITHMS                                                                    │
+├───────────────────────────────────────────────────────────────────────────────┤
+│ Phasing        : ${params.phasing_method.toUpperCase()} (${params.eagle_pbwt_iters} PBWT iterations)
+│ Imputation     : ${params.impute_method.toUpperCase()} (Ne=${params.NE}, ${params.impute_iter} iterations, ${params.impute_burnin} burn-in)
+│ Reporting      : ${params.aggregate_reports ? 'Hierarchical aggregation enabled' : 'Chunk-level only'}
+│ Window Analysis: ${params.r2_window_size / 1000000} Mb windows for R² analysis
+└───────────────────────────────────────────────────────────────────────────────┘
 
-Imputation:
-  Method : ${params.impute_method} | NE (pop size) : ${params.NE} | Iterations : ${params.impute_iter} | Burn-in : ${params.impute_burnin} | Info cutoff : ${params.impute_info_cutoff} | R2 threshold : ${params.r2_threshold}
+┌───────────────────────────────────────────────────────────────────────────────┐
+│ COMPUTATIONAL RESOURCES                                                       │
+├───────────────────────────────────────────────────────────────────────────────┤
+│ Max CPUs       : ${params.max_cpus} cores
+│ Max Memory     : ${params.max_memory}
+│ Max Time       : ${params.max_time}
+│ Error Strategy : ${params.max_retries} retries on failure
+└───────────────────────────────────────────────────────────────────────────────┘
 
-Resources:
-  Max CPUs : ${params.max_cpus} | Max memory : ${params.max_memory} | Max time : ${params.max_time}
-=========================================
+Starting pipeline execution...
 """
 
 /*

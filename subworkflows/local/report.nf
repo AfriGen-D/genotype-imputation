@@ -8,6 +8,7 @@
 include { FILTER_INFO_BY_TARGET     } from '../../modules/local/report/filter_info_by_target'
 include { REPORT_WELL_IMPUTED       } from '../../modules/local/report/report_well_imputed'
 include { PLOT_PERFORMANCE          } from '../../modules/local/report/plot_performance'
+include { GENERATE_CHUNK_JSON       } from '../../modules/local/report/generate_chunk_json'
 include { REPORT_ACCURACY           } from '../../modules/local/report/report_accuracy'
 include { PLOT_ACCURACY             } from '../../modules/local/report/plot_accuracy'
 include { PLOT_R2_MAF               } from '../../modules/local/report/plot_r2_maf'
@@ -27,6 +28,9 @@ include { EXTRACT_FREQ_COMPARISON   } from '../../modules/local/report/extract_f
 include { EXTRACT_FREQ_IMPUTED      } from '../../modules/local/report/extract_freq_imputed'
 include { EXTRACT_FREQ_REFERENCE    } from '../../modules/local/report/extract_freq_reference'
 include { MERGE_FREQ_COMPARISON     } from '../../modules/local/report/merge_freq_comparison'
+// New imputation analysis modules - RE-ENABLED AFTER FIXING SYNTAX ERRORS
+include { COMPARE_PRE_POST_IMPUTATION } from '../../modules/local/report/compare_pre_post_imputation'
+include { PLOT_R2_GENOMIC_WINDOWS     } from '../../modules/local/report/plot_r2_genomic_windows'
 // New advanced QC modules
 // include { PLOT_DOSAGE_DISTRIBUTION  } from '../../modules/local/report/plot_dosage_distribution'
 // include { PLOT_CALIBRATION          } from '../../modules/local/report/plot_calibration'
@@ -40,6 +44,7 @@ workflow REPORT {
     take:
     ch_imputed // channel: [ val(meta), val(ref_name), path(vcf), path(vcf_index), path(info) ]
     ch_ref_vcf // channel: [ val(meta), val(ref_name), path(ref_vcf) ]
+    ch_pre_imputation_vcf // channel: [ val(meta), path(vcf), path(vcf_index) ] - Original input VCF for comparison
 
     main:
     ch_versions = Channel.empty()
@@ -101,6 +106,19 @@ workflow REPORT {
     } else {
         ch_r2_maf_plots = Channel.empty()
     }
+    
+    //
+    // MODULE: Generate JSON summary for chunk aggregation
+    //
+    ch_chunk_json_input = REPORT_ACCURACY.out.report
+        .join(REPORT_WELL_IMPUTED.out.report, by: [0, 1])
+        .map { meta, ref_name, accuracy_txt, accuracy_tsv, well_imputed_txt, well_imputed_summary ->
+            // Select the files we need for JSON generation
+            [meta, ref_name, accuracy_txt, well_imputed_txt, well_imputed_summary]
+        }
+    
+    GENERATE_CHUNK_JSON ( ch_chunk_json_input )
+    ch_versions = ch_versions.mix(GENERATE_CHUNK_JSON.out.versions)
     
     //
     // MODULE: Frequency comparison pipeline (modular approach)
@@ -180,6 +198,28 @@ workflow REPORT {
     ch_versions = ch_versions.mix(AVERAGE_R2.out.versions)
     
     //
+    // MODULE: Pre/Post-Imputation Comparison
+    // Compare original input VCF with imputed output
+    //
+    ch_pre_post_comparison = ch_pre_imputation_vcf
+        .join(ch_imputed.map { meta, ref_name, vcf, vcf_index, info -> 
+            [meta, vcf, vcf_index] 
+        })
+        .map { meta, pre_vcf, pre_index, post_vcf, post_index ->
+            [meta, pre_vcf, pre_index, post_vcf, post_index]
+        }
+    
+    COMPARE_PRE_POST_IMPUTATION ( ch_pre_post_comparison )
+    ch_versions = ch_versions.mix(COMPARE_PRE_POST_IMPUTATION.out.versions)
+    
+    //
+    // MODULE: R2 Genomic Windows Analysis
+    // Identify poorly imputed regions using sliding windows
+    //
+    PLOT_R2_GENOMIC_WINDOWS ( ch_info_only )
+    ch_versions = ch_versions.mix(PLOT_R2_GENOMIC_WINDOWS.out.versions)
+    
+    //
     // MODULE: Collect warnings from pipeline log
     //
     // Skip COLLECT_WARNINGS for now as it requires access to .nextflow.log
@@ -200,9 +240,12 @@ workflow REPORT {
                    // COLLECT_WARNINGS.out.warnings,  // Disabled - needs alternative implementation
                    // COLLECT_WARNINGS.out.summary,   // Disabled - needs alternative implementation
                    AVERAGE_R2.out.average,
-                   AVERAGE_R2.out.summary
+                   AVERAGE_R2.out.summary,
+                   GENERATE_CHUNK_JSON.out.json
                    // MERGE_FREQ_COMPARISON.out.summary  // Disabled - outputs path not tuple, breaks mix
                )
+    chunk_json = GENERATE_CHUNK_JSON.out.json  // Separate emit for aggregation
+    well_imputed = REPORT_WELL_IMPUTED.out.report  // For backward compatibility
     plots    = ch_performance_plots.mix(
                    ch_accuracy_plots,
                    ch_r2_maf_plots,

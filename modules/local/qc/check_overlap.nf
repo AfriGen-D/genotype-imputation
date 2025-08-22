@@ -18,7 +18,8 @@ process CHECK_OVERLAP {
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     def minRatio = params.minRatio ?: 0.001
-    def chrm = meta.contig ?: 'chr21'
+    if (!meta.contig) error "ERROR: meta.contig is required for CHECK_OVERLAP but was not provided"
+    def chrm = meta.contig
     def chunk_start = meta.start ?: ''
     def chunk_end = meta.end ?: ''
     def region = "${chrm}:${chunk_start}-${chunk_end}"

@@ -27,9 +27,9 @@ def main():
         for line in f:
             if line.strip():
                 parts = line.strip().split('\t')
-                if len(parts) >= 5:
+                if len(parts) >= 4:
                     try:
-                        maf = float(parts[4])  # Assuming MAF is in column 5
+                        maf = float(parts[3])  # MAF is in column 4 (index 3)
                         total_variants += 1
                         
                         for bin_range in maf_bins:

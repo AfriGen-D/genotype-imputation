@@ -12,7 +12,7 @@ The basic steps of the pipeline is described in the diagram below:
 
 * The workflow is developed using [![Nextflow](https://img.shields.io/badge/nextflow-%E2%89%A520.04.0-brightgreen.svg)](https://www.nextflow.io/) and imputation performed using [Minimac4](https://genome.sph.umich.edu/wiki/Minimac4). 
 * It identifies regions to be imputed on the basis of an input file in VCF format, split the regions into small chunks, phase each chunk using the phasing tool [Eagle2](https://data.broadinstitute.org/alkesgroup/Eagle/) and produces output in VCF format that can subsequently be used in a [GWAS](https://github.com/h3abionet/h3agwas) workflow.
-* It also produce basic plots and reports of the imputation process including the imputation performance report, the imputation accuracy, the allele frequency of the imputed vs of the reference panel and other metrics.    
+* It produces comprehensive quality control visualizations and reports including imputation performance analysis, accuracy metrics, allele frequency comparisons, Manhattan plots, and genome-wide statistical summaries organized in a hierarchical structure for multi-scale analysis.    
 
 **This pipeline comes with docker/singularity containers making installation trivial and results highly reproducible.**
 
@@ -33,6 +33,27 @@ nextflow run h3abionet/chipimputation/main.nf -profile test,singularity
 
 Check for results in `./output`
 
+## Output Structure
+
+The pipeline generates a hierarchical output structure for comprehensive analysis:
+
+```
+output/
+└── {dataset}/
+    └── {reference_panel}/
+        ├── chunks/chr{N}/plots/        # Chunk-level QC plots
+        ├── chromosome/plots/           # 22 chromosome performance plots 
+        └── genome/plots/               # 8 genome-wide visualizations
+```
+
+### Key Output Types
+- **Manhattan plots**: R² values by genomic position across all chromosomes  
+- **Performance analysis**: Cross-chromosome quality comparisons
+- **MAF analysis**: Frequency-stratified imputation accuracy
+- **Statistical summaries**: Comprehensive quality metrics and distributions
+- **JSON reports**: Structured data for downstream analysis
+
+For detailed output documentation, see [docs/output.md](docs/output.md).
 
 ### Start running your own analysis
 

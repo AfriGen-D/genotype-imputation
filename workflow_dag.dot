@@ -1,0 +1,995 @@
+digraph "workflow_dag" {
+rankdir=TB;
+v0 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.fromPath"];
+v1 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="splitCsv"];
+v0 -> v1;
+
+v1 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="splitCsv"];
+v2 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="filter"];
+v1 -> v2;
+
+v2 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="filter"];
+v3 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v2 -> v3;
+
+v3 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v8 [label="CHIPIMPUTATION:PREPROCESS:CHECK_FILES"];
+v3 -> v8 [label="ch_input"];
+
+v4 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.empty"];
+v89 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v4 -> v89 [label="ch_versions"];
+
+v5 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.empty"];
+v6 [shape=point];
+v5 -> v6 [label="multiqc"];
+
+v7 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.empty"];
+v9 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v7 -> v9 [label="ch_versions"];
+
+v8 [label="CHIPIMPUTATION:PREPROCESS:CHECK_FILES"];
+v10 [label="CHIPIMPUTATION:PREPROCESS:CHECK_CHROMOSOME"];
+v8 -> v10;
+
+v8 [label="CHIPIMPUTATION:PREPROCESS:CHECK_FILES"];
+v9 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v8 -> v9;
+
+v9 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v12 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v9 -> v12 [label="ch_versions"];
+
+v10 [label="CHIPIMPUTATION:PREPROCESS:CHECK_CHROMOSOME"];
+v14 [label="CHIPIMPUTATION:PREPROCESS:CHECK_GENOME_BUILD"];
+v10 -> v14;
+
+v10 [label="CHIPIMPUTATION:PREPROCESS:CHECK_CHROMOSOME"];
+v11 [shape=point];
+v10 -> v11;
+
+v10 [label="CHIPIMPUTATION:PREPROCESS:CHECK_CHROMOSOME"];
+v12 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v10 -> v12;
+
+v12 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v15 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v12 -> v15 [label="ch_versions"];
+
+v13 [shape=point,label="",fixedsize=true,width=0.1];
+v14 [label="CHIPIMPUTATION:PREPROCESS:CHECK_GENOME_BUILD"];
+v13 -> v14 [label="expected_build"];
+
+v14 [label="CHIPIMPUTATION:PREPROCESS:CHECK_GENOME_BUILD"];
+v17 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v14 -> v17;
+
+v14 [label="CHIPIMPUTATION:PREPROCESS:CHECK_GENOME_BUILD"];
+v16 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v14 -> v16;
+
+v14 [label="CHIPIMPUTATION:PREPROCESS:CHECK_GENOME_BUILD"];
+v15 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v14 -> v15;
+
+v15 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v35 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v15 -> v35 [label="ch_versions"];
+
+v16 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v18 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v16 -> v18 [label="ch_build_status"];
+
+v17 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v18 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v17 -> v18;
+
+v18 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v19 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="filter"];
+v18 -> v19;
+
+v19 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="filter"];
+v20 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v19 -> v20;
+
+v20 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v21 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="count"];
+v20 -> v21 [label="ch_vcf_build_validated"];
+
+v21 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="count"];
+v22 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="subscribe"];
+v21 -> v22;
+
+v20 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v23 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v20 -> v23 [label="ch_vcf_build_validated"];
+
+v23 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v24 [label="CHIPIMPUTATION:PREPROCESS:GET_CHROMOSOME"];
+v23 -> v24 [label="ch_vcf_for_map"];
+
+v24 [label="CHIPIMPUTATION:PREPROCESS:GET_CHROMOSOME"];
+v25 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v24 -> v25;
+
+v25 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v26 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v25 -> v26;
+
+v26 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v27 [label="CHIPIMPUTATION:PREPROCESS:GENERATE_CHUNKS_VCF"];
+v26 -> v27 [label="ch_chr_for_chunks"];
+
+v27 [label="CHIPIMPUTATION:PREPROCESS:GENERATE_CHUNKS_VCF"];
+v28 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="flatMap"];
+v27 -> v28;
+
+v28 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="flatMap"];
+v29 [label="CHIPIMPUTATION:PREPROCESS:SPLIT_TARGET_TO_CHUNK"];
+v28 -> v29 [label="ch_chunks"];
+
+v29 [label="CHIPIMPUTATION:PREPROCESS:SPLIT_TARGET_TO_CHUNK"];
+v30 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v29 -> v30;
+
+v30 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v40 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="combine"];
+v30 -> v40 [label="ch_vcf_chunks"];
+
+v31 [shape=point,label="",fixedsize=true,width=0.1];
+v33 [label="CHIPIMPUTATION:PREPROCESS:GET_REF_CHROMOSOMES"];
+v31 -> v33 [label="ref_panel_info"];
+
+v32 [shape=point,label="",fixedsize=true,width=0.1];
+v33 [label="CHIPIMPUTATION:PREPROCESS:GET_REF_CHROMOSOMES"];
+v32 -> v33 [label="expected_build"];
+
+v33 [label="CHIPIMPUTATION:PREPROCESS:GET_REF_CHROMOSOMES"];
+v36 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="splitText"];
+v33 -> v36;
+
+v33 [label="CHIPIMPUTATION:PREPROCESS:GET_REF_CHROMOSOMES"];
+v34 [shape=point];
+v33 -> v34;
+
+v33 [label="CHIPIMPUTATION:PREPROCESS:GET_REF_CHROMOSOMES"];
+v35 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v33 -> v35;
+
+v35 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v44 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v35 -> v44 [label="ch_versions"];
+
+v36 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="splitText"];
+v37 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v36 -> v37;
+
+v37 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v38 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="collect"];
+v37 -> v38;
+
+v38 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="collect"];
+v39 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v38 -> v39;
+
+v39 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v40 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="combine"];
+v39 -> v40 [label="ch_ref_chroms"];
+
+v40 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="combine"];
+v41 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v40 -> v41;
+
+v41 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v42 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="filter"];
+v41 -> v42;
+
+v42 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="filter"];
+v43 [label="CHIPIMPUTATION:PREPROCESS:GENERATE_CHUNK_MAP"];
+v42 -> v43 [label="ch_vcf_chunks_filtered_by_chrom"];
+
+v43 [label="CHIPIMPUTATION:PREPROCESS:GENERATE_CHUNK_MAP"];
+v48 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v43 -> v48;
+
+v43 [label="CHIPIMPUTATION:PREPROCESS:GENERATE_CHUNK_MAP"];
+v44 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v43 -> v44;
+
+v44 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v47 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v44 -> v47 [label="ch_versions"];
+
+v42 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="filter"];
+v45 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v42 -> v45 [label="ch_vcf_chunks_filtered_by_chrom"];
+
+v45 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v46 [label="CHIPIMPUTATION:PREPROCESS:GENERATE_REF_MAP"];
+v45 -> v46 [label="ch_ref_input"];
+
+v46 [label="CHIPIMPUTATION:PREPROCESS:GENERATE_REF_MAP"];
+v48 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v46 -> v48;
+
+v46 [label="CHIPIMPUTATION:PREPROCESS:GENERATE_REF_MAP"];
+v47 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v46 -> v47;
+
+v47 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v51 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v47 -> v51 [label="ch_versions"];
+
+v48 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v49 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v48 -> v49;
+
+v49 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v50 [label="CHIPIMPUTATION:PREPROCESS:CHECK_OVERLAP"];
+v49 -> v50 [label="ch_maps"];
+
+v50 [label="CHIPIMPUTATION:PREPROCESS:CHECK_OVERLAP"];
+v52 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v50 -> v52;
+
+v50 [label="CHIPIMPUTATION:PREPROCESS:CHECK_OVERLAP"];
+v51 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v50 -> v51;
+
+v51 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v63 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v51 -> v63 [label="ch_versions"];
+
+v42 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="filter"];
+v52 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v42 -> v52 [label="ch_vcf_chunks_filtered_by_chrom"];
+
+v52 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v53 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="branch"];
+v52 -> v53;
+
+v53 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="branch"];
+v54 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="subscribe"];
+v53 -> v54;
+
+v53 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="branch"];
+v56 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v53 -> v56;
+
+v53 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="branch"];
+v55 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v53 -> v55;
+
+v55 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v57 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="combine"];
+v55 -> v57;
+
+v56 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v57 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="combine"];
+v56 -> v57;
+
+v57 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="combine"];
+v58 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v57 -> v58;
+
+v58 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v59 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="groupTuple"];
+v58 -> v59;
+
+v59 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="groupTuple"];
+v60 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v59 -> v60;
+
+v60 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v61 [label="CHIPIMPUTATION:PREPROCESS:MERGE_ADJACENT_CHUNKS"];
+v60 -> v61 [label="ch_chunks_to_merge"];
+
+v61 [label="CHIPIMPUTATION:PREPROCESS:MERGE_ADJACENT_CHUNKS"];
+v64 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v61 -> v64;
+
+v61 [label="CHIPIMPUTATION:PREPROCESS:MERGE_ADJACENT_CHUNKS"];
+v62 [shape=point];
+v61 -> v62;
+
+v61 [label="CHIPIMPUTATION:PREPROCESS:MERGE_ADJACENT_CHUNKS"];
+v63 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v61 -> v63;
+
+v63 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v73 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v63 -> v73 [label="ch_versions"];
+
+v64 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v65 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="collect"];
+v64 -> v65;
+
+v65 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="collect"];
+v66 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="toList"];
+v65 -> v66;
+
+v66 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="toList"];
+v67 [shape=point];
+v66 -> v67 [label="ch_merged_chunk_ids"];
+
+v53 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="branch"];
+v68 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="filter"];
+v53 -> v68;
+
+v68 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="filter"];
+v70 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v68 -> v70;
+
+v61 [label="CHIPIMPUTATION:PREPROCESS:MERGE_ADJACENT_CHUNKS"];
+v69 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v61 -> v69;
+
+v69 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v70 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v69 -> v70;
+
+v70 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v71 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v70 -> v71 [label="ch_vcf_chunks_filtered"];
+
+v71 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v72 [label="CHIPIMPUTATION:PREPROCESS:CHECK_MISMATCH"];
+v71 -> v72 [label="ch_mismatch_input"];
+
+v72 [label="CHIPIMPUTATION:PREPROCESS:CHECK_MISMATCH"];
+v74 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v72 -> v74;
+
+v72 [label="CHIPIMPUTATION:PREPROCESS:CHECK_MISMATCH"];
+v73 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v72 -> v73;
+
+v73 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v79 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v73 -> v79 [label="ch_versions"];
+
+v70 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v74 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v70 -> v74 [label="ch_vcf_chunks_filtered"];
+
+v74 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v75 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="filter"];
+v74 -> v75;
+
+v75 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="filter"];
+v76 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v75 -> v76;
+
+v76 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v77 [label="CHIPIMPUTATION:PREPROCESS:QC_DUPL"];
+v76 -> v77 [label="ch_vcf_chunks"];
+
+v77 [label="CHIPIMPUTATION:PREPROCESS:QC_DUPL"];
+v80 [label="CHIPIMPUTATION:PREPROCESS:SPLIT_MULTI_ALLELIC"];
+v77 -> v80;
+
+v77 [label="CHIPIMPUTATION:PREPROCESS:QC_DUPL"];
+v78 [shape=point];
+v77 -> v78;
+
+v77 [label="CHIPIMPUTATION:PREPROCESS:QC_DUPL"];
+v79 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v77 -> v79;
+
+v79 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v82 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v79 -> v82 [label="ch_versions"];
+
+v80 [label="CHIPIMPUTATION:PREPROCESS:SPLIT_MULTI_ALLELIC"];
+v83 [label="CHIPIMPUTATION:PREPROCESS:FILTER_MIN_AC"];
+v80 -> v83;
+
+v80 [label="CHIPIMPUTATION:PREPROCESS:SPLIT_MULTI_ALLELIC"];
+v81 [shape=point];
+v80 -> v81;
+
+v80 [label="CHIPIMPUTATION:PREPROCESS:SPLIT_MULTI_ALLELIC"];
+v82 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v80 -> v82;
+
+v82 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v85 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v82 -> v85 [label="ch_versions"];
+
+v83 [label="CHIPIMPUTATION:PREPROCESS:FILTER_MIN_AC"];
+v86 [label="CHIPIMPUTATION:PREPROCESS:QC_SITE_MISSINGNESS"];
+v83 -> v86;
+
+v83 [label="CHIPIMPUTATION:PREPROCESS:FILTER_MIN_AC"];
+v84 [shape=point];
+v83 -> v84;
+
+v83 [label="CHIPIMPUTATION:PREPROCESS:FILTER_MIN_AC"];
+v85 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v83 -> v85;
+
+v85 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v88 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v85 -> v88 [label="ch_versions"];
+
+v86 [label="CHIPIMPUTATION:PREPROCESS:QC_SITE_MISSINGNESS"];
+v91 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v86 -> v91 [label="ch_vcf_with_index"];
+
+v86 [label="CHIPIMPUTATION:PREPROCESS:QC_SITE_MISSINGNESS"];
+v87 [shape=point];
+v86 -> v87;
+
+v86 [label="CHIPIMPUTATION:PREPROCESS:QC_SITE_MISSINGNESS"];
+v88 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v86 -> v88;
+
+v88 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v89 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v88 -> v89 [label="versions"];
+
+v89 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v100 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v89 -> v100 [label="ch_versions"];
+
+v90 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.empty"];
+v99 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v90 -> v99 [label="ch_versions"];
+
+v91 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v92 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v91 -> v92 [label="ch_eagle_input"];
+
+v92 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v96 [label="CHIPIMPUTATION:PHASE:EAGLE_PHASING"];
+v92 -> v96;
+
+v91 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v93 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v91 -> v93 [label="ch_eagle_input"];
+
+v93 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v96 [label="CHIPIMPUTATION:PHASE:EAGLE_PHASING"];
+v93 -> v96;
+
+v91 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v94 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v91 -> v94 [label="ch_eagle_input"];
+
+v94 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v96 [label="CHIPIMPUTATION:PHASE:EAGLE_PHASING"];
+v94 -> v96;
+
+v95 [shape=point,label="",fixedsize=true,width=0.1];
+v96 [label="CHIPIMPUTATION:PHASE:EAGLE_PHASING"];
+v95 -> v96 [label="genetic_map"];
+
+v96 [label="CHIPIMPUTATION:PHASE:EAGLE_PHASING"];
+v104 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v96 -> v104 [label="ch_phased"];
+
+v96 [label="CHIPIMPUTATION:PHASE:EAGLE_PHASING"];
+v98 [shape=point];
+v96 -> v98;
+
+v96 [label="CHIPIMPUTATION:PHASE:EAGLE_PHASING"];
+v97 [shape=point];
+v96 -> v97;
+
+v96 [label="CHIPIMPUTATION:PHASE:EAGLE_PHASING"];
+v99 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v96 -> v99;
+
+v99 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v100 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v99 -> v100 [label="versions"];
+
+v100 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v110 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v100 -> v110 [label="ch_versions"];
+
+v101 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.empty"];
+v108 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v101 -> v108 [label="ch_versions"];
+
+v102 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.empty"];
+v103 [shape=point];
+v102 -> v103 [label="ch_ref_vcf"];
+
+v104 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v105 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v104 -> v105 [label="ch_phased_with_ref"];
+
+v105 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v107 [label="CHIPIMPUTATION:IMPUTE:IMPUTE_MINIMAC4"];
+v105 -> v107;
+
+v104 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v106 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v104 -> v106 [label="ch_phased_with_ref"];
+
+v106 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v107 [label="CHIPIMPUTATION:IMPUTE:IMPUTE_MINIMAC4"];
+v106 -> v107;
+
+v107 [label="CHIPIMPUTATION:IMPUTE:IMPUTE_MINIMAC4"];
+v111 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v107 -> v111 [label="imputed"];
+
+v107 [label="CHIPIMPUTATION:IMPUTE:IMPUTE_MINIMAC4"];
+v111 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v107 -> v111 [label="info"];
+
+v107 [label="CHIPIMPUTATION:IMPUTE:IMPUTE_MINIMAC4"];
+v108 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v107 -> v108;
+
+v108 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v110 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v108 -> v110 [label="versions"];
+
+v104 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v109 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v104 -> v109 [label="ch_phased_with_ref"];
+
+v109 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v127 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v109 -> v127 [label="ch_ref_vcf"];
+
+v110 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v147 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v110 -> v147 [label="ch_versions"];
+
+v111 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v112 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v111 -> v112;
+
+v112 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v114 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v112 -> v114 [label="ch_imputed"];
+
+v113 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.empty"];
+v116 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v113 -> v116 [label="ch_versions"];
+
+v114 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v115 [label="CHIPIMPUTATION:REPORT:FILTER_INFO_BY_TARGET"];
+v114 -> v115 [label="ch_info_only"];
+
+v115 [label="CHIPIMPUTATION:REPORT:FILTER_INFO_BY_TARGET"];
+v117 [label="CHIPIMPUTATION:REPORT:REPORT_WELL_IMPUTED"];
+v115 -> v117 [label="filtered_info"];
+
+v115 [label="CHIPIMPUTATION:REPORT:FILTER_INFO_BY_TARGET"];
+v116 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v115 -> v116;
+
+v116 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v118 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v116 -> v118 [label="ch_versions"];
+
+v117 [label="CHIPIMPUTATION:REPORT:REPORT_WELL_IMPUTED"];
+v143 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v117 -> v143 [label="well_imputed"];
+
+v117 [label="CHIPIMPUTATION:REPORT:REPORT_WELL_IMPUTED"];
+v118 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v117 -> v118;
+
+v118 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v121 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v118 -> v121 [label="ch_versions"];
+
+v119 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.empty"];
+v145 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v119 -> v145 [label="performance_plots"];
+
+v115 [label="CHIPIMPUTATION:REPORT:FILTER_INFO_BY_TARGET"];
+v120 [label="CHIPIMPUTATION:REPORT:REPORT_ACCURACY"];
+v115 -> v120 [label="filtered_info"];
+
+v120 [label="CHIPIMPUTATION:REPORT:REPORT_ACCURACY"];
+v143 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v120 -> v143;
+
+v120 [label="CHIPIMPUTATION:REPORT:REPORT_ACCURACY"];
+v121 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v120 -> v121;
+
+v121 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v126 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v121 -> v126 [label="ch_versions"];
+
+v122 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.empty"];
+v145 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v122 -> v145 [label="ch_accuracy_plots"];
+
+v123 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.empty"];
+v145 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v123 -> v145 [label="ch_r2_maf_plots"];
+
+v112 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v124 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v112 -> v124 [label="ch_imputed"];
+
+v124 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v125 [label="CHIPIMPUTATION:REPORT:EXTRACT_FREQ_IMPUTED"];
+v124 -> v125 [label="ch_imputed_for_freq"];
+
+v125 [label="CHIPIMPUTATION:REPORT:EXTRACT_FREQ_IMPUTED"];
+v130 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v125 -> v130;
+
+v125 [label="CHIPIMPUTATION:REPORT:EXTRACT_FREQ_IMPUTED"];
+v126 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v125 -> v126;
+
+v126 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v129 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v126 -> v129 [label="ch_versions"];
+
+v127 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v128 [label="CHIPIMPUTATION:REPORT:EXTRACT_FREQ_REFERENCE"];
+v127 -> v128 [label="ch_ref_for_freq"];
+
+v128 [label="CHIPIMPUTATION:REPORT:EXTRACT_FREQ_REFERENCE"];
+v130 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v128 -> v130;
+
+v128 [label="CHIPIMPUTATION:REPORT:EXTRACT_FREQ_REFERENCE"];
+v129 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v128 -> v129;
+
+v129 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v135 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v129 -> v135 [label="ch_versions"];
+
+v130 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v131 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v130 -> v131;
+
+v131 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v132 [label="CHIPIMPUTATION:REPORT:MERGE_FREQ_COMPARISON"];
+v131 -> v132 [label="ch_freq_to_merge"];
+
+v132 [label="CHIPIMPUTATION:REPORT:MERGE_FREQ_COMPARISON"];
+v134 [shape=point];
+v132 -> v134 [label="ch_freq_for_plot"];
+
+v132 [label="CHIPIMPUTATION:REPORT:MERGE_FREQ_COMPARISON"];
+v133 [shape=point];
+v132 -> v133;
+
+v132 [label="CHIPIMPUTATION:REPORT:MERGE_FREQ_COMPARISON"];
+v135 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v132 -> v135;
+
+v135 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v142 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v135 -> v142 [label="ch_versions"];
+
+v136 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.empty"];
+v145 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v136 -> v145 [label="ch_freq_comparison_plots"];
+
+v137 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.empty"];
+v145 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v137 -> v145 [label="ch_r2_snppos_plots"];
+
+v138 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.empty"];
+v145 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v138 -> v145 [label="ch_r2_snpcount_plots"];
+
+v139 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.empty"];
+v145 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v139 -> v145 [label="ch_hist_r2_snpcount_plots"];
+
+v140 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.empty"];
+v145 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v140 -> v145 [label="ch_maf_r2_plots"];
+
+v114 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v141 [label="CHIPIMPUTATION:REPORT:AVERAGE_R2"];
+v114 -> v141 [label="ch_info_only"];
+
+v141 [label="CHIPIMPUTATION:REPORT:AVERAGE_R2"];
+v143 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v141 -> v143;
+
+v141 [label="CHIPIMPUTATION:REPORT:AVERAGE_R2"];
+v143 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v141 -> v143;
+
+v141 [label="CHIPIMPUTATION:REPORT:AVERAGE_R2"];
+v142 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v141 -> v142;
+
+v142 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v147 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v142 -> v147 [label="versions"];
+
+v143 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v144 [shape=point];
+v143 -> v144 [label="reports"];
+
+v145 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v146 [shape=point];
+v145 -> v146 [label="plots"];
+
+v147 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v204 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v147 -> v204 [label="ch_versions"];
+
+v117 [label="CHIPIMPUTATION:REPORT:REPORT_WELL_IMPUTED"];
+v148 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v117 -> v148 [label="well_imputed"];
+
+v148 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v152 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v148 -> v152 [label="ch_chunk_reports"];
+
+v119 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.empty"];
+v149 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v119 -> v149 [label="performance_plots"];
+
+v149 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v155 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v149 -> v155 [label="ch_chunk_plots"];
+
+v115 [label="CHIPIMPUTATION:REPORT:FILTER_INFO_BY_TARGET"];
+v150 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v115 -> v150 [label="filtered_info"];
+
+v150 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v158 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v150 -> v158 [label="ch_chunk_info"];
+
+v151 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.empty"];
+v164 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v151 -> v164 [label="ch_versions"];
+
+v152 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v153 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="groupTuple"];
+v152 -> v153;
+
+v153 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="groupTuple"];
+v154 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v153 -> v154;
+
+v154 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v161 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v154 -> v161 [label="ch_reports_by_chr"];
+
+v155 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v156 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="groupTuple"];
+v155 -> v156;
+
+v156 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="groupTuple"];
+v157 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v156 -> v157;
+
+v157 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v165 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v157 -> v165 [label="ch_plots_by_chr"];
+
+v158 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v159 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="groupTuple"];
+v158 -> v159;
+
+v159 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="groupTuple"];
+v160 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v159 -> v160;
+
+v160 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v161 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v160 -> v161 [label="ch_info_by_chr"];
+
+v161 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v162 [label="CHIPIMPUTATION:REPORT_AGG:AGGREGATE_CHUNKS_TO_CHR"];
+v161 -> v162;
+
+v162 [label="CHIPIMPUTATION:REPORT_AGG:AGGREGATE_CHUNKS_TO_CHR"];
+v165 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v162 -> v165 [label="chr_summaries"];
+
+v162 [label="CHIPIMPUTATION:REPORT_AGG:AGGREGATE_CHUNKS_TO_CHR"];
+v163 [shape=point];
+v162 -> v163;
+
+v162 [label="CHIPIMPUTATION:REPORT_AGG:AGGREGATE_CHUNKS_TO_CHR"];
+v164 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v162 -> v164;
+
+v164 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v168 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v164 -> v168 [label="ch_versions"];
+
+v165 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v166 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v165 -> v166;
+
+v166 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v167 [label="CHIPIMPUTATION:REPORT_AGG:PLOT_CHR_SUMMARY"];
+v166 -> v167 [label="ch_chr_summary_with_plots"];
+
+v167 [label="CHIPIMPUTATION:REPORT_AGG:PLOT_CHR_SUMMARY"];
+v180 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v167 -> v180 [label="chr_plots"];
+
+v167 [label="CHIPIMPUTATION:REPORT_AGG:PLOT_CHR_SUMMARY"];
+v168 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v167 -> v168;
+
+v168 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v176 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v168 -> v176 [label="ch_versions"];
+
+v166 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v169 [label="CHIPIMPUTATION:REPORT_AGG:PLOT_CHR_ALL_METRICS"];
+v166 -> v169 [label="ch_chr_summary_with_plots"];
+
+v169 [label="CHIPIMPUTATION:REPORT_AGG:PLOT_CHR_ALL_METRICS"];
+v175 [shape=point];
+v169 -> v175 [label="chr_performance"];
+
+v169 [label="CHIPIMPUTATION:REPORT_AGG:PLOT_CHR_ALL_METRICS"];
+v174 [shape=point];
+v169 -> v174 [label="chr_r2_position"];
+
+v169 [label="CHIPIMPUTATION:REPORT_AGG:PLOT_CHR_ALL_METRICS"];
+v173 [shape=point];
+v169 -> v173 [label="chr_accuracy"];
+
+v169 [label="CHIPIMPUTATION:REPORT_AGG:PLOT_CHR_ALL_METRICS"];
+v172 [shape=point];
+v169 -> v172 [label="chr_maf_analysis"];
+
+v169 [label="CHIPIMPUTATION:REPORT_AGG:PLOT_CHR_ALL_METRICS"];
+v171 [shape=point];
+v169 -> v171 [label="chr_freq_comparison"];
+
+v169 [label="CHIPIMPUTATION:REPORT_AGG:PLOT_CHR_ALL_METRICS"];
+v170 [shape=point];
+v169 -> v170 [label="chr_all_plots"];
+
+v169 [label="CHIPIMPUTATION:REPORT_AGG:PLOT_CHR_ALL_METRICS"];
+v176 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v169 -> v176;
+
+v176 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v185 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v176 -> v185 [label="ch_versions"];
+
+v162 [label="CHIPIMPUTATION:REPORT_AGG:AGGREGATE_CHUNKS_TO_CHR"];
+v177 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v162 -> v177 [label="chr_summaries"];
+
+v177 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v178 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="groupTuple"];
+v177 -> v178;
+
+v178 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="groupTuple"];
+v179 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v178 -> v179;
+
+v179 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v183 [label="CHIPIMPUTATION:REPORT_AGG:AGGREGATE_CHR_TO_GENOME"];
+v179 -> v183 [label="ch_chr_reports_by_dataset"];
+
+v180 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v181 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="groupTuple"];
+v180 -> v181;
+
+v181 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="groupTuple"];
+v182 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v181 -> v182;
+
+v182 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v186 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v182 -> v186 [label="ch_chr_plots_by_dataset"];
+
+v183 [label="CHIPIMPUTATION:REPORT_AGG:AGGREGATE_CHR_TO_GENOME"];
+v186 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v183 -> v186 [label="genome_summary"];
+
+v183 [label="CHIPIMPUTATION:REPORT_AGG:AGGREGATE_CHR_TO_GENOME"];
+v184 [shape=point];
+v183 -> v184;
+
+v183 [label="CHIPIMPUTATION:REPORT_AGG:AGGREGATE_CHR_TO_GENOME"];
+v185 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v183 -> v185;
+
+v185 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v189 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v185 -> v189 [label="ch_versions"];
+
+v186 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v187 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v186 -> v187;
+
+v187 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v188 [label="CHIPIMPUTATION:REPORT_AGG:PLOT_GENOME_SUMMARY"];
+v187 -> v188 [label="ch_genome_summary_with_plots"];
+
+v188 [label="CHIPIMPUTATION:REPORT_AGG:PLOT_GENOME_SUMMARY"];
+v199 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v188 -> v199 [label="genome_plots"];
+
+v188 [label="CHIPIMPUTATION:REPORT_AGG:PLOT_GENOME_SUMMARY"];
+v189 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v188 -> v189;
+
+v189 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v198 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v189 -> v198 [label="ch_versions"];
+
+v187 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v190 [label="CHIPIMPUTATION:REPORT_AGG:PLOT_GENOME_ALL_METRICS"];
+v187 -> v190 [label="ch_genome_summary_with_plots"];
+
+v190 [label="CHIPIMPUTATION:REPORT_AGG:PLOT_GENOME_ALL_METRICS"];
+v197 [shape=point];
+v190 -> v197 [label="genome_performance"];
+
+v190 [label="CHIPIMPUTATION:REPORT_AGG:PLOT_GENOME_ALL_METRICS"];
+v196 [shape=point];
+v190 -> v196 [label="genome_r2_dist"];
+
+v190 [label="CHIPIMPUTATION:REPORT_AGG:PLOT_GENOME_ALL_METRICS"];
+v195 [shape=point];
+v190 -> v195 [label="genome_accuracy"];
+
+v190 [label="CHIPIMPUTATION:REPORT_AGG:PLOT_GENOME_ALL_METRICS"];
+v194 [shape=point];
+v190 -> v194 [label="genome_maf_analysis"];
+
+v190 [label="CHIPIMPUTATION:REPORT_AGG:PLOT_GENOME_ALL_METRICS"];
+v193 [shape=point];
+v190 -> v193 [label="genome_freq_comp"];
+
+v190 [label="CHIPIMPUTATION:REPORT_AGG:PLOT_GENOME_ALL_METRICS"];
+v192 [shape=point];
+v190 -> v192 [label="genome_chr_comp"];
+
+v190 [label="CHIPIMPUTATION:REPORT_AGG:PLOT_GENOME_ALL_METRICS"];
+v191 [shape=point];
+v190 -> v191 [label="genome_all_plots"];
+
+v190 [label="CHIPIMPUTATION:REPORT_AGG:PLOT_GENOME_ALL_METRICS"];
+v198 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v190 -> v198;
+
+v198 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v203 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v198 -> v203 [label="ch_versions"];
+
+v183 [label="CHIPIMPUTATION:REPORT_AGG:AGGREGATE_CHR_TO_GENOME"];
+v199 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v183 -> v199 [label="genome_summary"];
+
+v199 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v200 [label="CHIPIMPUTATION:REPORT_AGG:GENERATE_DATASET_REPORT"];
+v199 -> v200 [label="ch_final_report_input"];
+
+v200 [label="CHIPIMPUTATION:REPORT_AGG:GENERATE_DATASET_REPORT"];
+v202 [shape=point];
+v200 -> v202 [label="final_report"];
+
+v200 [label="CHIPIMPUTATION:REPORT_AGG:GENERATE_DATASET_REPORT"];
+v201 [shape=point];
+v200 -> v201;
+
+v200 [label="CHIPIMPUTATION:REPORT_AGG:GENERATE_DATASET_REPORT"];
+v203 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v200 -> v203;
+
+v203 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v204 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v203 -> v204 [label="versions"];
+
+v204 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v205 [shape=point];
+v204 -> v205 [label="versions"];
+
+}

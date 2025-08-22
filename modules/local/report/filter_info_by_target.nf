@@ -21,7 +21,7 @@ process FILTER_INFO_BY_TARGET {
     def prefix = task.ext.prefix ?: "${meta.id}"
     def r2_threshold = params.r2_threshold ?: 0.3
     """
-    filter_info_by_target.py \\
+    filter_info_by_target_vcf.py \\
         --input-file ${info_file} \\
         --output-prefix ${prefix} \\
         --ref-name ${ref_name} \\

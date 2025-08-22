@@ -17,7 +17,8 @@ process CHECK_MISMATCH {
     script:
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
-    def chrm = meta.contig ?: 'chr21'
+    if (!meta.contig) error "ERROR: meta.contig is required for CHECK_MISMATCH but was not provided"
+    def chrm = meta.contig
     def chunk_start = meta.start ?: ''
     def chunk_end = meta.end ?: ''
     def max_mismatch_rate = params.max_mismatch_rate ?: 0.1  // Maximum 10% mismatch allowed

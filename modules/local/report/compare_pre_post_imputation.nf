@@ -3,7 +3,7 @@ process COMPARE_PRE_POST_IMPUTATION {
     label 'process_medium'
     label 'python_plotting'
     
-    publishDir "/scratch3/users/mamana/results/reports/pre_post_comparison/${meta.id}", mode: 'copy'
+    publishDir "${params.outdir}/reports/pre_post_comparison/${meta.id}", mode: 'copy'
     
     input:
     tuple val(meta), path(pre_vcf), path(pre_index), path(post_vcf), path(post_index)

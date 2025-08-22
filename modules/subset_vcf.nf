@@ -228,7 +228,7 @@ process SPLIT_TARGET_TO_CHUNK {
     input:
         tuple val(target_name), val(chrm), val(chunk_start), val(chunk_end), val(tagName), file(tag_target_vcf)
     output:
-        tuple val(target_name), val(chrm), val(chunk_start), val(chunk_end), val(tagName), file(vcf_chunk_out)
+        tuple val(target_name), val(chrm), val(chunk_start), val(chunk_end), val(tagName), file(vcf_chunk_out), file("${vcf_chunk_out}.csi")
     script:
         base = file(tag_target_vcf.baseName).baseName
         vcf_chunk_out = "${base}.${chrm}_${chunk_start}-${chunk_end}_${tagName}.bcf"
@@ -238,6 +238,7 @@ process SPLIT_TARGET_TO_CHUNK {
         """
         tabix ${tag_target_vcf}
         bcftools view --regions ${chrm}:${start}-${end} ${tag_target_vcf} -Ob -o ${vcf_chunk_out}
+        bcftools index ${vcf_chunk_out}
         """
 }
 

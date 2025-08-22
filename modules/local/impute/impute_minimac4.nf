@@ -20,7 +20,9 @@ process IMPUTE_MINIMAC4 {
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     def chunk_id = meta.chunk ?: ''
-    def chrm = meta.contig ?: ''
+    // Chromosome is required for imputation
+    if (!meta.contig) error "ERROR: meta.contig is required for IMPUTE_MINIMAC4 but was not provided"
+    def chrm = meta.contig
     def chunk_start = meta.start ?: ''
     def chunk_end = meta.end ?: ''
     

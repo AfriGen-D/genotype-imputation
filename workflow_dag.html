@@ -1,0 +1,291 @@
+<!--
+  ~ Copyright 2013-2024, Seqera Labs
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<html>
+<head>
+<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1, maximum-scale=1">
+</head>
+<body>
+<pre class="mermaid" style="text-align: center;">
+%%{
+  init: {
+    'theme': 'base',
+    'themeVariables': {
+      'primaryColor': '#B6ECE2',
+      'primaryTextColor': '#160F26',
+      'primaryBorderColor': '#065647',
+      'lineColor': '#545555',
+      'clusterBkg': '#BABCBD22',
+      'clusterBorder': '#DDDEDE',
+      'fontFamily': 'arial'
+    }
+  }
+}%%
+flowchart TB
+    subgraph " "
+    v0["Channel.fromPath"]
+    v13["expected_build"]
+    v31["ref_panel_info"]
+    v32["expected_build"]
+    v95["genetic_map"]
+    end
+    subgraph "CHIPIMPUTATION [CHIPIMPUTATION]"
+    subgraph "CHIPIMPUTATION:PREPROCESS [PREPROCESS]"
+    v8(["CHECK_FILES"])
+    v10(["CHECK_CHROMOSOME"])
+    v14(["CHECK_GENOME_BUILD"])
+    v24(["GET_CHROMOSOME"])
+    v27(["GENERATE_CHUNKS_VCF"])
+    v29(["SPLIT_TARGET_TO_CHUNK"])
+    v33(["GET_REF_CHROMOSOMES"])
+    v43(["GENERATE_CHUNK_MAP"])
+    v46(["GENERATE_REF_MAP"])
+    v50(["CHECK_OVERLAP"])
+    v61(["MERGE_ADJACENT_CHUNKS"])
+    v72(["CHECK_MISMATCH"])
+    v77(["QC_DUPL"])
+    v80(["SPLIT_MULTI_ALLELIC"])
+    v83(["FILTER_MIN_AC"])
+    v86(["QC_SITE_MISSINGNESS"])
+    v9(( ))
+    v16(( ))
+    v25(( ))
+    v28(( ))
+    v30(( ))
+    v48(( ))
+    v64(( ))
+    end
+    subgraph "CHIPIMPUTATION:PHASE [PHASE]"
+    v96(["EAGLE_PHASING"])
+    v91(( ))
+    v99(( ))
+    end
+    subgraph "CHIPIMPUTATION:IMPUTE [IMPUTE]"
+    v107(["IMPUTE_MINIMAC4"])
+    v104(( ))
+    v108(( ))
+    end
+    subgraph "CHIPIMPUTATION:REPORT [REPORT]"
+    v115(["FILTER_INFO_BY_TARGET"])
+    v117(["REPORT_WELL_IMPUTED"])
+    v120(["REPORT_ACCURACY"])
+    v125(["EXTRACT_FREQ_IMPUTED"])
+    v128(["EXTRACT_FREQ_REFERENCE"])
+    v132(["MERGE_FREQ_COMPARISON"])
+    v141(["AVERAGE_R2"])
+    v114(( ))
+    v116(( ))
+    v124(( ))
+    v127(( ))
+    v130(( ))
+    v143(( ))
+    end
+    subgraph "CHIPIMPUTATION:REPORT_AGG [REPORT_AGG]"
+    v162(["AGGREGATE_CHUNKS_TO_CHR"])
+    v167(["PLOT_CHR_SUMMARY"])
+    v169(["PLOT_CHR_ALL_METRICS"])
+    v183(["AGGREGATE_CHR_TO_GENOME"])
+    v188(["PLOT_GENOME_SUMMARY"])
+    v190(["PLOT_GENOME_ALL_METRICS"])
+    v200(["GENERATE_DATASET_REPORT"])
+    v152(( ))
+    v155(( ))
+    v164(( ))
+    v177(( ))
+    v180(( ))
+    v199(( ))
+    end
+    v89(( ))
+    v111(( ))
+    v148(( ))
+    v149(( ))
+    v150(( ))
+    end
+    subgraph " "
+    v11[" "]
+    v34[" "]
+    v62[" "]
+    v67["ch_merged_chunk_ids"]
+    v78[" "]
+    v81[" "]
+    v84[" "]
+    v87[" "]
+    v97[" "]
+    v98[" "]
+    v133[" "]
+    v134["ch_freq_for_plot"]
+    v144["reports"]
+    v163[" "]
+    v170["chr_all_plots"]
+    v171["chr_freq_comparison"]
+    v172["chr_maf_analysis"]
+    v173["chr_accuracy"]
+    v174["chr_r2_position"]
+    v175["chr_performance"]
+    v184[" "]
+    v191["genome_all_plots"]
+    v192["genome_chr_comp"]
+    v193["genome_freq_comp"]
+    v194["genome_maf_analysis"]
+    v195["genome_accuracy"]
+    v196["genome_r2_dist"]
+    v197["genome_performance"]
+    v201[" "]
+    v202["final_report"]
+    v205["versions"]
+    end
+    v1(( ))
+    v0 --> v1
+    v1 --> v8
+    v8 --> v10
+    v8 --> v9
+    v10 --> v14
+    v10 --> v11
+    v10 --> v9
+    v13 --> v14
+    v14 --> v9
+    v14 --> v16
+    v16 --> v24
+    v24 --> v25
+    v25 --> v27
+    v27 --> v28
+    v28 --> v29
+    v29 --> v30
+    v31 --> v33
+    v32 --> v33
+    v33 --> v34
+    v33 --> v9
+    v33 --> v30
+    v30 --> v43
+    v43 --> v9
+    v43 --> v48
+    v30 --> v46
+    v46 --> v9
+    v46 --> v48
+    v48 --> v50
+    v50 --> v9
+    v50 --> v30
+    v30 --> v61
+    v61 --> v62
+    v61 --> v9
+    v61 --> v30
+    v61 --> v64
+    v64 --> v67
+    v30 --> v72
+    v72 --> v9
+    v72 --> v30
+    v30 --> v77
+    v77 --> v80
+    v77 --> v78
+    v77 --> v9
+    v80 --> v83
+    v80 --> v81
+    v80 --> v9
+    v83 --> v86
+    v83 --> v84
+    v83 --> v9
+    v86 --> v87
+    v86 --> v9
+    v86 --> v91
+    v95 --> v96
+    v91 --> v96
+    v96 --> v98
+    v96 --> v97
+    v96 --> v99
+    v96 --> v104
+    v104 --> v107
+    v107 --> v108
+    v107 --> v111
+    v114 --> v115
+    v115 --> v117
+    v115 --> v120
+    v115 --> v116
+    v115 --> v150
+    v117 --> v116
+    v117 --> v143
+    v117 --> v148
+    v120 --> v116
+    v120 --> v143
+    v124 --> v125
+    v125 --> v116
+    v125 --> v130
+    v127 --> v128
+    v128 --> v116
+    v128 --> v130
+    v130 --> v132
+    v132 --> v134
+    v132 --> v133
+    v132 --> v116
+    v114 --> v141
+    v141 --> v116
+    v141 --> v143
+    v143 --> v144
+    v152 --> v162
+    v162 --> v163
+    v162 --> v155
+    v162 --> v164
+    v162 --> v177
+    v155 --> v167
+    v167 --> v164
+    v167 --> v180
+    v155 --> v169
+    v169 --> v175
+    v169 --> v174
+    v169 --> v173
+    v169 --> v172
+    v169 --> v171
+    v169 --> v170
+    v169 --> v164
+    v177 --> v183
+    v183 --> v184
+    v183 --> v164
+    v183 --> v180
+    v183 --> v199
+    v180 --> v188
+    v188 --> v164
+    v188 --> v199
+    v180 --> v190
+    v190 --> v197
+    v190 --> v196
+    v190 --> v195
+    v190 --> v194
+    v190 --> v193
+    v190 --> v192
+    v190 --> v191
+    v190 --> v164
+    v199 --> v200
+    v200 --> v202
+    v200 --> v201
+    v200 --> v164
+    v89 --> v205
+    v9 --> v89
+    v99 --> v89
+    v108 --> v89
+    v116 --> v89
+    v164 --> v89
+    v104 --> v127
+    v111 --> v114
+    v111 --> v124
+    v148 --> v152
+    v149 --> v155
+    v150 --> v152
+
+</pre>
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad: true, maxTextSize: Number.MAX_SAFE_INTEGER, maxEdges: Number.MAX_SAFE_INTEGER });
+</script>
+</body>
+</html>

@@ -4,6 +4,7 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
+include { CHECK_BUILD_CONSISTENCY } from '../modules/local/qc/check_build_consistency'
 include { PREPROCESS            } from '../subworkflows/local/preprocess'
 include { PHASE                 } from '../subworkflows/local/phase'
 include { IMPUTE                } from '../subworkflows/local/impute'
@@ -29,6 +30,22 @@ workflow CHIPIMPUTATION {
     
     ch_versions = Channel.empty()
     ch_multiqc_files = Channel.empty()
+    
+    //
+    // MODULE: Check build consistency at startup
+    //
+    if (params.eagle_genetic_map && params.reference_genome) {
+        CHECK_BUILD_CONSISTENCY(
+            file(params.eagle_genetic_map),
+            file(params.reference_genome)
+        )
+        ch_versions = ch_versions.mix(CHECK_BUILD_CONSISTENCY.out.versions)
+        
+        // Log the build check results
+        CHECK_BUILD_CONSISTENCY.out.report.view { 
+            "Build consistency check completed - see ${it} for details" 
+        }
+    }
     
     //
     // SUBWORKFLOW: Preprocessing and QC
@@ -65,9 +82,17 @@ workflow CHIPIMPUTATION {
             [meta, ref_name, vcf, vcf_index, info]  // Pass VCF files for frequency comparison
         }
     
+    // Prepare pre-imputation VCF for comparison
+    // Use the QC'd VCF from PREPROCESS (after QC but before phasing)
+    ch_pre_imputation_for_report = PREPROCESS.out.vcf
+        .map { meta, vcf, vcf_index ->
+            [meta, vcf, vcf_index]
+        }
+    
     REPORT(
         ch_report_input,
-        IMPUTE.out.ref_vcf
+        IMPUTE.out.ref_vcf,
+        ch_pre_imputation_for_report
     )
     ch_versions = ch_versions.mix(REPORT.out.versions)
     
@@ -76,9 +101,9 @@ workflow CHIPIMPUTATION {
     // This implements the three-tier aggregation system for post-imputation data
     //
     if (params.aggregate_reports != false) {
-        // Collect just the well-imputed reports which have a consistent structure
-        ch_chunk_reports = REPORT.out.well_imputed
-            .map { meta, ref_name, well_imputed_file, summary_file ->
+        // Use the chunk JSON summaries for aggregation
+        ch_chunk_reports = REPORT.out.chunk_json
+            .map { meta, ref_name, json_file ->
                 def updated_meta = [:]
                 updated_meta.id = meta.id
                 updated_meta.sample = meta.sample ?: (meta.id.contains('_chr') ? meta.id.split('_chr')[0] : meta.id)
@@ -94,8 +119,8 @@ workflow CHIPIMPUTATION {
                     updated_meta.chromosome = 'unknown'
                 }
                 
-                // Return the summary file which contains the key metrics
-                tuple(updated_meta, ref_name, summary_file)
+                // Return the JSON file which contains the key metrics
+                tuple(updated_meta, ref_name, json_file)
             }
         
         // Collect performance plots which have consistent structure

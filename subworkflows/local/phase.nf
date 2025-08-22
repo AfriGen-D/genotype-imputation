@@ -24,23 +24,30 @@ workflow PHASE {
     // Get genetic map
     def genetic_map = params.eagle_genetic_map ? file(params.eagle_genetic_map) : []
     
-    // Get reference panel BCF for chr21 (since we're testing with chr21 data)
-    // TODO: Make this dynamic based on actual chromosome being processed
-    def ref_panel_bcf = []
-    def ref_panel_index = []
-    if (params.ref_panels && params.ref_panels.size() > 0) {
-        // Get the first reference panel and format for chr21
-        def ref_panel = params.ref_panels[0]
-        def ref_bcf_path = sprintf(ref_panel[2], 'chr21')  // Use chr21 for now
-        ref_panel_bcf = file(ref_bcf_path)
-        ref_panel_index = file("${ref_bcf_path}.csi")
+    // Get reference panel BCF dynamically based on the chromosome being processed
+    // Since Eagle processes each chunk separately, we need to pass the correct reference panel for each
+    // Create an augmented channel that includes reference panel paths
+    ch_eagle_input = ch_vcf_with_index.map { meta, vcf, index ->
+        if (params.ref_panels && params.ref_panels.size() > 0) {
+            def ref_panel = params.ref_panels[0]
+            def chrm = meta.contig
+            def ref_bcf_path = sprintf(ref_panel[2], chrm)
+            def ref_panel_bcf = file(ref_bcf_path)
+            def ref_panel_index = file("${ref_bcf_path}.csi")
+            [meta, vcf, index, ref_panel_bcf, ref_panel_index]
+        } else {
+            [meta, vcf, index, file("NO_FILE"), file("NO_FILE")]
+        }
     }
     
-    EAGLE_PHASING ( 
-        ch_vcf_with_index,
+    // Since EAGLE_PHASING expects separate inputs, we need to restructure
+    // Extract each component for the module input
+    // NOTE: We must NOT use .first() on reference panels as each chromosome needs its own reference
+    EAGLE_PHASING (
+        ch_eagle_input.map { meta, vcf, index, ref_bcf, ref_idx -> [meta, vcf, index] },
         genetic_map,
-        ref_panel_bcf,
-        ref_panel_index
+        ch_eagle_input.map { meta, vcf, index, ref_bcf, ref_idx -> ref_bcf },
+        ch_eagle_input.map { meta, vcf, index, ref_bcf, ref_idx -> ref_idx }
     )
     ch_versions = ch_versions.mix(EAGLE_PHASING.out.versions)
 

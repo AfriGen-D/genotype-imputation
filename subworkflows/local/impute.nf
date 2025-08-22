@@ -36,7 +36,7 @@ workflow IMPUTE {
             def ref_vcf_template = ref_panel[2]
             
             // Replace %s with actual chromosome from meta
-            def chrm = meta.contig ?: 'chr21'  // Default to chr21 for testing
+            def chrm = meta.contig
             def ref_msav = file(sprintf(ref_msav_template, chrm))
             def ref_vcf = file(sprintf(ref_vcf_template, chrm))
             
@@ -50,7 +50,7 @@ workflow IMPUTE {
             },
             ch_phased_with_ref.map { meta, vcf, vcf_index, ref_data ->
                 ref_data
-            }.first()  // Use the same reference for all chunks (for now)
+            }  // Each chunk gets its chromosome-specific reference panel
         )
         ch_versions = ch_versions.mix(IMPUTE_MINIMAC4.out.versions)
         ch_imputed = IMPUTE_MINIMAC4.out.imputed
