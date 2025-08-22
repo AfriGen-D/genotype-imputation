@@ -1,323 +1,252 @@
 #!/usr/bin/env python3
-"""
-Generate chromosome-level R² by position plots aggregating chunk data.
-"""
+# -*- coding: utf-8 -*-
 
 import json
-import argparse
-from pathlib import Path
-import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_pdf import PdfPages
 import seaborn as sns
-import logging
+import numpy as np
+import pandas as pd
+import argparse
+import sys
+import os
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+# Set matplotlib backend for headless environments
+import matplotlib
+matplotlib.use('Agg')
 
-# Set style
-plt.style.use('seaborn-v0_8-darkgrid')
-sns.set_palette("husl")
+def load_chromosome_summary(json_file):
+    """Load and validate chromosome summary JSON."""
+    try:
+        with open(json_file, 'r') as f:
+            data = json.load(f)
+        
+        required_fields = ['chromosome', 'chunk_details']
+        for field in required_fields:
+            if field not in data:
+                raise ValueError(f"Missing required field: {field}")
+        
+        return data
+    except Exception as e:
+        print(f"Error loading JSON file {json_file}: {e}", file=sys.stderr)
+        sys.exit(1)
 
+def extract_positions_from_chunk_id(chunk_id):
+    """Extract start and end positions from chunk ID."""
+    try:
+        parts = chunk_id.split('_')
+        # Format: dataset_chr_start_end
+        start_pos = int(parts[-2])
+        end_pos = int(parts[-1])
+        return start_pos, end_pos
+    except (ValueError, IndexError):
+        return None, None
 
-def load_chr_summary(summary_path):
-    """Load chromosome summary JSON."""
-    with open(summary_path, 'r') as f:
-        return json.load(f)
-
-
-def plot_r2_along_chromosome(ax, chr_summary):
-    """Plot R² values along the chromosome."""
-    chunk_details = chr_summary.get('chunk_details', [])
+def create_chr_r2_position_plot(chr_summary, output_file):
+    """Create chromosome-level R² by genomic position visualization."""
+    
+    # Set style
+    plt.style.use('default')
+    sns.set_palette("husl")
+    
+    # Create figure with 4 subplots
+    fig = plt.figure(figsize=(20, 16))
+    
+    # Extract data
+    chromosome = chr_summary['chromosome']
+    chunk_details = chr_summary['chunk_details']
     
     if not chunk_details:
-        ax.text(0.5, 0.5, 'No chunk data available', 
-                ha='center', va='center', transform=ax.transAxes)
+        # Create empty plot with message
+        ax = plt.subplot(1, 1, 1)
+        ax.text(0.5, 0.5, f'No chunk data available for {chromosome}', 
+                ha='center', va='center', transform=ax.transAxes, fontsize=16)
+        ax.set_title(f'{chromosome}: R² by Genomic Position')
+        plt.tight_layout()
+        plt.savefig(output_file, dpi=300, bbox_inches='tight')
+        plt.close()
         return
     
-    # Sort chunks by position
-    sorted_chunks = sorted(chunk_details, key=lambda x: x.get('start_pos', 0))
-    
+    # Process chunk data
     positions = []
     r2_values = []
-    chunk_boundaries = []
+    variant_counts = []
+    well_imputed_counts = []
     
-    for chunk in sorted_chunks:
-        # Use midpoint of chunk for position
-        start_pos = chunk.get('start_pos', 0)
-        end_pos = chunk.get('end_pos', start_pos + 1000000)
-        midpoint = (start_pos + end_pos) / 2
-        
-        positions.append(midpoint / 1e6)  # Convert to Mb
-        r2_values.append(chunk.get('mean_r2', 0) or 0)
-        chunk_boundaries.append((start_pos / 1e6, end_pos / 1e6))
+    for chunk in chunk_details:
+        start_pos, end_pos = extract_positions_from_chunk_id(chunk['chunk_id'])
+        if start_pos is not None and end_pos is not None:
+            mid_pos = (start_pos + end_pos) / 2
+            positions.append(mid_pos)
+            r2_values.append(chunk['mean_r2'])
+            variant_counts.append(chunk['variants'])
+            well_imputed_counts.append(chunk['well_imputed'])
     
-    # Plot line with markers
-    ax.plot(positions, r2_values, 'o-', linewidth=2, markersize=8, 
-            color='darkblue', label='Mean R² per chunk')
-    
-    # Add shaded regions for chunks
-    for i, (start, end) in enumerate(chunk_boundaries):
-        ax.axvspan(start, end, alpha=0.1, color='gray')
-    
-    # Add chromosome mean line
-    if chr_summary.get('mean_r2'):
-        ax.axhline(y=chr_summary['mean_r2'], color='red', linestyle='--', 
-                  alpha=0.7, label=f'Chromosome Mean: {chr_summary["mean_r2"]:.3f}')
-    
-    ax.set_xlabel('Position (Mb)')
-    ax.set_ylabel('Mean R²')
-    ax.set_title(f'R² Distribution Along Chromosome {chr_summary.get("chromosome", "?")}')
-    ax.set_ylim(0, 1.1)
-    ax.grid(True, alpha=0.3)
-    ax.legend()
-
-
-def plot_r2_density_by_position(ax, chr_summary):
-    """Plot R² density heatmap along chromosome."""
-    chunk_details = chr_summary.get('chunk_details', [])
-    
-    if not chunk_details:
-        ax.text(0.5, 0.5, 'No chunk data available', 
-                ha='center', va='center', transform=ax.transAxes)
+    if not positions:
+        # Create empty plot with message
+        ax = plt.subplot(1, 1, 1)
+        ax.text(0.5, 0.5, f'Could not extract position data for {chromosome}', 
+                ha='center', va='center', transform=ax.transAxes, fontsize=16)
+        ax.set_title(f'{chromosome}: R² by Genomic Position')
+        plt.tight_layout()
+        plt.savefig(output_file, dpi=300, bbox_inches='tight')
+        plt.close()
         return
     
-    # Sort chunks by position
-    sorted_chunks = sorted(chunk_details, key=lambda x: x.get('start_pos', 0))
+    # Convert to arrays for easier handling
+    positions = np.array(positions)
+    r2_values = np.array(r2_values)
+    variant_counts = np.array(variant_counts)
+    well_imputed_counts = np.array(well_imputed_counts)
     
-    # Create 2D density plot data
-    positions = []
-    r2_distributions = []
-    
-    for chunk in sorted_chunks:
-        start_pos = chunk.get('start_pos', 0)
-        end_pos = chunk.get('end_pos', start_pos + 1000000)
-        midpoint = (start_pos + end_pos) / 2 / 1e6  # Mb
-        
-        # Get R² distribution for this chunk
-        r2_dist = chunk.get('r2_distribution', {})
-        if r2_dist:
-            # Create histogram bins
-            bins = np.linspace(0, 1, 21)  # 20 bins from 0 to 1
-            hist = np.zeros(20)
-            
-            for bin_name, count in r2_dist.items():
-                # Parse bin name like "0.0-0.1" to get index
-                try:
-                    low = float(bin_name.split('-')[0])
-                    idx = int(low * 20)
-                    if 0 <= idx < 20:
-                        hist[idx] = count
-                except:
-                    continue
-            
-            positions.append(midpoint)
-            r2_distributions.append(hist)
-    
-    if positions and r2_distributions:
-        # Create heatmap
-        data = np.array(r2_distributions).T
-        im = ax.imshow(data, aspect='auto', cmap='YlOrRd', 
-                      extent=[min(positions), max(positions), 0, 1],
-                      origin='lower', interpolation='nearest')
-        
-        ax.set_xlabel('Position (Mb)')
-        ax.set_ylabel('R² Value')
-        ax.set_title(f'R² Density Along Chromosome {chr_summary.get("chromosome", "?")}')
-        
-        # Add colorbar
-        cbar = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-        cbar.set_label('Variant Count', rotation=270, labelpad=15)
-    else:
-        ax.text(0.5, 0.5, 'No R² distribution data available', 
-                ha='center', va='center', transform=ax.transAxes)
-
-
-def plot_variant_density(ax, chr_summary):
-    """Plot variant density along chromosome."""
-    chunk_details = chr_summary.get('chunk_details', [])
-    
-    if not chunk_details:
-        ax.text(0.5, 0.5, 'No chunk data available', 
-                ha='center', va='center', transform=ax.transAxes)
-        return
-    
-    # Sort chunks by position
-    sorted_chunks = sorted(chunk_details, key=lambda x: x.get('start_pos', 0))
-    
-    positions = []
-    total_variants = []
-    well_imputed = []
-    
-    for chunk in sorted_chunks:
-        start_pos = chunk.get('start_pos', 0)
-        end_pos = chunk.get('end_pos', start_pos + 1000000)
-        midpoint = (start_pos + end_pos) / 2 / 1e6  # Mb
-        
-        positions.append(midpoint)
-        total_variants.append(chunk.get('total_variants', 0) or 0)
-        well_imputed.append(chunk.get('well_imputed', 0) or 0)
-    
-    # Create bar chart
-    width = (max(positions) - min(positions)) / len(positions) * 0.8 if positions else 1
-    
-    bars1 = ax.bar(positions, total_variants, width=width, 
-                   label='Total Variants', alpha=0.6, color='blue')
-    bars2 = ax.bar(positions, well_imputed, width=width, 
-                   label='Well-Imputed', alpha=0.8, color='green')
-    
-    ax.set_xlabel('Position (Mb)')
-    ax.set_ylabel('Number of Variants')
-    ax.set_title(f'Variant Density Along Chromosome {chr_summary.get("chromosome", "?")}')
-    ax.legend()
-    
-    # Add annotation for sparse regions
-    if total_variants:
-        mean_density = np.mean(total_variants)
-        sparse_threshold = mean_density * 0.5
-        
-        for pos, count in zip(positions, total_variants):
-            if count < sparse_threshold:
-                ax.annotate('Low coverage', xy=(pos, count), 
-                           xytext=(pos, count + max(total_variants) * 0.1),
-                           fontsize=8, ha='center',
-                           arrowprops=dict(arrowstyle='->', alpha=0.5))
-
-
-def plot_quality_metrics_by_position(ax, chr_summary):
-    """Plot multiple quality metrics along chromosome."""
-    chunk_details = chr_summary.get('chunk_details', [])
-    
-    if not chunk_details:
-        ax.text(0.5, 0.5, 'No chunk data available', 
-                ha='center', va='center', transform=ax.transAxes)
-        return
-    
-    # Sort chunks by position
-    sorted_chunks = sorted(chunk_details, key=lambda x: x.get('start_pos', 0))
-    
-    positions = []
-    r2_values = []
-    concordance_values = []
-    well_imputed_rates = []
-    
-    for chunk in sorted_chunks:
-        start_pos = chunk.get('start_pos', 0)
-        end_pos = chunk.get('end_pos', start_pos + 1000000)
-        midpoint = (start_pos + end_pos) / 2 / 1e6  # Mb
-        
-        positions.append(midpoint)
-        r2_values.append(chunk.get('mean_r2', 0) or 0)
-        concordance_values.append(chunk.get('mean_concordance', 0) or 0)
-        
-        total_vars = chunk.get('total_variants', 1)
-        well_imp = chunk.get('well_imputed', 0)
-        well_imputed_rates.append((well_imp / total_vars) if total_vars > 0 else 0)
-    
-    # Plot multiple metrics
-    ax2 = ax.twinx()
-    
-    line1 = ax.plot(positions, r2_values, 'o-', linewidth=2, markersize=6,
-                   color='darkblue', label='Mean R²')
-    line2 = ax.plot(positions, concordance_values, 's-', linewidth=2, markersize=6,
-                   color='coral', label='Concordance')
-    line3 = ax2.plot(positions, well_imputed_rates, '^-', linewidth=2, markersize=6,
-                    color='green', label='Well-Imputed Rate')
-    
-    ax.set_xlabel('Position (Mb)')
-    ax.set_ylabel('R² / Concordance', color='black')
-    ax2.set_ylabel('Well-Imputed Rate', color='green')
-    ax.set_title(f'Quality Metrics Along Chromosome {chr_summary.get("chromosome", "?")}')
-    ax.set_ylim(0, 1.1)
-    ax2.set_ylim(0, 1.1)
-    ax.grid(True, alpha=0.3)
-    
-    # Combine legends
-    lines = line1 + line2 + line3
-    labels = [l.get_label() for l in lines]
-    ax.legend(lines, labels, loc='lower left')
-    
-    # Color y-axis labels
-    ax2.tick_params(axis='y', labelcolor='green')
-
-
-def create_chromosome_r2_position_plots(chr_summary, output_prefix):
-    """Create comprehensive R² by position plots for chromosome."""
-    
-    # Create figure with subplots
-    fig = plt.figure(figsize=(20, 12))
-    
-    # Add main title
-    fig.suptitle(f'R² Distribution Along Chromosome {chr_summary.get("chromosome", "?")} - Dataset: {chr_summary.get("dataset", "Unknown")}', 
-                 fontsize=16, fontweight='bold')
-    
-    # Create 2x2 grid
+    # Subplot 1: R² by position (main plot)
     ax1 = plt.subplot(2, 2, 1)
-    plot_r2_along_chromosome(ax1, chr_summary)
     
+    # Color points by R² value
+    scatter = ax1.scatter(positions/1e6, r2_values, c=r2_values, 
+                         cmap='RdYlGn', s=60, alpha=0.7, edgecolors='black', linewidth=0.5)
+    
+    # Add horizontal lines for quality thresholds
+    ax1.axhline(y=0.3, color='orange', linestyle='--', alpha=0.7, label='Well-imputed (R²≥0.3)')
+    ax1.axhline(y=0.8, color='red', linestyle='--', alpha=0.7, label='High-quality (R²≥0.8)')
+    
+    ax1.set_xlabel('Genomic Position (Mb)')
+    ax1.set_ylabel('Mean R²')
+    ax1.set_title(f'{chromosome}: R² by Genomic Position')
+    ax1.set_ylim(0, 1)
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+    
+    # Add colorbar
+    cbar = plt.colorbar(scatter, ax=ax1)
+    cbar.set_label('R² Value')
+    
+    # Subplot 2: Variant density by position
     ax2 = plt.subplot(2, 2, 2)
-    plot_variant_density(ax2, chr_summary)
     
+    # Bar plot of variant counts
+    bar_width = (positions[1] - positions[0]) / 1e6 * 0.8 if len(positions) > 1 else 1
+    bars = ax2.bar(positions/1e6, variant_counts, width=bar_width, 
+                  alpha=0.7, color='steelblue', edgecolor='black', linewidth=0.5)
+    
+    ax2.set_xlabel('Genomic Position (Mb)')
+    ax2.set_ylabel('Number of Variants')
+    ax2.set_title(f'{chromosome}: Variant Density by Position')
+    ax2.grid(True, alpha=0.3)
+    
+    # Subplot 3: Well-imputed fraction by position
     ax3 = plt.subplot(2, 2, 3)
-    plot_r2_density_by_position(ax3, chr_summary)
     
+    # Calculate well-imputed fraction
+    well_imputed_fraction = well_imputed_counts / variant_counts
+    
+    # Color points by fraction
+    scatter3 = ax3.scatter(positions/1e6, well_imputed_fraction, 
+                          c=well_imputed_fraction, cmap='viridis', 
+                          s=variant_counts/50, alpha=0.7, edgecolors='black', linewidth=0.5)
+    
+    ax3.axhline(y=0.5, color='red', linestyle='--', alpha=0.7, label='50% well-imputed')
+    ax3.set_xlabel('Genomic Position (Mb)')
+    ax3.set_ylabel('Well-imputed Fraction (R²≥0.3)')
+    ax3.set_title(f'{chromosome}: Imputation Success by Position')
+    ax3.set_ylim(0, 1)
+    ax3.legend()
+    ax3.grid(True, alpha=0.3)
+    
+    # Add colorbar
+    cbar3 = plt.colorbar(scatter3, ax=ax3)
+    cbar3.set_label('Well-imputed Fraction')
+    
+    # Subplot 4: Position-based statistics table and trend analysis
     ax4 = plt.subplot(2, 2, 4)
-    plot_quality_metrics_by_position(ax4, chr_summary)
     
-    plt.tight_layout(rect=[0, 0.02, 1, 0.96])
+    # Calculate position-based statistics
+    pos_mb = positions / 1e6
+    pos_range = f"{pos_mb.min():.1f} - {pos_mb.max():.1f} Mb"
+    mean_r2 = np.mean(r2_values)
+    median_r2 = np.median(r2_values)
+    r2_range = f"{r2_values.min():.3f} - {r2_values.max():.3f}"
+    total_variants = np.sum(variant_counts)
+    total_well_imputed = np.sum(well_imputed_counts)
+    overall_fraction = total_well_imputed / total_variants if total_variants > 0 else 0
     
-    return fig
-
+    # Check for trends
+    correlation_r2_pos = np.corrcoef(positions, r2_values)[0, 1]
+    correlation_density_pos = np.corrcoef(positions, variant_counts)[0, 1]
+    
+    # Create summary table
+    summary_data = []
+    summary_data.append(['Position Range', pos_range])
+    summary_data.append(['Number of Chunks', f"{len(positions)}"])
+    summary_data.append(['Total Variants', f"{total_variants:,}"])
+    summary_data.append(['Mean R²', f"{mean_r2:.4f}"])
+    summary_data.append(['Median R²', f"{median_r2:.4f}"])
+    summary_data.append(['R² Range', r2_range])
+    summary_data.append(['Well-imputed Overall', f"{overall_fraction:.1%}"])
+    summary_data.append(['R² vs Position Corr.', f"{correlation_r2_pos:.3f}"])
+    summary_data.append(['Density vs Position Corr.', f"{correlation_density_pos:.3f}"])
+    
+    # Best and worst performing chunks
+    best_chunk_idx = np.argmax(r2_values)
+    worst_chunk_idx = np.argmin(r2_values)
+    
+    summary_data.append(['Best Chunk R²', f"{r2_values[best_chunk_idx]:.3f} @ {pos_mb[best_chunk_idx]:.1f}Mb"])
+    summary_data.append(['Worst Chunk R²', f"{r2_values[worst_chunk_idx]:.3f} @ {pos_mb[worst_chunk_idx]:.1f}Mb"])
+    
+    ax4.axis('tight')
+    ax4.axis('off')
+    
+    table = ax4.table(cellText=summary_data,
+                     colLabels=['Metric', 'Value'],
+                     cellLoc='left',
+                     loc='center',
+                     colWidths=[0.6, 0.4])
+    table.auto_set_font_size(False)
+    table.set_fontsize(10)
+    table.scale(1, 1.8)
+    
+    # Style the table
+    for i in range(len(summary_data) + 1):
+        for j in range(2):
+            cell = table[(i, j)]
+            if i == 0:  # Header
+                cell.set_facecolor('#40466e')
+                cell.set_text_props(weight='bold', color='white')
+            else:
+                cell.set_facecolor('#f1f1f2' if i % 2 == 0 else 'white')
+    
+    ax4.set_title(f'{chromosome}: Position Analysis Summary', pad=20, fontweight='bold')
+    
+    # Overall title and layout
+    fig.suptitle(f'Chromosome {chromosome.replace("chr", "")}: R² by Genomic Position Analysis', 
+                fontsize=16, fontweight='bold', y=0.98)
+    
+    plt.tight_layout()
+    plt.subplots_adjust(top=0.94, hspace=0.3, wspace=0.3)
+    
+    # Save plot
+    plt.savefig(output_file, dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print(f"Created chromosome R² by position plot: {output_file}")
 
 def main():
-    parser = argparse.ArgumentParser(description='Generate chromosome R² by position plots')
-    parser.add_argument('--chr-summary', required=True,
-                       help='Chromosome summary JSON file')
+    parser = argparse.ArgumentParser(description='Generate chromosome-level R² by position plots')
+    parser.add_argument('--chr-summary', required=True, 
+                       help='Path to chromosome summary JSON file')
     parser.add_argument('--output-prefix', required=True,
                        help='Output file prefix')
-    parser.add_argument('--ref-name', required=True,
-                       help='Reference panel name')
-    parser.add_argument('--dataset', required=True,
-                       help='Dataset name')
-    parser.add_argument('--chromosome', required=True,
-                       help='Chromosome name')
+    parser.add_argument('--ref-name', required=True, help='Reference panel name')
+    parser.add_argument('--dataset', required=True, help='Dataset name')
+    parser.add_argument('--chromosome', required=True, help='Chromosome name')
     
     args = parser.parse_args()
     
-    # Load chromosome summary
-    logger.info(f"Loading chromosome summary from {args.chr_summary}")
-    chr_summary = load_chr_summary(args.chr_summary)
+    # Load data
+    chr_summary = load_chromosome_summary(args.chr_summary)
     
-    # Create plots
-    logger.info(f"Creating R² position plots for chromosome {args.chromosome}")
-    fig = create_chromosome_r2_position_plots(chr_summary, args.output_prefix)
-    
-    # Save to PDF
+    # Create plot
     output_file = f"{args.output_prefix}_{args.ref_name}.chr_r2_position.pdf"
-    logger.info(f"Saving plots to {output_file}")
-    
-    with PdfPages(output_file) as pdf:
-        pdf.savefig(fig, bbox_inches='tight')
-        
-        # Add metadata
-        d = pdf.infodict()
-        d['Title'] = f'R² Distribution Along Chromosome {args.chromosome}'
-        d['Author'] = 'Genotype Imputation Pipeline'
-        d['Subject'] = f'R² Position Analysis for {args.dataset}'
-        d['Keywords'] = f'Imputation R² Position Chromosome {args.chromosome}'
-    
-    plt.close(fig)
-    
-    logger.info(f"R² position plots saved successfully to {output_file}")
-    
-    # Print summary
-    print(f"\nR² Position Analysis Summary:")
-    print(f"  Chromosome: {args.chromosome}")
-    print(f"  Dataset: {args.dataset}")
-    mean_r2 = chr_summary.get('mean_r2', 0) or 0
-    print(f"  Mean R²: {mean_r2:.4f}")
-    print(f"  Output: {output_file}")
-
+    create_chr_r2_position_plot(chr_summary, output_file)
 
 if __name__ == '__main__':
     main()
