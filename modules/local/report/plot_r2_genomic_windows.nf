@@ -2,6 +2,7 @@ process PLOT_R2_GENOMIC_WINDOWS {
     tag "$meta.id"
     label 'process_medium'
     label 'python_plotting'
+    container 'mamana/python-plotting:1.1.0'
     
     publishDir "${params.outdir}/reports/imputation_quality/${meta.id}", mode: 'copy'
     

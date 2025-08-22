@@ -2,6 +2,7 @@ process COMPARE_PRE_POST_IMPUTATION {
     tag "$meta.id"
     label 'process_medium'
     label 'python_plotting'
+    container 'mamana/python-plotting:1.1.0'
     
     publishDir "${params.outdir}/reports/pre_post_comparison/${meta.id}", mode: 'copy'
     
