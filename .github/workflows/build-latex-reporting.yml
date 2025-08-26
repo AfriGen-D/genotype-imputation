@@ -2,7 +2,7 @@ name: Build LaTeX Reporting Container
 
 on:
   push:
-    branches: [ master, main ]
+    branches: [ master, main, latex-container-feature ]
     paths:
       - 'docker/latex-reporting/Dockerfile'
       - '.github/workflows/build-latex-reporting.yml'
@@ -10,6 +10,7 @@ on:
     branches: [ master, main ]
     paths:
       - 'docker/latex-reporting/Dockerfile'
+      - '.github/workflows/build-latex-reporting.yml'
   workflow_dispatch:
 
 env:
