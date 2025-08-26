@@ -3,14 +3,13 @@ FROM python:3.11-slim-bullseye
 
 # Set metadata
 LABEL maintainer="mamana@cbio"
-LABEL description="Python container for genotype imputation QC plotting"
+LABEL description="Python container for genotype imputation QC plotting with PyYAML support"
 LABEL version="1.1.0"
 
 # Set working directory
 WORKDIR /app
 
 # Install system dependencies required for scientific Python packages
-# Including wkhtmltopdf for PDF generation
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
@@ -24,8 +23,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
     procps \
-    wkhtmltopdf \
-    xvfb \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements file

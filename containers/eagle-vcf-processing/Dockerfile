@@ -32,7 +32,7 @@ LABEL maintainer="AfriGen-D <info@afrigen.org>"
 LABEL version="2.4.1"
 LABEL org.opencontainers.image.description="Eagle v2.4.1 haplotype phasing + VCF processing toolkit. Alpine Linux based container with Eagle, BCFtools v1.20, VCFtools v0.1.16, and HTSlib v1.20."
 
-# Install system dependencies and build tools
+# Install system dependencies, build tools, and Python
 RUN apt-get update && apt-get install -y \
     build-essential \
     autoconf \
@@ -56,6 +56,11 @@ RUN apt-get update && apt-get install -y \
     libgomp1 \
     libgcc-s1 \
     libstdc++6 \
+    python3 \
+    python3-dev \
+    python3-pip \
+    python3-numpy \
+    python3-pandas \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /opt/tools

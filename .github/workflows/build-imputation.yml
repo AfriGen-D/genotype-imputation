@@ -1,0 +1,123 @@
+name: Build Imputation Container
+
+on:
+  push:
+    branches: [ main, master, develop ]
+    paths:
+      - 'containers/imputation/**'
+      - '.github/workflows/build-imputation.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'containers/imputation/**'
+      - '.github/workflows/build-imputation.yml'
+  workflow_dispatch:
+    inputs:
+      force_build:
+        description: 'Force rebuild even if no changes'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  CONTAINER_NAME: imputation
+  GHCR_REGISTRY: ghcr.io
+  DOCKERHUB_REGISTRY: docker.io
+  PRIMARY_VERSION: minimac4-4.1.6
+  ADDITIONAL_TAGS: bcftools-1.20,vcftools-0.1.16,python3
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.GHCR_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKERHUB_REGISTRY }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.GHCR_REGISTRY }}/${{ github.repository_owner }}/${{ env.CONTAINER_NAME }}
+            ${{ env.DOCKERHUB_REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.CONTAINER_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=raw,value=${{ env.PRIMARY_VERSION }},enable={{is_default_branch}}
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix={{branch}}-
+            type=schedule,pattern={{date 'YYYY-MM-DD'}}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: containers/${{ env.CONTAINER_NAME }}
+          platforms: linux/amd64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ env.CONTAINER_NAME }}
+          cache-to: type=gha,mode=max,scope=${{ env.CONTAINER_NAME }}
+          provenance: true
+          sbom: true
+
+      - name: Test container
+        if: success()
+        run: |
+          OWNER_LC=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE="${{ env.GHCR_REGISTRY }}/${OWNER_LC}/${{ env.CONTAINER_NAME }}:${{ env.PRIMARY_VERSION }}"
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            IMAGE="localhost:5000/${{ env.CONTAINER_NAME }}:pr-${{ github.event.number }}"
+          fi
+          
+          echo "Testing container: $IMAGE"
+          docker run --rm $IMAGE bash -c "
+            echo 'Testing Minimac4...' && minimac4 --help > /dev/null && echo 'Minimac4 OK' &&
+            echo 'Testing BCFtools...' && bcftools --version &&
+            echo 'Testing VCFtools...' && vcftools --version &&
+            echo 'Testing Python...' && python3 -c 'import numpy, pandas; print(\"Python packages OK\")' &&
+            echo 'All tools working!'
+          "
+          
+          # Check container size
+          SIZE=$(docker image inspect $IMAGE --format='{{.Size}}' 2>/dev/null || echo 0)
+          SIZE_MB=$((SIZE / 1024 / 1024))
+          echo "Container size: ${SIZE_MB} MB"
+          
+          if [ $SIZE_MB -gt 600 ]; then
+            echo "Warning: Container size exceeds 600 MB"
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Imputation Container Build" >> $GITHUB_STEP_SUMMARY
+          echo "- **Container**: ${{ env.CONTAINER_NAME }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ env.PRIMARY_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tools**: Minimac4 4.1.6, BCFtools 1.20, VCFtools 0.1.16, Python 3" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY

@@ -38,6 +38,8 @@ RUN apk add --no-cache \
     py3-pip \
     py3-setuptools \
     py3-wheel \
+    py3-numpy \
+    py3-pandas \
     gcc \
     gfortran \
     musl-dev \

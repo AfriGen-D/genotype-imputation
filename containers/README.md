@@ -4,6 +4,8 @@
 
 This pipeline uses a modular container architecture with specialized containers for different tools and workflows. The containers are available on Docker Hub for easy access and optimal performance.
 
+**Latest Update (2025-08-16)**: All containers now include Python 3 with numpy and pandas by default for enhanced scripting capabilities.
+
 ## Container Registry
 
 All containers are available on Docker Hub under the `mamana` organization:
@@ -19,27 +21,27 @@ All containers are available on Docker Hub under the `mamana` organization:
 docker pull mamana/minimac4:minimac4-4.1.6
 ```
 - **Purpose**: Genotype imputation using Minimac4
-- **Tools**: Minimac4 4.1.6
+- **Tools**: Minimac4 4.1.6, Python 3 (with numpy, pandas)
 - **Base**: Alpine Linux 3.18
-- **Size**: ~300MB
+- **Size**: ~350MB
 
 #### 2. Eagle Phasing
 ```bash
 docker pull mamana/eagle-phasing:eagle-2.4.1
 ```
 - **Purpose**: Haplotype phasing using Eagle
-- **Tools**: Eagle 2.4.1, HTSlib 1.20
+- **Tools**: Eagle 2.4.1, HTSlib 1.20, Python 3 (with numpy, pandas)
 - **Base**: Alpine Linux 3.18
-- **Size**: ~280MB
+- **Size**: ~330MB
 
 #### 3. VCF Processing
 ```bash
 docker pull mamana/vcf-processing:bcftools-1.20
 ```
 - **Purpose**: VCF file processing and quality control
-- **Tools**: BCFtools 1.20, VCFtools 0.1.16, tabix, HTSlib 1.20
+- **Tools**: BCFtools 1.20, VCFtools 0.1.16, tabix, HTSlib 1.20, Python 3 (with numpy, pandas)
 - **Base**: Alpine Linux 3.18
-- **Size**: ~250MB
+- **Size**: ~300MB
 
 ### 🚀 Workflow Containers
 
@@ -48,18 +50,18 @@ docker pull mamana/vcf-processing:bcftools-1.20
 docker pull mamana/imputation:minimac4-4.1.6
 ```
 - **Purpose**: Complete imputation workflow
-- **Tools**: Minimac4 4.1.6, BCFtools 1.20, VCFtools 0.1.16, tabix
+- **Tools**: Minimac4 4.1.6, BCFtools 1.20, VCFtools 0.1.16, tabix, Python 3 (with numpy, pandas)
 - **Base**: Alpine Linux 3.18
-- **Size**: ~450MB
+- **Size**: ~500MB
 
 #### 5. Comprehensive Phasing
 ```bash
 docker pull mamana/phasing:eagle-2.4.1
 ```
 - **Purpose**: Complete phasing workflow
-- **Tools**: Eagle 2.4.1, HTSlib 1.20, tabix
+- **Tools**: Eagle 2.4.1, HTSlib 1.20, tabix, Python 3 (with numpy, pandas)
 - **Base**: Alpine Linux 3.18
-- **Size**: ~350MB
+- **Size**: ~400MB
 
 ## Usage in Nextflow
 
@@ -120,12 +122,15 @@ docker-compose up imputation
 
 | Process Category | Container | Tools Included |
 |------------------|-----------|----------------|
-| **Imputation** | `mamana/minimac4:minimac4-4.1.6` | Minimac4 4.1.6 |
-| **Phasing** | `mamana/eagle-phasing:eagle-2.4.1` | Eagle 2.4.1, HTSlib 1.20 |
-| **VCF Processing** | `mamana/vcf-processing:bcftools-1.20` | BCFtools 1.20, VCFtools 0.1.16, tabix |
-| **Quality Control** | `mamana/vcf-processing:bcftools-1.20` | BCFtools 1.20, VCFtools 0.1.16 |
-| **File Operations** | `mamana/vcf-processing:bcftools-1.20` | BCFtools 1.20, tabix |
-| **Comprehensive** | `mamana/imputation:minimac4-4.1.6` | All imputation tools |
+| **Imputation** | `mamana/minimac4:minimac4-4.1.6` | Minimac4 4.1.6, Python 3 |
+| **Phasing** | `mamana/eagle-phasing:eagle-2.4.1` | Eagle 2.4.1, HTSlib 1.20, Python 3 |
+| **VCF Processing** | `mamana/vcf-processing:bcftools-1.20` | BCFtools 1.20, VCFtools 0.1.16, tabix, Python 3 |
+| **Quality Control** | `mamana/vcf-processing:bcftools-1.20` | BCFtools 1.20, VCFtools 0.1.16, Python 3 |
+| **File Operations** | `mamana/vcf-processing:bcftools-1.20` | BCFtools 1.20, tabix, Python 3 |
+| **Comprehensive** | `mamana/imputation:minimac4-4.1.6` | All imputation tools, Python 3 |
+| **Analysis** | `mamana/analysis:latest` | BCFtools, Python 3, R 4.3.0, analysis packages |
+| **PLINK2** | `mamana/plink2:latest` | PLINK 2.0, Python 3 |
+| **Python Plotting** | `mamana/python-plotting:latest` | Python 3 with matplotlib, seaborn, plotly |
 
 ## Running the Pipeline
 
@@ -175,6 +180,9 @@ docker pull mamana/eagle-phasing:eagle-2.4.1
 docker pull mamana/imputation:minimac4-4.1.6
 docker pull mamana/phasing:eagle-2.4.1
 docker pull mamana/vcf-processing:bcftools-1.20
+docker pull mamana/analysis:latest
+docker pull mamana/plink2:latest
+docker pull mamana/python-plotting:latest
 ```
 
 ### Container Testing
@@ -187,6 +195,10 @@ docker run --rm mamana/eagle-phasing:eagle-2.4.1 eagle --help
 
 # Test VCF processing
 docker run --rm mamana/vcf-processing:bcftools-1.20 bcftools --version
+
+# Test Python availability in containers
+docker run --rm mamana/minimac4:minimac4-4.1.6 python3 -c "import numpy, pandas; print('Python ready')"
+docker run --rm mamana/vcf-processing:bcftools-1.20 python3 -c "import numpy, pandas; print('Python ready')"
 ```
 
 ### Development with Docker Compose
@@ -241,6 +253,9 @@ docker-compose logs -f imputation
 docker pull mamana/minimac4:minimac4-4.1.6
 docker pull mamana/eagle-phasing:eagle-2.4.1
 docker pull mamana/vcf-processing:bcftools-1.20
+docker pull mamana/analysis:latest
+docker pull mamana/plink2:latest
+docker pull mamana/python-plotting:latest
 
 # Clean up old images
 docker image prune -f
@@ -258,6 +273,21 @@ For container-related issues:
 - Check the [GitHub Issues](https://github.com/h3abionet/chipimputation/issues)
 - Review the [Docker Hub repositories](https://hub.docker.com/u/mamana)
 - Contact the maintainers via [AfriGen-D](mailto:info@afrigen.org)
+
+## Key Features (2025 Update)
+
+### 🐍 Python Integration
+All containers now include:
+- Python 3.11+ with development headers
+- NumPy and Pandas pre-installed
+- pip for additional package installation
+- Full Python scripting support for custom workflows
+
+### 📊 Enhanced Capabilities
+- **Scripting**: Python available for custom data processing
+- **Analysis**: Built-in data manipulation libraries
+- **Compatibility**: Works with existing Python scripts
+- **Performance**: Optimized Python builds for Alpine/Ubuntu
 
 ---
 

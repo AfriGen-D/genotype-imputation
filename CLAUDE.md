@@ -83,6 +83,8 @@ withName: 'QC_DUPL|SPLIT_MULTI_ALLELIC|FILTER_MIN_AC' { maxForks = 50 }
 - **PLOT_R2_GENOMIC_WINDOWS module** - disabled due to Unicode R² character issues
 - Monitor container builds on GitHub Actions after commits
 - All plotting scripts verified working with assigned containers (✅ Completed)
+- Verify all Python scripts work correctly with their assigned containers
+- Test command: `nextflow run main.nf --input samplesheet_chr21.csv -c v6_chr21_phased_v2.config -profile slurm,singularity -resume`
 
 ### Plotting Infrastructure Details
 

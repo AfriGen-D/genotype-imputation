@@ -1,0 +1,4 @@
+sample,vcf,population,sex
+sample1,/path/to/sample1.vcf.gz,EUR,Female
+sample2,/path/to/sample2.vcf.gz,AFR,Male
+sample3,/path/to/sample3.vcf.gz,AMR,Unknown

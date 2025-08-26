@@ -19,14 +19,12 @@ RUN apk add --no-cache \
     xz \
     curl \
     libstdc++ \
-    # Azure tools
+    # Python and Azure tools
     python3 \
-    py3-pip
-
-# Install minimal Python packages for Azure
-RUN pip3 install --no-cache-dir --break-system-packages \
-    numpy \
-    pandas
+    python3-dev \
+    py3-pip \
+    py3-numpy \
+    py3-pandas
 
 # Download and install prebuilt Minimac4 binary (reliable approach)
 ENV MINIMAC4_VERSION=4.1.6
