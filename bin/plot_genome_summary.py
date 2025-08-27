@@ -134,6 +134,14 @@ def plot_genome_wide_maf(ax, genome_summary):
     bin_names = sorted(maf_bins.keys())
     counts = [maf_bins[bin_name] for bin_name in bin_names]
     total = sum(counts)
+    
+    # Check for empty data
+    if total == 0:
+        ax.text(0.5, 0.5, 'No MAF data available', 
+                ha='center', va='center', transform=ax.transAxes)
+        ax.set_title('MAF Distribution (Genome-wide)')
+        return
+    
     percentages = [(c/total)*100 for c in counts]
     
     # Create bar chart

@@ -71,15 +71,23 @@ def create_genome_r2_distribution_plot(genome_summary):
         all_r2_values.extend(chr_r2[:1000])  # Sample for visualization
         chr_names.extend([chr_data.get('chromosome', '').replace('chr', '')] * len(chr_r2[:1000]))
     
-    ax1.hist(all_r2_values, bins=50, alpha=0.7, color='steelblue', edgecolor='black')
-    ax1.set_title('Genome-Wide R² Distribution', fontsize=14, fontweight='bold')
-    ax1.set_xlabel('R² Value')
-    ax1.set_ylabel('Frequency')
-    ax1.axvline(x=genome_summary.get('mean_r2', 0), color='red', linestyle='--', 
-                label=f'Mean R² = {genome_summary.get("mean_r2", 0):.3f}')
-    ax1.axvline(x=0.3, color='orange', linestyle=':', label='R² = 0.3 (threshold)')
-    ax1.axvline(x=0.8, color='green', linestyle=':', label='R² = 0.8 (high quality)')
-    ax1.legend()
+    if len(all_r2_values) > 0:
+        ax1.hist(all_r2_values, bins=50, alpha=0.7, color='steelblue', edgecolor='black')
+        ax1.set_title('Genome-Wide R² Distribution', fontsize=14, fontweight='bold')
+        ax1.set_xlabel('R² Value')
+        ax1.set_ylabel('Frequency')
+        mean_r2 = genome_summary.get('mean_r2', 0)
+        if mean_r2 is None:
+            mean_r2 = 0
+        ax1.axvline(x=mean_r2, color='red', linestyle='--', 
+                    label=f'Mean R² = {mean_r2:.3f}')
+        ax1.axvline(x=0.3, color='orange', linestyle=':', label='R² = 0.3 (threshold)')
+        ax1.axvline(x=0.8, color='green', linestyle=':', label='R² = 0.8 (high quality)')
+        ax1.legend()
+    else:
+        ax1.text(0.5, 0.5, 'No R² data available', 
+                ha='center', va='center', transform=ax1.transAxes)
+        ax1.set_title('Genome-Wide R² Distribution', fontsize=14, fontweight='bold')
     
     # Subplot 2: R² quartiles by chromosome
     ax2 = plt.subplot(2, 2, 2)
@@ -111,23 +119,29 @@ def create_genome_r2_distribution_plot(genome_summary):
     ax3 = plt.subplot(2, 2, 3)
     
     sorted_r2 = np.sort(all_r2_values)
-    cumulative = np.arange(1, len(sorted_r2) + 1) / len(sorted_r2)
     
-    ax3.plot(sorted_r2, cumulative, linewidth=2, color='purple')
-    ax3.set_title('Cumulative R² Distribution', fontsize=14, fontweight='bold')
-    ax3.set_xlabel('R² Value')
-    ax3.set_ylabel('Cumulative Probability')
-    ax3.axvline(x=0.3, color='orange', linestyle=':', alpha=0.7)
-    ax3.axvline(x=0.8, color='green', linestyle=':', alpha=0.7)
-    ax3.grid(True, alpha=0.3)
-    
-    # Add percentile annotations
-    percentiles = [25, 50, 75, 90, 95]
-    for p in percentiles:
-        r2_val = np.percentile(sorted_r2, p)
-        ax3.plot(r2_val, p/100, 'ro', markersize=6)
-        ax3.annotate(f'{p}th: {r2_val:.3f}', (r2_val, p/100), 
-                    xytext=(10, 10), textcoords='offset points', fontsize=8)
+    if len(sorted_r2) > 0:
+        cumulative = np.arange(1, len(sorted_r2) + 1) / len(sorted_r2)
+        
+        ax3.plot(sorted_r2, cumulative, linewidth=2, color='purple')
+        ax3.set_title('Cumulative R² Distribution', fontsize=14, fontweight='bold')
+        ax3.set_xlabel('R² Value')
+        ax3.set_ylabel('Cumulative Probability')
+        ax3.axvline(x=0.3, color='orange', linestyle=':', alpha=0.7)
+        ax3.axvline(x=0.8, color='green', linestyle=':', alpha=0.7)
+        ax3.grid(True, alpha=0.3)
+        
+        # Add percentile annotations
+        percentiles = [25, 50, 75, 90, 95]
+        for p in percentiles:
+            r2_val = np.percentile(sorted_r2, p)
+            ax3.plot(r2_val, p/100, 'ro', markersize=6)
+            ax3.annotate(f'{p}th: {r2_val:.3f}', (r2_val, p/100), 
+                        xytext=(10, 10), textcoords='offset points', fontsize=8)
+    else:
+        ax3.text(0.5, 0.5, 'No R² data available', 
+                ha='center', va='center', transform=ax3.transAxes)
+        ax3.set_title('Cumulative R² Distribution', fontsize=14, fontweight='bold')
     
     # Subplot 4: Quality categories summary
     ax4 = plt.subplot(2, 2, 4)
@@ -139,6 +153,16 @@ def create_genome_r2_distribution_plot(genome_summary):
     low_quality = sum(1 for r2 in all_r2_values if r2 < 0.3)
     total_sampled = len(all_r2_values)
     
+    # Calculate percentages safely
+    high_pct = (high_quality/total_sampled)*100 if total_sampled > 0 else 0
+    medium_pct = (medium_quality/total_sampled)*100 if total_sampled > 0 else 0
+    low_pct = (low_quality/total_sampled)*100 if total_sampled > 0 else 0
+    
+    # Get mean R2 value
+    overall_mean_r2 = genome_summary.get('mean_r2', 0)
+    if overall_mean_r2 is None:
+        overall_mean_r2 = 0
+    
     stats_text = f"""
     R² Distribution Summary
     
@@ -149,15 +173,15 @@ def create_genome_r2_distribution_plot(genome_summary):
     Quality Categories (sampled):
     
     High Quality (R² ≥ 0.8): {high_quality:,}
-    ({(high_quality/total_sampled)*100:.1f}%)
+    ({high_pct:.1f}%)
     
     Medium Quality (0.3 ≤ R² < 0.8): {medium_quality:,}
-    ({(medium_quality/total_sampled)*100:.1f}%)
+    ({medium_pct:.1f}%)
     
     Low Quality (R² < 0.3): {low_quality:,}
-    ({(low_quality/total_sampled)*100:.1f}%)
+    ({low_pct:.1f}%)
     
-    Overall Mean R²: {genome_summary.get('mean_r2', 0):.4f}
+    Overall Mean R²: {overall_mean_r2:.4f}
     """
     
     ax4.text(0.1, 0.9, stats_text, transform=ax4.transAxes, fontsize=11,

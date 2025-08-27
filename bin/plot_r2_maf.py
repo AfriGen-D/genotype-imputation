@@ -6,6 +6,7 @@ matplotlib.use('Agg')
 import numpy as np
 import sys
 import argparse
+import gzip
 
 def main():
     parser = argparse.ArgumentParser(description='Plot R² vs MAF scatter plot')
@@ -20,9 +21,13 @@ def main():
     mafs = []
     rsqs = []
     
-    with open(args.acc_info_file, 'r') as f:
-        header = f.readline()
-        
+    # Handle both gzipped and plain text files
+    open_func = gzip.open if args.acc_info_file.endswith('.gz') else open
+    mode = 'rt' if args.acc_info_file.endswith('.gz') else 'r'
+    
+    with open_func(args.acc_info_file, mode) as f:
+        # Handle tab-delimited format (.info files)
+        header = f.readline().strip()
         for line in f:
             if line.strip():
                 parts = line.strip().split('\t')

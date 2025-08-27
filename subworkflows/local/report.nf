@@ -42,6 +42,7 @@ include { GENERATE_SUMMARY_REPORT   } from '../../modules/local/report/generate_
 // Terra-style visualization modules
 include { PLOT_IMPUTATION_ACCURACY_MAF_BINS } from '../../modules/local/report/plot_imputation_accuracy_maf_bins'
 include { PLOT_AGGREGATED_R2_DASHBOARD      } from '../../modules/local/report/plot_aggregated_r2_dashboard'
+include { CONVERT_VCF_TO_INFO                } from '../../modules/local/report/convert_vcf_to_info'
 
 workflow REPORT {
     take:
@@ -53,12 +54,24 @@ workflow REPORT {
     ch_versions = Channel.empty()
     
     //
-    // MODULE: Filter info by target
+    // MODULE: Convert VCF sites files to info format
+    // This preprocessing step ensures all plotting modules receive .info files
     //
-    // Extract just the info file for FILTER_INFO_BY_TARGET
-    ch_info_only = ch_imputed.map { meta, ref_name, vcf, vcf_index, info ->
+    ch_vcf_sites = ch_imputed.map { meta, ref_name, vcf, vcf_index, info ->
+        // Extract the sites VCF file for conversion
+        // The 'info' here is actually the .sites.vcf.gz file from minimac4
         [meta, ref_name, info]
     }
+    
+    CONVERT_VCF_TO_INFO ( ch_vcf_sites )
+    ch_versions = ch_versions.mix(CONVERT_VCF_TO_INFO.out.versions)
+    
+    // Now use the converted .info files for all downstream processing
+    ch_info_only = CONVERT_VCF_TO_INFO.out.info
+    
+    //
+    // MODULE: Filter info by target
+    //
     FILTER_INFO_BY_TARGET ( ch_info_only )
     ch_versions = ch_versions.mix(FILTER_INFO_BY_TARGET.out.versions)
     
@@ -232,17 +245,20 @@ workflow REPORT {
     PLOT_DOSAGE_DISTRIBUTION ( ch_dosage_input )
     ch_versions = ch_versions.mix(PLOT_DOSAGE_DISTRIBUTION.out.versions)
     
-    // Calibration plot
-    PLOT_CALIBRATION ( ch_info_only )
-    ch_versions = ch_versions.mix(PLOT_CALIBRATION.out.versions)
+    // Calibration plot - DISABLED (requires validation/truth data)
+    // NOTE: Requires external validation dataset to compare against
+    // PLOT_CALIBRATION ( ch_info_only )
+    // ch_versions = ch_versions.mix(PLOT_CALIBRATION.out.versions)
     
-    // Concordance MAF plot
-    PLOT_CONCORDANCE_MAF ( ch_info_only )
-    ch_versions = ch_versions.mix(PLOT_CONCORDANCE_MAF.out.versions)
+    // Concordance MAF plot - DISABLED (requires validation/truth data)
+    // NOTE: Requires external validation dataset for concordance analysis
+    // PLOT_CONCORDANCE_MAF ( ch_info_only )
+    // ch_versions = ch_versions.mix(PLOT_CONCORDANCE_MAF.out.versions)
     
-    // Cross-validation plot
-    PLOT_CROSS_VALIDATION ( ch_info_only )
-    ch_versions = ch_versions.mix(PLOT_CROSS_VALIDATION.out.versions)
+    // Cross-validation plot - DISABLED (requires validation/truth data)
+    // NOTE: Requires held-out validation data from cross-validation run
+    // PLOT_CROSS_VALIDATION ( ch_info_only )
+    // ch_versions = ch_versions.mix(PLOT_CROSS_VALIDATION.out.versions)
     
     // Heterozygosity analysis - DISABLED due to syntax errors
     // ch_het_input = ch_imputed.map { meta, ref_name, vcf, vcf_index, info ->
@@ -262,19 +278,19 @@ workflow REPORT {
     PLOT_IMPUTATION_ACCURACY_MAF_BINS ( ch_info_only )
     ch_versions = ch_versions.mix(PLOT_IMPUTATION_ACCURACY_MAF_BINS.out.versions)
     
-    // Aggregated R² dashboard (genome-wide or per sample)
+    // Aggregated R² dashboard - Now enabled with converted .info files
     PLOT_AGGREGATED_R2_DASHBOARD ( ch_info_only )
     ch_versions = ch_versions.mix(PLOT_AGGREGATED_R2_DASHBOARD.out.versions)
     
-    // Generate summary report
-    ch_summary_input = REPORT_WELL_IMPUTED.out.report
-        .join(REPORT_ACCURACY.out.report, by: [0, 1])
-        .join(AVERAGE_R2.out.average, by: [0, 1])
-        .map { meta, ref_name, well_txt, well_summary, acc_txt, acc_tsv, avg_r2 ->
-            [meta, ref_name, well_summary, acc_txt, avg_r2]
-        }
-    GENERATE_SUMMARY_REPORT ( ch_summary_input )
-    ch_versions = ch_versions.mix(GENERATE_SUMMARY_REPORT.out.versions)
+    // Generate summary report - DISABLED (needs input format fix)
+    // ch_summary_input = REPORT_WELL_IMPUTED.out.report
+    //     .join(REPORT_ACCURACY.out.report, by: [0, 1])
+    //     .join(AVERAGE_R2.out.average, by: [0, 1])
+    //     .map { meta, ref_name, well_txt, well_summary, acc_txt, acc_tsv, avg_r2 ->
+    //         [meta, ref_name, well_summary, acc_txt, avg_r2]
+    //     }
+    // GENERATE_SUMMARY_REPORT ( ch_summary_input )
+    // ch_versions = ch_versions.mix(GENERATE_SUMMARY_REPORT.out.versions)
     
     //
     // MODULE: Collect warnings from pipeline log
@@ -299,7 +315,7 @@ workflow REPORT {
                    AVERAGE_R2.out.average,
                    AVERAGE_R2.out.summary,
                    GENERATE_CHUNK_JSON.out.json,
-                   GENERATE_SUMMARY_REPORT.out.report,
+                   // GENERATE_SUMMARY_REPORT.out.report,  // Disabled - needs input format fix
                    COMPARE_PRE_POST_IMPUTATION.out.comparison
                    // MERGE_FREQ_COMPARISON.out.summary  // Disabled - outputs path not tuple, breaks mix
                )
@@ -315,9 +331,9 @@ workflow REPORT {
                    ch_maf_r2_plots,
                    PLOT_R2_GENOMIC_WINDOWS.out.plot,
                    PLOT_DOSAGE_DISTRIBUTION.out.plot,
-                   PLOT_CALIBRATION.out.plot,
-                   PLOT_CONCORDANCE_MAF.out.plot,
-                   PLOT_CROSS_VALIDATION.out.plot,
+                   // PLOT_CALIBRATION.out.plot,
+                   // PLOT_CONCORDANCE_MAF.out.plot,
+                   // PLOT_CROSS_VALIDATION.out.plot,
                    PLOT_IMPUTATION_ACCURACY_MAF_BINS.out.plot,
                    PLOT_AGGREGATED_R2_DASHBOARD.out.plot
                    // PLOT_HETEROZYGOSITY.out.plot,  // Disabled - syntax errors

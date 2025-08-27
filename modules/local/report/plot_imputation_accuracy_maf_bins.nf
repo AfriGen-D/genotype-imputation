@@ -11,10 +11,10 @@ process PLOT_IMPUTATION_ACCURACY_MAF_BINS {
     tuple val(meta), val(ref_name), path(info_file)
     
     output:
-    tuple val(meta), path("*.maf_accuracy.pdf")        , emit: plot
-    tuple val(meta), path("*.maf_accuracy.png")        , emit: plot_png
-    tuple val(meta), path("*.stats.json")              , emit: stats
-    tuple val(meta), path("*.summary.txt")             , emit: summary
+    tuple val(meta), path("*_maf_accuracy.pdf")        , emit: plot
+    tuple val(meta), path("*_maf_accuracy.png")        , emit: plot_png
+    tuple val(meta), path("*_stats.json")              , emit: stats
+    tuple val(meta), path("*_summary.txt")             , emit: summary
     path "versions.yml"                                 , emit: versions
     
     when:

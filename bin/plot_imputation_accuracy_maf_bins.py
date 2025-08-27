@@ -12,11 +12,17 @@ import seaborn as sns
 from pathlib import Path
 import argparse
 import json
+import gzip
 
 def parse_info_file(info_file):
     """Parse Minimac4 info file to extract R² and MAF values"""
     data = []
-    with open(info_file, 'r') as f:
+    # Handle both gzipped and plain text files
+    open_func = gzip.open if info_file.endswith('.gz') else open
+    mode = 'rt' if info_file.endswith('.gz') else 'r'
+    
+    with open_func(info_file, mode) as f:
+        # Handle tab-delimited format (.info files)
         header = f.readline().strip().split('\t')
         maf_idx = header.index('MAF') if 'MAF' in header else -1
         r2_idx = header.index('Rsq') if 'Rsq' in header else header.index('R2') if 'R2' in header else -1
@@ -178,15 +184,17 @@ def generate_summary_stats(df, output_prefix):
     
     for cat_name, cat_df in maf_categories:
         if len(cat_df) > 0:
-            stats[f'{cat_name}_count'] = len(cat_df)
-            stats[f'{cat_name}_mean_r2'] = cat_df['R2'].mean()
-            stats[f'{cat_name}_median_r2'] = cat_df['R2'].median()
-            stats[f'{cat_name}_prop_well_imputed_0.3'] = (cat_df['R2'] >= 0.3).mean()
-            stats[f'{cat_name}_prop_well_imputed_0.8'] = (cat_df['R2'] >= 0.8).mean()
+            stats[f'{cat_name}_count'] = int(len(cat_df))
+            stats[f'{cat_name}_mean_r2'] = float(cat_df['R2'].mean())
+            stats[f'{cat_name}_median_r2'] = float(cat_df['R2'].median())
+            stats[f'{cat_name}_prop_well_imputed_0.3'] = float((cat_df['R2'] >= 0.3).mean())
+            stats[f'{cat_name}_prop_well_imputed_0.8'] = float((cat_df['R2'] >= 0.8).mean())
     
-    # Save statistics
+    # Save statistics (convert numpy types to Python types for JSON)
+    stats_serializable = {k: (float(v) if isinstance(v, (np.integer, np.floating)) else v) 
+                          for k, v in stats.items()}
     with open(f'{output_prefix}_stats.json', 'w') as f:
-        json.dump(stats, f, indent=2)
+        json.dump(stats_serializable, f, indent=2)
     
     # Create text summary
     with open(f'{output_prefix}_summary.txt', 'w') as f:

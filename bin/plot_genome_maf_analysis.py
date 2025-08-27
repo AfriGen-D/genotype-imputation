@@ -83,19 +83,25 @@ def create_genome_maf_plot(genome_summary):
         rare_variants = maf_bins.get('0.00-0.01', 0) + maf_bins.get('0.01-0.05', 0)
         common_variants = total_vars - rare_variants if total_vars > rare_variants else 0
         
+        # Calculate percentages safely
+        rare_pct = (rare_variants/total_vars)*100 if total_vars > 0 else 0
+        common_pct = (common_variants/total_vars)*100 if total_vars > 0 else 0
+        best_r2_cat = max(maf_bin_names, key=lambda x: mean_r2_by_maf[x].get('mean', 0)) if maf_bin_names else 'N/A'
+        max_r2 = max(r2_means) if r2_means else 0
+        
         stats_text = f"""
         MAF Analysis Summary
         
         Total Variants: {total_vars:,}
         
         Rare Variants (MAF < 0.05): {rare_variants:,}
-        ({(rare_variants/total_vars)*100:.1f}%)
+        ({rare_pct:.1f}%)
         
         Common Variants (MAF ≥ 0.05): {common_variants:,}
-        ({(common_variants/total_vars)*100:.1f}%)
+        ({common_pct:.1f}%)
         
-        Best R² Category: {max(maf_bin_names, key=lambda x: mean_r2_by_maf[x].get('mean', 0))}
-        (R² = {max(r2_means):.4f})
+        Best R² Category: {best_r2_cat}
+        (R² = {max_r2:.4f})
         """
         
         ax4.text(0.1, 0.9, stats_text, transform=ax4.transAxes, fontsize=11,

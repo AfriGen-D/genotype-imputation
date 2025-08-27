@@ -7,7 +7,7 @@ process GENERATE_SUMMARY_REPORT {
     publishDir "${params.outdir}/reports/${meta.id}", mode: 'copy'
     
     input:
-    tuple val(meta), val(ref_name), path(metrics_files), path(plot_files)
+    tuple val(meta), val(ref_name), path(well_summary), path(accuracy_txt), path(avg_r2)
     
     output:
     tuple val(meta), val(ref_name), path("*_summary_report.html"), emit: report

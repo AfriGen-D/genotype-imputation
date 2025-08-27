@@ -61,7 +61,9 @@ def create_genome_performance_plot(genome_summary):
     ax1.set_xlabel('Chromosome')
     ax1.set_ylabel('Mean R²')
     ax1.tick_params(axis='x', rotation=45)
-    ax1.axhline(y=genome_summary.get('mean_r2', 0), color='red', linestyle='--', alpha=0.7)
+    mean_r2_value = genome_summary.get('mean_r2', 0)
+    if mean_r2_value is not None:
+        ax1.axhline(y=mean_r2_value, color='red', linestyle='--', alpha=0.7)
     
     ax2 = plt.subplot(2, 2, 2)
     bars2 = ax2.bar(chromosomes, [v/1e6 for v in total_variants], alpha=0.8, color='forestgreen')
@@ -83,6 +85,14 @@ def create_genome_performance_plot(genome_summary):
     ax4.axis('off')
     
     # Summary statistics
+    # Handle potential None values
+    mean_r2 = genome_summary.get('mean_r2', 0)
+    if mean_r2 is None:
+        mean_r2 = 0
+    total_variants = genome_summary.get('total_variants', 0) or 0
+    well_imputed = genome_summary.get('well_imputed_variants', 0) or 0
+    overall_rate = (well_imputed / total_variants * 100) if total_variants > 0 else 0
+    
     stats_text = f"""
     Genome-Wide Performance Summary
     
@@ -91,10 +101,10 @@ def create_genome_performance_plot(genome_summary):
     
     Total Chromosomes: {genome_summary.get('chromosomes_processed', 0)}
     Total Chunks: {genome_summary.get('total_chunks', 0)}
-    Total Variants: {genome_summary.get('total_variants', 0):,}
-    Well-Imputed: {genome_summary.get('well_imputed_variants', 0):,}
+    Total Variants: {total_variants:,}
+    Well-Imputed: {well_imputed:,}
     
-    Overall Mean R²: {genome_summary.get('mean_r2', 0):.4f}
+    Overall Mean R²: {mean_r2:.4f}
     Well-Imputed Rate: {overall_rate:.1f}%
     """
     

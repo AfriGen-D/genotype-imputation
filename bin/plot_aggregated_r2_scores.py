@@ -14,6 +14,7 @@ from pathlib import Path
 import argparse
 import json
 import glob
+import gzip
 
 def aggregate_info_files(info_pattern):
     """Aggregate multiple info files from different chromosomes"""
@@ -24,11 +25,20 @@ def aggregate_info_files(info_pattern):
         # Extract chromosome from filename
         chrom = Path(info_file).stem.split('_')[0] if '_' in Path(info_file).stem else 'unknown'
         
-        with open(info_file, 'r') as f:
-            header = f.readline().strip().split('\t')
-            if 'SNP' not in header:
+        # Handle both gzipped and plain text files
+        open_func = gzip.open if info_file.endswith('.gz') else open
+        mode = 'rt' if info_file.endswith('.gz') else 'r'
+        
+        with open_func(info_file, mode) as f:
+            # Check if this is a VCF file or tab-delimited info file
+            first_line = f.readline().strip()
+            
+            # Handle tab-delimited format (.info files)
+            if not first_line.startswith('SNP'):
                 continue
-                
+            
+            header = first_line.split('\t')
+            
             snp_idx = header.index('SNP')
             maf_idx = header.index('MAF') if 'MAF' in header else -1
             r2_idx = header.index('Rsq') if 'Rsq' in header else header.index('R2') if 'R2' in header else -1

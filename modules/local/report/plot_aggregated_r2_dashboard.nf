@@ -11,9 +11,9 @@ process PLOT_AGGREGATED_R2_DASHBOARD {
     tuple val(meta), val(ref_name), path(info_files)
     
     output:
-    tuple val(meta), path("*.aggregated_dashboard.pdf")    , emit: plot
-    tuple val(meta), path("*.aggregated_dashboard.png")    , emit: plot_png  
-    tuple val(meta), path("*.aggregated_stats.json")       , emit: stats
+    tuple val(meta), path("*_aggregated_dashboard.pdf")    , emit: plot
+    tuple val(meta), path("*_aggregated_dashboard.png")    , emit: plot_png  
+    tuple val(meta), path("*_aggregated_stats.json")       , emit: stats
     path "versions.yml"                                     , emit: versions
     
     when:
@@ -23,19 +23,22 @@ process PLOT_AGGREGATED_R2_DASHBOARD {
     def prefix = task.ext.prefix ?: "${meta.id}"
     def title = meta.id ? "${meta.id} - ${ref_name}" : ref_name
     """
-    # Combine all info files if multiple
-    if [ \$(ls *.info 2>/dev/null | wc -l) -gt 1 ]; then
-        # Multiple files - use pattern
+    # Handle both .sites.vcf.gz and .info files
+    if [ \$(ls *.sites.vcf.gz 2>/dev/null | wc -l) -gt 0 ]; then
+        # VCF sites files
         python ${projectDir}/bin/plot_aggregated_r2_scores.py \\
-            "*.info" \\
+            ${info_files} \\
+            ${prefix} \\
+            --title "${title}"
+    elif [ \$(ls *.info 2>/dev/null | wc -l) -gt 0 ]; then
+        # Legacy .info files  
+        python ${projectDir}/bin/plot_aggregated_r2_scores.py \\
+            ${info_files} \\
             ${prefix} \\
             --title "${title}"
     else
-        # Single file
-        python ${projectDir}/bin/plot_aggregated_r2_scores.py \\
-            \$(ls *.info) \\
-            ${prefix} \\
-            --title "${title}"
+        echo "No info or sites.vcf.gz files found"
+        exit 1
     fi
     
     cat <<-END_VERSIONS > versions.yml

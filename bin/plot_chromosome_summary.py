@@ -45,7 +45,7 @@ def plot_chunk_performance(ax, chr_summary):
     width = 0.35
     
     # Normalize well_imputed for dual axis
-    max_well_imputed = max(well_imputed) if well_imputed else 1
+    max_well_imputed = max(well_imputed) if well_imputed and max(well_imputed) > 0 else 1
     well_imputed_norm = [w/max_well_imputed for w in well_imputed]
     
     bars1 = ax.bar(x - width/2, mean_r2, width, label='Mean R²', alpha=0.8)
@@ -85,6 +85,13 @@ def plot_maf_distribution(ax, chr_summary):
     # Sort bins for consistent ordering
     bin_names = sorted(maf_bins.keys())
     counts = [maf_bins[bin_name] for bin_name in bin_names]
+    
+    # Check if all counts are zero
+    if all(c == 0 for c in counts):
+        ax.text(0.5, 0.5, 'No variants in MAF bins', 
+                ha='center', va='center', transform=ax.transAxes)
+        ax.set_title(f'MAF Distribution - Chromosome {chr_summary.get("chromosome", "?")}')
+        return
     
     # Create pie chart
     colors = plt.cm.Set3(np.linspace(0, 1, len(bin_names)))

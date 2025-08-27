@@ -115,7 +115,30 @@ withName: 'QC_DUPL|SPLIT_MULTI_ALLELIC|FILTER_MIN_AC' { maxForks = 50 }
 - R² thresholds calibrated for population-specific imputation accuracy
 - Frequency spectrum analysis accounts for African variant diversity
 
+## Recent Updates (Last Updated: 2025-08-27)
+
+### Pipeline Testing Results
+- **Core imputation workflow functional**: Successfully tested with chr21 test data
+- **Phasing and imputation modules working**: EAGLE and MINIMAC4 completed successfully
+- **Reporting modules have issues**: Several modules expect different input formats
+  - PLOT_CALIBRATION, PLOT_CONCORDANCE_MAF, PLOT_CROSS_VALIDATION disabled (require validation data)
+  - PLOT_AGGREGATED_R2_DASHBOARD expects .info files but pipeline produces .sites.vcf.gz
+  - Added gzip support to plotting scripts for compressed VCF handling
+- **Main outputs successfully created**: 
+  - Phased VCFs (.phased.vcf.gz)
+  - Imputed dosage VCFs (.dose.vcf.gz) 
+  - Sites info files (.sites.vcf.gz)
+
 ## Instructions for Claude
+
+### Documentation Maintenance
+- **CRITICAL**: After major code updates, commits, or significant changes, ALWAYS update this CLAUDE.md file
+- Document new patterns, conventions, or project-specific requirements discovered during work
+- Update instructions when project structure or dependencies change significantly  
+- Add warnings about known issues or areas requiring special attention
+- Record important architectural decisions and their rationale
+- Keep track of coding standards and style preferences observed in the codebase
+- Before making commits, review if CLAUDE.md needs updating with any discoveries or fixes
 
 ### Bioinformatics Best Practices
 - **Scientific Rigor**: This is a bioinformatics project requiring evidence-based decisions

@@ -165,7 +165,10 @@ def create_chr_maf_analysis_plot(chr_summary, output_file):
     # Create summary table
     summary_data = []
     summary_data.append(['Total Variants', f"{total_variants:,}"])
-    summary_data.append(['Mean R²', f"{chr_summary.get('mean_r2', 0):.4f}"])
+    mean_r2 = chr_summary.get('mean_r2', 0)
+    if mean_r2 is None:
+        mean_r2 = 0
+    summary_data.append(['Mean R²', f"{mean_r2:.4f}"])
     
     if 'info_score_stats' in chr_summary:
         stats = chr_summary['info_score_stats']

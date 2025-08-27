@@ -7,7 +7,7 @@ process PLOT_DOSAGE_DISTRIBUTION {
     publishDir "${params.outdir}/plots/${meta.id}", mode: 'copy'
     
     input:
-    tuple val(meta), val(ref_name), path(vcf_file), val(chr)
+    tuple val(meta), val(ref_name), path(vcf_file), path(vcf_index)
     
     output:
     tuple val(meta), val(ref_name), path("*_dosage_dist.pdf"), emit: plot
@@ -18,9 +18,10 @@ process PLOT_DOSAGE_DISTRIBUTION {
     
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
-    def chr_suffix = chr ? "_chr${chr}" : "_genome"
+    def chr = meta.contig ?: ""
+    def chr_suffix = chr ? "_chr${chr}" : ""
     def plot_out = "${prefix}_${ref_name}${chr_suffix}_dosage_dist.pdf"
-    def chunk_id = chr ? "chr${chr}" : "genome-wide"
+    def chunk_id = meta.chunk ?: "genome-wide"
     """
     # Copy the Python script from bin directory
     cp ${projectDir}/bin/plot_dosage_distribution.py .
@@ -64,7 +65,8 @@ process PLOT_DOSAGE_DISTRIBUTION {
     
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
-    def chr_suffix = chr ? "_chr${chr}" : "_genome"
+    def chr = meta.contig ?: ""
+    def chr_suffix = chr ? "_chr${chr}" : ""
     """
     touch ${prefix}_${ref_name}${chr_suffix}_dosage_dist.pdf
     
