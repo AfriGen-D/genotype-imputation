@@ -112,19 +112,17 @@ workflow PREPROCESS {
         .map { dataset_id, meta, vcf, status, detected_build, first_chrom -> [meta, vcf] }
     
     // Check if we have any valid datasets left
-    ch_vcf_build_validated
-        .count()
-        .subscribe { count ->
-            if (count == 0) {
-                log.error "================================================================"
-                log.error "ERROR: No datasets passed genome build validation!"
-                log.error "Expected genome build: ${expected_build}"
-                log.error "Please check that your input datasets match the expected build:"
-                log.error "  - b37/hg19: chromosomes as '1', '2', '3', etc."
-                log.error "  - b38/hg38: chromosomes as 'chr1', 'chr2', 'chr3', etc."
-                log.error "================================================================"
-                error "Pipeline stopped: No compatible datasets found"
-            }
+    // Note: Using ifEmpty() instead of count().subscribe() to avoid race conditions
+    ch_vcf_build_validated = ch_vcf_build_validated
+        .ifEmpty { 
+            log.error "================================================================"
+            log.error "ERROR: No datasets passed genome build validation!"
+            log.error "Expected genome build: ${expected_build}"
+            log.error "Please check that your input datasets match the expected build:"
+            log.error "  - b37/hg19: chromosomes as '1', '2', '3', etc."
+            log.error "  - b38/hg38: chromosomes as 'chr1', 'chr2', 'chr3', etc."
+            log.error "================================================================"
+            error("Pipeline stopped: No compatible datasets found")
         }
     
     //

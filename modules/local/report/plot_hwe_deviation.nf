@@ -7,7 +7,7 @@ process PLOT_HWE_DEVIATION {
     publishDir "${params.outdir}/plots/${meta.id}", mode: 'copy'
     
     input:
-    tuple val(meta), val(ref_name), path(vcf_file), val(chr)
+    tuple val(meta), val(ref_name), path(vcf_file), path(vcf_index)
     
     output:
     tuple val(meta), val(ref_name), path("*_hwe_deviation.pdf"), emit: plot
@@ -19,9 +19,7 @@ process PLOT_HWE_DEVIATION {
     
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
-    def chr_suffix = chr ? "_chr${chr}" : "_genome"
-    def plot_out = "${prefix}_${ref_name}${chr_suffix}_hwe_deviation.pdf"
-    def chr_arg = chr ? "--chr ${chr}" : ""
+    def plot_out = "${prefix}_${ref_name}_hwe_deviation.pdf"
     def p_threshold = params.hwe_p_threshold ?: 1e-6
     """
     # Copy the Python script from bin directory
@@ -33,8 +31,7 @@ process PLOT_HWE_DEVIATION {
         ${plot_out} \\
         --sample-id "${meta.id}" \\
         --ref-name "${ref_name}" \\
-        --p-threshold ${p_threshold} \\
-        ${chr_arg}
+        --p-threshold ${p_threshold}
     
     # Ensure filesystem sync
     sync

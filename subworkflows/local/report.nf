@@ -31,14 +31,17 @@ include { MERGE_FREQ_COMPARISON     } from '../../modules/local/report/merge_fre
 // New imputation analysis modules - RE-ENABLED AFTER FIXING SYNTAX ERRORS
 include { COMPARE_PRE_POST_IMPUTATION } from '../../modules/local/report/compare_pre_post_imputation'
 include { PLOT_R2_GENOMIC_WINDOWS     } from '../../modules/local/report/plot_r2_genomic_windows'
-// New advanced QC modules
-// include { PLOT_DOSAGE_DISTRIBUTION  } from '../../modules/local/report/plot_dosage_distribution'
-// include { PLOT_CALIBRATION          } from '../../modules/local/report/plot_calibration'
-// include { PLOT_CONCORDANCE_MAF      } from '../../modules/local/report/plot_concordance_maf'
-// include { PLOT_CROSS_VALIDATION     } from '../../modules/local/report/plot_cross_validation'
-// include { PLOT_HETEROZYGOSITY       } from '../../modules/local/report/plot_heterozygosity'
-// include { PLOT_HWE_DEVIATION        } from '../../modules/local/report/plot_hwe_deviation'
-// include { GENERATE_SUMMARY_REPORT   } from '../../modules/local/report/generate_summary'
+// New advanced QC modules - PARTIALLY ENABLED (heterozygosity and HWE have syntax issues)
+include { PLOT_DOSAGE_DISTRIBUTION  } from '../../modules/local/report/plot_dosage_distribution'
+include { PLOT_CALIBRATION          } from '../../modules/local/report/plot_calibration'
+include { PLOT_CONCORDANCE_MAF      } from '../../modules/local/report/plot_concordance_maf'
+include { PLOT_CROSS_VALIDATION     } from '../../modules/local/report/plot_cross_validation'
+// include { PLOT_HETEROZYGOSITY       } from '../../modules/local/report/plot_heterozygosity'  // Syntax error - needs fixing
+// include { PLOT_HWE_DEVIATION        } from '../../modules/local/report/plot_hwe_deviation'    // Syntax error - needs fixing
+include { GENERATE_SUMMARY_REPORT   } from '../../modules/local/report/generate_summary'
+// Terra-style visualization modules
+include { PLOT_IMPUTATION_ACCURACY_MAF_BINS } from '../../modules/local/report/plot_imputation_accuracy_maf_bins'
+include { PLOT_AGGREGATED_R2_DASHBOARD      } from '../../modules/local/report/plot_aggregated_r2_dashboard'
 
 workflow REPORT {
     take:
@@ -220,6 +223,60 @@ workflow REPORT {
     ch_versions = ch_versions.mix(PLOT_R2_GENOMIC_WINDOWS.out.versions)
     
     //
+    // MODULE: Advanced QC Plotting Modules
+    //
+    // Dosage distribution analysis
+    ch_dosage_input = ch_imputed.map { meta, ref_name, vcf, vcf_index, info ->
+        [meta, ref_name, vcf, vcf_index]
+    }
+    PLOT_DOSAGE_DISTRIBUTION ( ch_dosage_input )
+    ch_versions = ch_versions.mix(PLOT_DOSAGE_DISTRIBUTION.out.versions)
+    
+    // Calibration plot
+    PLOT_CALIBRATION ( ch_info_only )
+    ch_versions = ch_versions.mix(PLOT_CALIBRATION.out.versions)
+    
+    // Concordance MAF plot
+    PLOT_CONCORDANCE_MAF ( ch_info_only )
+    ch_versions = ch_versions.mix(PLOT_CONCORDANCE_MAF.out.versions)
+    
+    // Cross-validation plot
+    PLOT_CROSS_VALIDATION ( ch_info_only )
+    ch_versions = ch_versions.mix(PLOT_CROSS_VALIDATION.out.versions)
+    
+    // Heterozygosity analysis - DISABLED due to syntax errors
+    // ch_het_input = ch_imputed.map { meta, ref_name, vcf, vcf_index, info ->
+    //     [meta, ref_name, vcf, vcf_index]
+    // }
+    // PLOT_HETEROZYGOSITY ( ch_het_input )
+    // ch_versions = ch_versions.mix(PLOT_HETEROZYGOSITY.out.versions)
+    
+    // HWE deviation plot - DISABLED due to syntax errors  
+    // ch_hwe_input = ch_imputed.map { meta, ref_name, vcf, vcf_index, info ->
+    //     [meta, ref_name, vcf, vcf_index]
+    // }
+    // PLOT_HWE_DEVIATION ( ch_hwe_input )
+    // ch_versions = ch_versions.mix(PLOT_HWE_DEVIATION.out.versions)
+    
+    // Terra-style MAF bins accuracy analysis
+    PLOT_IMPUTATION_ACCURACY_MAF_BINS ( ch_info_only )
+    ch_versions = ch_versions.mix(PLOT_IMPUTATION_ACCURACY_MAF_BINS.out.versions)
+    
+    // Aggregated R² dashboard (genome-wide or per sample)
+    PLOT_AGGREGATED_R2_DASHBOARD ( ch_info_only )
+    ch_versions = ch_versions.mix(PLOT_AGGREGATED_R2_DASHBOARD.out.versions)
+    
+    // Generate summary report
+    ch_summary_input = REPORT_WELL_IMPUTED.out.report
+        .join(REPORT_ACCURACY.out.report, by: [0, 1])
+        .join(AVERAGE_R2.out.average, by: [0, 1])
+        .map { meta, ref_name, well_txt, well_summary, acc_txt, acc_tsv, avg_r2 ->
+            [meta, ref_name, well_summary, acc_txt, avg_r2]
+        }
+    GENERATE_SUMMARY_REPORT ( ch_summary_input )
+    ch_versions = ch_versions.mix(GENERATE_SUMMARY_REPORT.out.versions)
+    
+    //
     // MODULE: Collect warnings from pipeline log
     //
     // Skip COLLECT_WARNINGS for now as it requires access to .nextflow.log
@@ -241,7 +298,9 @@ workflow REPORT {
                    // COLLECT_WARNINGS.out.summary,   // Disabled - needs alternative implementation
                    AVERAGE_R2.out.average,
                    AVERAGE_R2.out.summary,
-                   GENERATE_CHUNK_JSON.out.json
+                   GENERATE_CHUNK_JSON.out.json,
+                   GENERATE_SUMMARY_REPORT.out.report,
+                   COMPARE_PRE_POST_IMPUTATION.out.comparison
                    // MERGE_FREQ_COMPARISON.out.summary  // Disabled - outputs path not tuple, breaks mix
                )
     chunk_json = GENERATE_CHUNK_JSON.out.json  // Separate emit for aggregation
@@ -253,7 +312,16 @@ workflow REPORT {
                    ch_r2_snppos_plots,
                    ch_r2_snpcount_plots,
                    ch_hist_r2_snpcount_plots,
-                   ch_maf_r2_plots
+                   ch_maf_r2_plots,
+                   PLOT_R2_GENOMIC_WINDOWS.out.plot,
+                   PLOT_DOSAGE_DISTRIBUTION.out.plot,
+                   PLOT_CALIBRATION.out.plot,
+                   PLOT_CONCORDANCE_MAF.out.plot,
+                   PLOT_CROSS_VALIDATION.out.plot,
+                   PLOT_IMPUTATION_ACCURACY_MAF_BINS.out.plot,
+                   PLOT_AGGREGATED_R2_DASHBOARD.out.plot
+                   // PLOT_HETEROZYGOSITY.out.plot,  // Disabled - syntax errors
+                   // PLOT_HWE_DEVIATION.out.plot    // Disabled - syntax errors
                )
     // Specific outputs for hierarchical aggregation
     well_imputed = REPORT_WELL_IMPUTED.out.report

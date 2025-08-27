@@ -9,6 +9,7 @@ process PLOT_R2_GENOMIC_WINDOWS {
     tuple val(meta), val(ref_name), path(info_file)
     
     output:
+    tuple val(meta), path("*.r2_windows.png")           , emit: plot  // Main plot output for workflow
     tuple val(meta), path("*.r2_windows.png")           , emit: window_plot
     tuple val(meta), path("*.poor_regions.txt")         , emit: poor_regions
     tuple val(meta), path("*.r2_heatmap.png")          , emit: heatmap

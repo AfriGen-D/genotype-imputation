@@ -10,6 +10,7 @@ process COMPARE_PRE_POST_IMPUTATION {
     
     output:
     tuple val(meta), path("*.comparison_stats.txt")     , emit: stats
+    tuple val(meta), path("*.comparison_stats.txt")     , emit: comparison  // Alias for compatibility
     tuple val(meta), path("*.variant_counts.png")       , emit: count_plot
     tuple val(meta), path("*.maf_distribution.png")     , emit: maf_plot
     tuple val(meta), path("*.coverage_improvement.png") , emit: coverage_plot

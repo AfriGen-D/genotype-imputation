@@ -7,7 +7,7 @@ process PLOT_HETEROZYGOSITY {
     publishDir "${params.outdir}/plots/${meta.id}", mode: 'copy'
     
     input:
-    tuple val(meta), val(ref_name), path(vcf_file), val(chr)
+    tuple val(meta), val(ref_name), path(vcf_file), path(vcf_index)
     
     output:
     tuple val(meta), val(ref_name), path("*_heterozygosity.pdf"), emit: plot
@@ -19,9 +19,7 @@ process PLOT_HETEROZYGOSITY {
     
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
-    def chr_suffix = chr ? "_chr${chr}" : "_genome"
-    def plot_out = "${prefix}_${ref_name}${chr_suffix}_heterozygosity.pdf"
-    def chr_arg = chr ? "--chr ${chr}" : ""
+    def plot_out = "${prefix}_${ref_name}_heterozygosity.pdf"
     """
     # Copy the Python script from bin directory
     cp ${projectDir}/bin/plot_heterozygosity.py .
@@ -31,8 +29,7 @@ process PLOT_HETEROZYGOSITY {
         ${vcf_file} \\
         ${plot_out} \\
         --sample-id "${meta.id}" \\
-        --ref-name "${ref_name}" \\
-        ${chr_arg}
+        --ref-name "${ref_name}"
     
     # Ensure filesystem sync
     sync
