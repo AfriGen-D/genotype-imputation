@@ -76,15 +76,20 @@ def create_genome_chr_comparison_plot(genome_summary):
     
     # Add trend line
     from scipy import stats
-    if len(total_variants) > 1:
-        slope, intercept, r_value, p_value, std_err = stats.linregress(
-            [v/1e6 for v in total_variants], mean_r2)
-        line_x = np.array([min(v/1e6 for v in total_variants), 
-                          max(v/1e6 for v in total_variants)])
-        line_y = slope * line_x + intercept
-        ax1.plot(line_x, line_y, 'r--', alpha=0.8, 
-                label=f'Trend (R²={r_value:.3f})')
-        ax1.legend()
+    # Check if we have enough unique x values for regression
+    x_values = [v/1e6 for v in total_variants]
+    if len(total_variants) > 1 and len(set(x_values)) > 1:
+        try:
+            slope, intercept, r_value, p_value, std_err = stats.linregress(
+                x_values, mean_r2)
+            line_x = np.array([min(x_values), max(x_values)])
+            line_y = slope * line_x + intercept
+            ax1.plot(line_x, line_y, 'r--', alpha=0.8, 
+                    label=f'Trend (R²={r_value:.3f})')
+            ax1.legend()
+        except ValueError:
+            # Skip trend line if regression fails
+            pass
     
     # Subplot 2: Chromosome metrics comparison
     ax2 = plt.subplot(2, 2, 2)

@@ -69,10 +69,15 @@ def create_genome_maf_plot(genome_summary):
         # Subplot 3: Log-scale MAF distribution
         ax3 = plt.subplot(2, 2, 3)
         ax3.bar(bin_names, counts, alpha=0.8, color='forestgreen')
-        ax3.set_yscale('log')
-        ax3.set_title('MAF Distribution (Log Scale)', fontsize=14, fontweight='bold')
+        # Only set log scale if we have positive values
+        if any(c > 0 for c in counts):
+            ax3.set_yscale('log')
+            ax3.set_ylabel('Number of Variants (log)')
+            ax3.set_title('MAF Distribution (Log Scale)', fontsize=14, fontweight='bold')
+        else:
+            ax3.set_ylabel('Number of Variants')
+            ax3.set_title('MAF Distribution', fontsize=14, fontweight='bold')
         ax3.set_xlabel('MAF Bin')
-        ax3.set_ylabel('Number of Variants (log)')
         ax3.tick_params(axis='x', rotation=45)
         
         # Subplot 4: Summary statistics
