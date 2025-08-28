@@ -54,10 +54,23 @@ site/
 test_data/
 sample_data/
 
+# Development directories (not for production)
+dev_docs/
+dev_scripts/
+dev_logs/
+
+# Development files
+test_*.sh
+test_*.nf
+test_*.config
+*.log
+create_*.sh
+CLAUDE.md
+
 # SpecStory history (if not needed)
 .specstory/
 .history/*
+
+# GitHub specific  
 .github
 .claude
-CLAUDE.md
-create_eagle_tabix_container.sh
