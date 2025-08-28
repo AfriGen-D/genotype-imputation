@@ -3,6 +3,8 @@
 .nextflow.log*
 work/
 output/
+results/
+/users/mamana/genotype-imputation/results/
 singularity_cache/
 
 # Container cache
