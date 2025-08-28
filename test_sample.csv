@@ -2,5 +2,5 @@ dataset,vcf,population,study
 #test_quick,/users/mamana/genotype-imputation/test_data/vcf_chunks/v6_chr21_phased_chunk_0002.vcf.gz,ALL,test_study
 #test_quick,/users/mamana/genotype-imputation/test_data/vcf_chunks/v6_chr21_phased_chunk_0003.vcf.gz,ALL,test_study
 test_quick,/users/mamana/genotype-imputation/test_data/vcf_chunks/v6_chr21_phased_chunk_0003.vcf.gz,ALL,test_study_fast
-#awigen_500,/cbio/projects/001/clients/refimpute/data/input/raw/original_data/awigen_500.vcf.gz,ALL,awigen_500
 awigen_500_b38,/cbio/projects/001/clients/refimpute/data/input/raw/original_data/b38/awigen_500.b38.vcf.gz,ALL,awigen_500.b38
+#awigen_b38,/cbio/projects/001/clients/refimpute/data/input/raw/original_data/b38//awigen_qc_sort.hg38_final.vcf.gz,ALL,awigen_b38,

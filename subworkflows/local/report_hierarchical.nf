@@ -13,6 +13,7 @@ include { PLOT_CHR_ALL_METRICS      } from '../../modules/local/report/plot_chr_
 include { PLOT_GENOME_SUMMARY       } from '../../modules/local/report/plot_genome_summary'
 include { PLOT_GENOME_ALL_METRICS   } from '../../modules/local/report/plot_genome_all_metrics'
 include { GENERATE_DATASET_REPORT   } from '../../modules/local/report/generate_dataset_report'
+include { GENERATE_REPORT_INDEX     } from '../../modules/local/report/generate_report_index'
 
 workflow REPORT_AGG {
     take:
@@ -183,6 +184,24 @@ workflow REPORT_AGG {
     GENERATE_DATASET_REPORT ( ch_final_report_input )
     ch_versions = ch_versions.mix(GENERATE_DATASET_REPORT.out.versions)
     
+    //
+    // Generate HTML index for all reports
+    //
+    ch_dataset_for_index = ch_final_report_input
+        .map { meta, ref_name, genome_summary, genome_plots -> 
+            meta.dataset ?: meta.id
+        }
+        .unique()
+        .take(1)
+    
+    ch_reports_dir = Channel.value(file("${params.outdir}/reports"))
+    
+    GENERATE_REPORT_INDEX (
+        ch_dataset_for_index,
+        ch_reports_dir
+    )
+    ch_versions = ch_versions.mix(GENERATE_REPORT_INDEX.out.versions)
+    
     emit:
     chr_summaries        = AGGREGATE_CHUNKS_TO_CHR.out.chr_summary
     chr_plots           = PLOT_CHR_SUMMARY.out.chr_plots
@@ -202,5 +221,6 @@ workflow REPORT_AGG {
     genome_freq_comp    = PLOT_GENOME_ALL_METRICS.out.freq_comparison
     genome_chr_comp     = PLOT_GENOME_ALL_METRICS.out.chr_comparison
     final_report        = GENERATE_DATASET_REPORT.out.report
+    report_index        = GENERATE_REPORT_INDEX.out.main_index
     versions            = ch_versions
 }

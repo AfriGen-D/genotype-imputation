@@ -12,6 +12,7 @@ include { GENERATE_CHUNK_MAP        } from '../../modules/local/qc/generate_chun
 include { GENERATE_REF_MAP          } from '../../modules/local/qc/generate_ref_map'
 include { CHECK_OVERLAP             } from '../../modules/local/qc/check_overlap'
 include { CHECK_MISMATCH            } from '../../modules/local/qc/check_mismatch'
+include { CHECK_GLOBAL_MISMATCH     } from '../../modules/local/qc/check_global_mismatch'
 include { MERGE_ADJACENT_CHUNKS     } from '../../modules/local/qc/merge_adjacent_chunks'
 include { QC_DUPL                   } from '../../modules/local/qc/qc_dupl'
 include { SPLIT_MULTI_ALLELIC       } from '../../modules/local/qc/split_multi_allelic'
@@ -322,23 +323,83 @@ workflow PREPROCESS {
         CHECK_MISMATCH ( ch_mismatch_input )
         ch_versions = ch_versions.mix(CHECK_MISMATCH.out.versions)
         
+        // Collect all mismatch statuses for global check
+        ch_all_statuses = CHECK_MISMATCH.out.mismatch
+            .map { meta, mismatch_txt, mismatch_status ->
+                mismatch_status.text.trim()
+            }
+            .collect()
+        
+        // Global mismatch check - stop pipeline if too many failures
+        CHECK_GLOBAL_MISMATCH ( ch_all_statuses )
+        ch_versions = ch_versions.mix(CHECK_GLOBAL_MISMATCH.out.versions)
+        
         // Filter chunks based on mismatch check
         ch_vcf_chunks_final = ch_vcf_chunks_filtered
             .join(CHECK_MISMATCH.out.mismatch)
-            .filter { meta, vcf, mismatch_txt, mismatch_status ->
+            .branch { meta, vcf, mismatch_txt, mismatch_status ->
                 def status = mismatch_status.text.trim()
-                if (status == "PASS") {
-                    return true
-                } else {
-                    log.warn "Skipping chunk ${meta.id} due to high allele mismatch with reference panel"
-                    return false
-                }
+                pass: status == "PASS"
+                    return [meta, vcf, mismatch_txt, mismatch_status]
+                warn: status == "WARN"
+                    return [meta, vcf, mismatch_txt, mismatch_status]
+                fail: status == "FAIL"
+                    return [meta, vcf, mismatch_txt, mismatch_status]
             }
+        
+        // Log warned chunks
+        ch_vcf_chunks_final.warn.subscribe { meta, vcf, mismatch_txt, mismatch_status ->
+            log.warn "CHUNK WITH WARNINGS: ${meta.id} - Proceeding with imputation despite marginal match quality"
+        }
+        
+        // Log failed chunks with detailed information
+        ch_vcf_chunks_final.fail.subscribe { meta, vcf, mismatch_txt, mismatch_status ->
+            if (params.log_filtered_chunks) {
+                log.warn "=".multiply(80)
+                log.warn "CHUNK FILTERED OUT: ${meta.id}"
+                log.warn "-".multiply(80)
+                log.warn "  Reason: High allele mismatch with reference panel"
+                log.warn "  Chromosome: ${meta.contig}"
+                log.warn "  Region: ${meta.start}-${meta.end}"
+                log.warn "  Action: Chunk excluded from imputation pipeline"
+                log.warn "  "
+                log.warn "  This is expected for:"
+                log.warn "    • Regions with population-specific variants"
+                log.warn "    • Low-quality genotyping regions"
+                log.warn "    • Structural variant regions"
+                log.warn "=".multiply(80)
+            } else {
+                log.warn "Skipping chunk ${meta.id} due to high allele mismatch with reference panel"
+            }
+        }
+        
+        // Include both passed and warned chunks (but not failed)
+        ch_vcf_chunks_filtered = ch_vcf_chunks_final.pass
+            .mix(ch_vcf_chunks_final.warn)
             .map { meta, vcf, mismatch_txt, mismatch_status ->
                 [meta, vcf]
             }
         
-        ch_vcf_chunks = ch_vcf_chunks_final
+        // Track the number of filtered chunks for reporting
+        ch_filtered_count = ch_vcf_chunks_final.fail.count()
+        ch_passed_count = ch_vcf_chunks_filtered.count()
+        
+        // Log summary of filtering if requested
+        if (params.log_filtered_chunks) {
+            ch_filtered_count.subscribe { count ->
+                if (count > 0) {
+                    log.info "\n" + "=".multiply(80)
+                    log.info "CHUNK FILTERING SUMMARY"
+                    log.info "-".multiply(80)
+                    log.info "  Chunks filtered out: ${count}"
+                    log.info "  These chunks had incompatible alleles with the reference panel"
+                    log.info "  Pipeline will continue with remaining chunks"
+                    log.info "=".multiply(80) + "\n"
+                }
+            }
+        }
+        
+        ch_vcf_chunks = ch_vcf_chunks_filtered
     } else {
         // If no reference panels configured, use all chunks as-is
         ch_vcf_chunks = ch_vcf_chunks

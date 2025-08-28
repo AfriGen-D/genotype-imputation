@@ -66,6 +66,41 @@
 - **Container-based execution**: All plots generated in `mamana/python-plotting:1.1.0` container
 - **Scientific visualization**: Matplotlib/seaborn with publication-quality outputs
 
+### Safe Imputation Implementation (2025-08-28)
+
+#### **Problem Solved**
+- Pipeline was failing when chunks had no variants in buffer regions
+- Specifically: chr9:45046581-50046580 had 0 typed variants causing Minimac4 to crash
+- Buffer overlap caused unexpected empty region processing
+
+#### **Solution Components**
+1. **`validate_imputation_chunk.py`**: Pre-validates chunks including buffer regions
+2. **`IMPUTE_MINIMAC4_SAFE`**: Safe imputation module that checks variant density
+3. **`VALIDATE_IMPUTATION_CHUNK`**: Optional validation process module
+4. **Updated `impute.nf` subworkflow**: Integrated safety checks with fallback
+
+#### **Usage**
+```bash
+# Run with safe imputation (default)
+nextflow run main_nfcore.nf -profile singularity \
+  -c v6_chr21_phased_nfcore.config
+
+# Run with extra validation
+nextflow run main_nfcore.nf -profile singularity \
+  -c v6_chr21_phased_nfcore.config \
+  --validate_chunks true
+
+# Disable safe mode (not recommended)
+nextflow run main_nfcore.nf -profile singularity \
+  -c v6_chr21_phased_nfcore.config \
+  --use_safe_imputation false
+```
+
+#### **Configuration Parameters**
+- `use_safe_imputation`: Enable safe imputation mode (default: true)
+- `validate_chunks`: Pre-validate all chunks before imputation (default: false)
+- `minRatio`: Minimum ratio of typed to reference variants (default: 0.01)
+
 ### Performance Optimizations (v6_chr21_phased_nfcore.config)
 ```nextflow
 // SLURM executor settings

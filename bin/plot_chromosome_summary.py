@@ -13,9 +13,28 @@ import matplotlib.patches as mpatches
 from matplotlib.backends.backend_pdf import PdfPages
 import seaborn as sns
 import logging
+import sys
+import os
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+# Add pipeline error handler
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+try:
+    from pipeline_error_handler import (
+        setup_logging, error_handler, validate_input_files,
+        safe_division, safe_percentage, ErrorContext, DataError
+    )
+    logger = setup_logging(level="INFO")
+except ImportError:
+    # Fallback if error handler not available
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger(__name__)
+    def error_handler(func):
+        return func
+    def ErrorContext(op, logger=None):
+        class DummyContext:
+            def __enter__(self): return self
+            def __exit__(self, *args): pass
+        return DummyContext()
 
 # Set style
 plt.style.use('seaborn-v0_8-darkgrid')

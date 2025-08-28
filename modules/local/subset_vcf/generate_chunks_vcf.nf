@@ -18,52 +18,100 @@ process GENERATE_CHUNKS_VCF {
     script:
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
-    def chunk_size = params.chunk_size ?: 5000000
+    def chunk_size = params.chunk_size ?: 50000000  // Default chunk size
+    def min_variants = params.min_chunk_variants ?: 1000  // Minimum variants per chunk
+    def max_chunk_size = params.max_chunk_size ?: 100000000  // Maximum chunk size (100Mb)
     """
     #!/usr/bin/env python3
     
     import subprocess
     import sys
     
-    # Get variant positions from VCF and determine ranges
+    # Configuration
+    BASE_CHUNK_SIZE = ${chunk_size}  # Base chunk size in bp
+    MIN_VARIANTS = ${min_variants}    # Minimum number of variants required per chunk
+    MAX_CHUNK_SIZE = ${max_chunk_size}  # Maximum chunk size to prevent memory issues
+    
+    print(f"Adaptive chunking configuration:")
+    print(f"  Base chunk size: {BASE_CHUNK_SIZE:,} bp")
+    print(f"  Min variants per chunk: {MIN_VARIANTS:,}")
+    print(f"  Max chunk size: {MAX_CHUNK_SIZE:,} bp")
+    print()
+    
+    # Get all variant positions from VCF
     cmd = f"bcftools query -f '%CHROM\\t%POS\\n' ${vcf}"
     result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
     
     chunks = []
     summary = []
     
-    # Parse variant positions to get first and last per chromosome
-    chrom_ranges = {}
+    # Parse variant positions per chromosome
+    chrom_positions = {}
     for line in result.stdout.strip().split('\\n'):
         if line:
             parts = line.split('\\t')
             if len(parts) >= 2:
                 chrom = parts[0]
                 pos = int(parts[1])
-                if chrom not in chrom_ranges:
-                    chrom_ranges[chrom] = [pos, pos]
-                else:
-                    chrom_ranges[chrom][0] = min(chrom_ranges[chrom][0], pos)
-                    chrom_ranges[chrom][1] = max(chrom_ranges[chrom][1], pos)
+                if chrom not in chrom_positions:
+                    chrom_positions[chrom] = []
+                chrom_positions[chrom].append(pos)
     
-    # Generate chunks based on actual variant range
-    for chrom, (first_pos, last_pos) in chrom_ranges.items():
-        chunk_count = 0
-        # Generate chunks of specified size within the actual data range
-        for start in range(first_pos, last_pos + 1, ${chunk_size}):
-            end = min(start + ${chunk_size} - 1, last_pos)
+    # Generate adaptive chunks for each chromosome
+    for chrom, positions in chrom_positions.items():
+        if not positions:
+            continue
             
-            # Check if chunk contains any variants using bcftools
-            cmd_check = f"bcftools view -H -r {chrom}:{start}-{end} ${vcf} | head -1 | wc -l"
-            check_result = subprocess.run(cmd_check, shell=True, capture_output=True, text=True)
-            has_variants = int(check_result.stdout.strip()) > 0
-            
-            if has_variants:
-                chunk_id = f"chunk_{chrom}_{start}_{end}"
-                chunks.append(f"{chrom}\\t{start}\\t{end}\\t{chunk_id}")
-                chunk_count += 1
+        positions.sort()
+        first_pos = positions[0]
+        last_pos = positions[-1]
+        total_variants = len(positions)
         
-        summary.append(f"{chrom}: {chunk_count} chunks (range: {first_pos}-{last_pos})")
+        print(f"Processing {chrom}: {total_variants:,} variants in range {first_pos:,}-{last_pos:,}")
+        
+        chunk_count = 0
+        current_start = first_pos
+        
+        while current_start <= last_pos:
+            # Start with base chunk size
+            current_end = min(current_start + BASE_CHUNK_SIZE - 1, last_pos)
+            
+            # Count variants in proposed chunk
+            variants_in_chunk = sum(1 for p in positions if current_start <= p <= current_end)
+            
+            # Expand chunk if it has too few variants (but respect max size)
+            while variants_in_chunk < MIN_VARIANTS and current_end < last_pos:
+                # Extend chunk by 25% or to next significant variant cluster
+                extension = min(BASE_CHUNK_SIZE // 4, MAX_CHUNK_SIZE - (current_end - current_start))
+                new_end = min(current_end + extension, last_pos)
+                
+                # Check if we'd exceed max chunk size
+                if (new_end - current_start) > MAX_CHUNK_SIZE:
+                    break
+                    
+                current_end = new_end
+                variants_in_chunk = sum(1 for p in positions if current_start <= p <= current_end)
+                
+                # If still not enough variants and at end of chromosome, accept what we have
+                if current_end >= last_pos:
+                    break
+            
+            # Only create chunk if it has any variants
+            if variants_in_chunk > 0:
+                chunk_id = f"chunk_{chrom}_{current_start}_{current_end}"
+                chunks.append(f"{chrom}\\t{current_start}\\t{current_end}\\t{chunk_id}")
+                chunk_count += 1
+                chunk_size_mb = (current_end - current_start + 1) / 1000000
+                print(f"  Chunk {chunk_count}: {chrom}:{current_start:,}-{current_end:,} ({chunk_size_mb:.1f} Mb, {variants_in_chunk:,} variants)")
+                
+                # If chunk was expanded due to low variant density, warn
+                if chunk_size_mb > (BASE_CHUNK_SIZE / 1000000 * 1.5):
+                    print(f"    ⚠ Expanded chunk size due to low variant density")
+            
+            # Move to next chunk
+            current_start = current_end + 1
+        
+        summary.append(f"{chrom}: {chunk_count} chunks (range: {first_pos:,}-{last_pos:,}, {total_variants:,} variants)")
     
     # Write chunks file
     with open("${prefix}.chunks.txt", "w") as f:

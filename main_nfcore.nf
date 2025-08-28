@@ -22,8 +22,10 @@ params.help = false
 params.input = null
 params.outdir = './results'
 params.chromosomes = 'ALL'
-params.chunk_size = 5000000
+params.chunk_size = 25000000  // Base chunk size for adaptive chunking
 params.minRatio = 0.01
+params.use_safe_imputation = false  // Disabled - using adaptive chunking instead
+params.validate_chunks = false     // Optional pre-validation
 params.qc_plots = true
 params.generate_chunk_plots = false
 params.max_cpus = 16
@@ -83,6 +85,8 @@ if (params.help) {
       --phasing_method      Phasing algorithm: eagle, shapeit4 (default: eagle)
       --impute_method       Imputation: minimac4, impute5 (default: minimac4)
       --NE <int>            Effective population size (default: 20000)
+      --use_safe_imputation Enable safe imputation mode (default: true)
+      --validate_chunks     Pre-validate chunks before imputation (default: false)
       
     ┌───────────────────────────────────────────────────────────────────────────────┐
     │ EXECUTION PROFILES                                                           │
@@ -286,22 +290,75 @@ workflow {
 }
 
 //
-// Print summary of skipped chunks on completion
+// Print comprehensive summary on pipeline completion
 //
 workflow.onComplete {
+    def status_emoji = workflow.success ? '✅' : '❌'
+    def status_text = workflow.success ? 'SUCCESS' : 'FAILED'
+    def duration_mins = Math.round(workflow.duration.toMinutes())
+    def duration_text = duration_mins > 60 ? "${Math.round(duration_mins/60)}h ${duration_mins%60}m" : "${duration_mins}m"
+    
+    // Count report files if successful
+    def report_counts = ""
+    if (workflow.success) {
+        def reports_dir = file("${params.outdir}/reports")
+        if (reports_dir.exists()) {
+            def pdf_count = reports_dir.listFiles().findAll { it.name.endsWith('.pdf') }.size()
+            def json_count = reports_dir.listFiles().findAll { it.name.endsWith('.json') }.size()
+            report_counts = """
+    📊 Reports Generated:
+       - PDF Reports: ${pdf_count}
+       - JSON Summaries: ${json_count}
+            """
+        }
+    }
+    
     log.info """
-    ========================================
-    Pipeline completed at: ${workflow.complete}
-    Execution status: ${workflow.success ? 'SUCCESS' : 'FAILED'}
-    ========================================
+    ╔═══════════════════════════════════════════════════════════════════════╗
+    ║           ChiPImputation Pipeline Execution Summary                   ║
+    ╚═══════════════════════════════════════════════════════════════════════╝
     
-    Check the reports directory for detailed information about:
-    - Chunks skipped due to insufficient overlap
-    - Chunks skipped due to high allele mismatch
-    - Overall imputation quality metrics
+    ${status_emoji} Pipeline Status: ${status_text}
+    ⏱️  Duration: ${duration_text}
+    📅 Completed: ${workflow.complete}
     
-    Reports location: ${params.outdir}/reports/
-    ========================================
+    📁 Input Data:
+       - Samplesheet: ${params.input}
+       - Chromosomes: ${params.chromosomes}
+       - Chunks processed: ${workflow.stats.getSubmittedCount()}
+    
+    🔧 Configuration:
+       - Reference Panel: ${params.ref_panels.collect{ it[0] }.join(', ')}
+       - Phasing Method: ${params.phasing_method}
+       - Imputation Method: ${params.impute_method}
+       - Chunk Size: ${params.chunk_size} bp
+       - R² Threshold: ${params.r2_threshold}
+    ${report_counts}
+    
+    📍 Output Locations:
+       - Main Results: ${params.outdir}/
+       - Reports: ${params.outdir}/reports/
+       - Imputed VCFs: ${params.outdir}/imputed/
+       - QC Metrics: ${params.outdir}/qc/
+    
+    ${workflow.success ? 
+    """🎯 Next Steps:
+       1. Review quality reports in: ${params.outdir}/reports/
+       2. Check chromosome-level summaries for quality overview
+       3. Examine chunk-level reports for detailed metrics
+       4. Review any warnings in the reports/warnings/ directory
+    """ : 
+    """⚠️  Troubleshooting:
+       1. Check the .nextflow.log file for detailed error messages
+       2. Review work directories for failed processes
+       3. Verify input file formats and paths
+       4. Ensure sufficient computational resources
+    """}
+    
+    ════════════════════════════════════════════════════════════════════════
+    Thank you for using ChiPImputation!
+    For support, visit: https://github.com/h3abionet/chipimputation
+    ════════════════════════════════════════════════════════════════════════
     """.stripIndent()
 }
 

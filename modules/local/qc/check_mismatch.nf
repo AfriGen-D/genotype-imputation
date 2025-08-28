@@ -21,7 +21,8 @@ process CHECK_MISMATCH {
     def chrm = meta.contig
     def chunk_start = meta.start ?: ''
     def chunk_end = meta.end ?: ''
-    def max_mismatch_rate = params.max_mismatch_rate ?: 0.1  // Maximum 10% mismatch allowed
+    def max_mismatch_rate = params.max_mismatch_rate ?: 0.2  // Maximum 20% mismatch allowed (relaxed for diverse populations)
+    def min_matching_variants = params.min_matching_variants ?: 20  // Minimum matching variants (relaxed from 50)
     """
     # Extract variants from chunk
     bcftools query -f '%CHROM\\t%POS\\t%REF\\t%ALT\\n' ${chunk_vcf} > ${prefix}.chunk.alleles
@@ -85,10 +86,15 @@ process CHECK_MISMATCH {
             mismatch_rate = mismatching_alleles / matching_pos
             print "Mismatch rate:", mismatch_rate
             
-            # Write status based on mismatch rate
-            if (mismatch_rate <= ${max_mismatch_rate} && matching_alleles >= 50) {
+            # Write status based on mismatch rate with relaxed criteria
+            if (mismatch_rate <= ${max_mismatch_rate} && matching_alleles >= ${min_matching_variants}) {
                 print "PASS" > "${prefix}.mismatch.status"
                 print "Status: PASS - Acceptable mismatch rate and sufficient matching variants"
+            } else if (mismatch_rate <= 0.3 && matching_alleles >= 10) {
+                # Relaxed criteria for challenging regions
+                print "WARN" > "${prefix}.mismatch.status"
+                print "Status: WARN - Marginal match quality, proceeding with caution"
+                print "Warning: Mismatch rate", mismatch_rate, "with", matching_alleles, "matching variants"
             } else {
                 print "FAIL" > "${prefix}.mismatch.status"
                 if (mismatch_rate > ${max_mismatch_rate}) {

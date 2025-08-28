@@ -5,9 +5,6 @@
 */
 
 include { IMPUTE_MINIMAC4           } from '../../modules/local/impute/impute_minimac4'
-// include { EXTRACT_IMPUTE_INFO       } from '../../modules/local/impute/extract_impute_info'
-// include { COMBINE_IMPUTE            } from '../../modules/local/impute/combine_impute'
-// include { COMBINE_INFO              } from '../../modules/local/impute/combine_info'
 
 workflow IMPUTE {
     take:
@@ -24,7 +21,7 @@ workflow IMPUTE {
     ]
     
     //
-    // MODULE: Minimac4 imputation
+    // MODULE: Minimac4 imputation - Standard version only
     //
     if (ref_panels && ref_panels.size() > 0) {
         // Map the phased channel to include formatted reference panel paths
@@ -37,20 +34,21 @@ workflow IMPUTE {
             
             // Replace %s with actual chromosome from meta
             def chrm = meta.contig
-            def ref_msav = file(sprintf(ref_msav_template, chrm))
-            def ref_vcf = file(sprintf(ref_vcf_template, chrm))
+            def ref_msav = file(ref_msav_template.replace('%s', chrm))
+            def ref_vcf = file(ref_vcf_template.replace('%s', chrm))
             
             // Return the mapped data
             [meta, vcf, vcf_index, [ref_name, ref_msav, ref_vcf]]
         }
         
+        // Run standard imputation
         IMPUTE_MINIMAC4 ( 
             ch_phased_with_ref.map { meta, vcf, vcf_index, ref_data -> 
                 [meta, vcf, vcf_index]
             },
             ch_phased_with_ref.map { meta, vcf, vcf_index, ref_data ->
-                ref_data
-            }  // Each chunk gets its chromosome-specific reference panel
+                [ref_data[0], ref_data[1], ref_data[2]]
+            }
         )
         ch_versions = ch_versions.mix(IMPUTE_MINIMAC4.out.versions)
         ch_imputed = IMPUTE_MINIMAC4.out.imputed

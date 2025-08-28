@@ -1,375 +1,367 @@
 #!/usr/bin/env python3
 """
-Generate index.html files for easy navigation of organized results.
+Generate an HTML index page for all imputation reports
 """
 
 import os
+import json
 import argparse
 from pathlib import Path
 from datetime import datetime
-import json
+import glob
 
-def generate_html_header(title):
-    """Generate HTML header with styling."""
-    return f"""<!DOCTYPE html>
+def scan_report_structure(reports_dir):
+    """Scan and categorize the report directory structure"""
+    reports_dir = Path(reports_dir)
+    
+    structure = {
+        'pdfs': [],
+        'jsons': [],
+        'plots': {'chunk': [], 'chromosome': [], 'genome': []},
+        'warnings': [],
+        'summaries': []
+    }
+    
+    # Walk through directory structure
+    for item in reports_dir.rglob('*'):
+        if item.is_file():
+            rel_path = item.relative_to(reports_dir)
+            
+            # Categorize by file type and location
+            if item.suffix == '.pdf':
+                structure['pdfs'].append(rel_path)
+                
+                # Categorize plots by level
+                if 'genome' in str(rel_path):
+                    structure['plots']['genome'].append(rel_path)
+                elif 'chromosome' in str(rel_path) or 'chr' in item.name:
+                    structure['plots']['chromosome'].append(rel_path)
+                elif 'chunk' in str(rel_path):
+                    structure['plots']['chunk'].append(rel_path)
+                    
+            elif item.suffix == '.json':
+                structure['jsons'].append(rel_path)
+                if 'summary' in item.name:
+                    structure['summaries'].append(rel_path)
+                    
+            elif 'warning' in str(rel_path):
+                structure['warnings'].append(rel_path)
+    
+    return structure
+
+def generate_html_index(reports_dir, output_file, dataset_name="ChiPImputation"):
+    """Generate an HTML index page for all reports"""
+    
+    # Scan directory structure
+    structure = scan_report_structure(reports_dir)
+    
+    html_template = """
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{title}</title>
+    <title>{dataset_name} - Imputation Reports</title>
     <style>
-        body {{
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{ 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
+            line-height: 1.6;
+            color: #333;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
         }}
         .container {{
             max-width: 1200px;
             margin: 0 auto;
+            padding: 20px;
+        }}
+        .header {{
             background: white;
             border-radius: 10px;
             padding: 30px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         }}
         h1 {{
             color: #2d3748;
-            border-bottom: 3px solid #667eea;
-            padding-bottom: 10px;
+            margin-bottom: 10px;
+            font-size: 2.5em;
         }}
-        h2 {{
-            color: #4a5568;
-            margin-top: 30px;
+        .subtitle {{
+            color: #718096;
+            font-size: 1.1em;
         }}
         .stats-grid {{
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px;
-            margin: 20px 0;
+            margin-top: 30px;
         }}
         .stat-card {{
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: #f7fafc;
             padding: 20px;
             border-radius: 8px;
-            text-align: center;
+            border-left: 4px solid #667eea;
         }}
         .stat-value {{
             font-size: 2em;
             font-weight: bold;
+            color: #2d3748;
         }}
         .stat-label {{
+            color: #718096;
             font-size: 0.9em;
-            opacity: 0.9;
-            margin-top: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }}
-        .file-grid {{
+        .reports-section {{
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }}
+        h2 {{
+            color: #2d3748;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+        }}
+        .report-grid {{
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
             gap: 15px;
-            margin: 20px 0;
+            margin-top: 20px;
         }}
-        .file-card {{
+        .report-card {{
+            background: #f7fafc;
             border: 1px solid #e2e8f0;
             border-radius: 8px;
             padding: 15px;
-            transition: all 0.3s;
+            transition: all 0.3s ease;
         }}
-        .file-card:hover {{
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        .report-card:hover {{
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            background: #fff;
         }}
-        .file-card a {{
-            color: #667eea;
-            text-decoration: none;
-            font-weight: 500;
-        }}
-        .file-card a:hover {{
-            text-decoration: underline;
-        }}
-        .breadcrumb {{
-            background: #f7fafc;
-            padding: 10px 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-        }}
-        .breadcrumb a {{
-            color: #667eea;
-            text-decoration: none;
-        }}
-        .breadcrumb a:hover {{
-            text-decoration: underline;
-        }}
-        .report-links {{
-            background: #f0f4ff;
-            border-left: 4px solid #667eea;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 4px;
-        }}
-        .report-links h3 {{
-            margin-top: 0;
+        .report-title {{
+            font-weight: 600;
             color: #2d3748;
+            margin-bottom: 8px;
         }}
-        .report-links a {{
+        .report-meta {{
+            font-size: 0.85em;
+            color: #718096;
+        }}
+        .report-link {{
             display: inline-block;
-            margin: 5px 10px 5px 0;
-            padding: 8px 15px;
-            background: white;
-            border: 1px solid #667eea;
-            border-radius: 20px;
-            color: #667eea;
-            text-decoration: none;
-            transition: all 0.3s;
-        }}
-        .report-links a:hover {{
+            margin-top: 10px;
+            padding: 6px 12px;
             background: #667eea;
             color: white;
-        }}
-        .timestamp {{
-            color: #718096;
+            text-decoration: none;
+            border-radius: 5px;
             font-size: 0.9em;
-            margin-top: 30px;
-            text-align: right;
+            transition: background 0.3s ease;
+        }}
+        .report-link:hover {{
+            background: #5a67d8;
+        }}
+        .quality-badge {{
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 600;
+            margin-left: 8px;
+        }}
+        .quality-high {{ background: #48bb78; color: white; }}
+        .quality-medium {{ background: #ed8936; color: white; }}
+        .quality-low {{ background: #f56565; color: white; }}
+        .footer {{
+            text-align: center;
+            color: white;
+            padding: 20px;
+            margin-top: 40px;
         }}
     </style>
 </head>
 <body>
     <div class="container">
-"""
-
-def generate_html_footer():
-    """Generate HTML footer."""
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    return f"""
-        <div class="timestamp">Generated on {timestamp}</div>
+        <div class="header">
+            <h1>🧬 {dataset_name} Imputation Reports</h1>
+            <p class="subtitle">Generated on {timestamp}</p>
+            
+            <div class="stats-grid">
+                {stats_cards}
+            </div>
+        </div>
+        
+        {report_sections}
+        
+        <div class="footer">
+            <p>Generated by ChiPImputation Pipeline | © 2025 H3ABioNet</p>
+        </div>
     </div>
 </body>
-</html>"""
-
-def generate_breadcrumb(path, base_path):
-    """Generate breadcrumb navigation."""
-    parts = Path(path).relative_to(base_path).parts
-    breadcrumb = ['<div class="breadcrumb">']
-    breadcrumb.append('<a href="/">Home</a>')
+</html>
+    """
     
-    for i, part in enumerate(parts):
-        if i < len(parts) - 1:
-            link_path = '/' + '/'.join(parts[:i+1])
-            breadcrumb.append(f' / <a href="{link_path}/index.html">{part}</a>')
-        else:
-            breadcrumb.append(f' / <strong>{part}</strong>')
+    # Use structured data from scan
+    pdf_files = structure['pdfs']
+    json_files = structure['jsons']
     
-    breadcrumb.append('</div>')
-    return ''.join(breadcrumb)
-
-def collect_metrics(directory):
-    """Collect metrics from JSON files in directory."""
-    metrics = {
-        'total_variants': 0,
-        'well_imputed': 0,
-        'mean_r2': [],
-        'chunks': 0
-    }
+    # Use pre-categorized reports
+    chunk_reports = [(Path(p).stem, p) for p in structure['plots']['chunk']]
+    chr_reports = [(Path(p).stem, p) for p in structure['plots']['chromosome']]
+    genome_reports = [(Path(p).stem, p) for p in structure['plots']['genome']]
+    warnings = structure['warnings']
+    summaries = structure['summaries']
     
-    for json_file in Path(directory).rglob('*.json'):
-        try:
-            with open(json_file, 'r') as f:
-                data = json.load(f)
-                if 'total_variants' in data:
-                    metrics['total_variants'] += data['total_variants']
-                if 'well_imputed_variants' in data:
-                    metrics['well_imputed'] += data['well_imputed_variants']
-                if 'mean_r2' in data and data['mean_r2']:
-                    metrics['mean_r2'].append(data['mean_r2'])
-                if 'chunk_id' in data:
-                    metrics['chunks'] += 1
-        except:
-            continue
+    # Generate statistics cards
+    stats_cards = f"""
+        <div class="stat-card">
+            <div class="stat-value">{len(pdf_files)}</div>
+            <div class="stat-label">Total Reports</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{len(genome_reports)}</div>
+            <div class="stat-label">Genome Reports</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{len(chr_reports)}</div>
+            <div class="stat-label">Chromosome Reports</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{len(chunk_reports)}</div>
+            <div class="stat-label">Chunk Reports</div>
+        </div>
+    """
     
-    if metrics['mean_r2']:
-        metrics['mean_r2'] = sum(metrics['mean_r2']) / len(metrics['mean_r2'])
-    else:
-        metrics['mean_r2'] = 0
+    # Generate report sections
+    report_sections = ""
     
-    return metrics
-
-def generate_index(directory, base_path, level='root'):
-    """Generate index.html for a directory."""
-    index_path = os.path.join(directory, 'index.html')
-    dir_name = os.path.basename(directory)
-    
-    # Determine the level and generate appropriate title
-    if level == 'root':
-        title = "Imputation Results"
-    elif level == 'dataset':
-        title = f"Dataset: {dir_name}"
-    elif level == 'refpanel':
-        title = f"Reference Panel: {dir_name}"
-    else:
-        title = dir_name.replace('_', ' ').title()
-    
-    html = [generate_html_header(title)]
-    
-    # Add breadcrumb if not root
-    if level != 'root':
-        html.append(generate_breadcrumb(directory, base_path))
-    
-    html.append(f"<h1>{title}</h1>")
-    
-    # Collect and display metrics
-    metrics = collect_metrics(directory)
-    if any([metrics['total_variants'], metrics['well_imputed'], metrics['chunks']]):
-        html.append('<div class="stats-grid">')
-        
-        if metrics['total_variants']:
-            html.append(f'''
-                <div class="stat-card">
-                    <div class="stat-value">{metrics['total_variants']:,}</div>
-                    <div class="stat-label">Total Variants</div>
+    # Genome-wide reports
+    if genome_reports:
+        report_sections += """
+        <div class="reports-section">
+            <h2>📊 Genome-Wide Reports</h2>
+            <div class="report-grid">
+        """
+        for name, path in sorted(genome_reports):
+            report_sections += f"""
+                <div class="report-card">
+                    <div class="report-title">🌍 {name}</div>
+                    <div class="report-meta">Full genome analysis</div>
+                    <a href="{path}" class="report-link">View Report</a>
                 </div>
-            ''')
-        
-        if metrics['well_imputed']:
-            percentage = (metrics['well_imputed'] / metrics['total_variants'] * 100) if metrics['total_variants'] else 0
-            html.append(f'''
-                <div class="stat-card">
-                    <div class="stat-value">{metrics['well_imputed']:,}</div>
-                    <div class="stat-label">Well Imputed ({percentage:.1f}%)</div>
+            """
+        report_sections += "</div></div>"
+    
+    # Chromosome reports
+    if chr_reports:
+        report_sections += """
+        <div class="reports-section">
+            <h2>🧬 Chromosome-Level Reports</h2>
+            <div class="report-grid">
+        """
+        for name, path in sorted(chr_reports)[:20]:  # Limit display
+            chr_num = name.split('_')[1] if '_' in name else 'Unknown'
+            report_sections += f"""
+                <div class="report-card">
+                    <div class="report-title">Chr {chr_num}</div>
+                    <div class="report-meta">{name}</div>
+                    <a href="{path}" class="report-link">View Report</a>
                 </div>
-            ''')
-        
-        if metrics['mean_r2']:
-            html.append(f'''
-                <div class="stat-card">
-                    <div class="stat-value">{metrics['mean_r2']:.3f}</div>
-                    <div class="stat-label">Mean R²</div>
+            """
+        if len(chr_reports) > 20:
+            report_sections += f"""
+                <div class="report-card">
+                    <div class="report-title">+ {len(chr_reports) - 20} more</div>
+                    <div class="report-meta">Additional chromosome reports available</div>
                 </div>
-            ''')
-        
-        if metrics['chunks']:
-            html.append(f'''
-                <div class="stat-card">
-                    <div class="stat-value">{metrics['chunks']}</div>
-                    <div class="stat-label">Chunks Processed</div>
+            """
+        report_sections += "</div></div>"
+    
+    # Chunk reports summary
+    if chunk_reports:
+        report_sections += f"""
+        <div class="reports-section">
+            <h2>📦 Chunk-Level Reports</h2>
+            <p style="margin: 20px 0; color: #718096;">
+                {len(chunk_reports)} chunk reports generated. These provide detailed metrics for individual genomic regions.
+            </p>
+            <div class="report-grid">
+        """
+        # Show first few chunks as examples
+        for name, path in sorted(chunk_reports)[:6]:
+            report_sections += f"""
+                <div class="report-card">
+                    <div class="report-title">{name[:30]}...</div>
+                    <div class="report-meta">Chunk analysis</div>
+                    <a href="{path}" class="report-link">View Report</a>
                 </div>
-            ''')
-        
-        html.append('</div>')
+            """
+        report_sections += "</div></div>"
     
-    # Find and list reports
-    report_files = []
-    for ext in ['.html', '.pdf']:
-        report_files.extend(Path(directory).glob(f'**/final_report{ext}'))
-        report_files.extend(Path(directory).glob(f'**/*report{ext}'))
+    # Warnings section (if any)
+    if warnings:
+        report_sections += """
+        <div class="reports-section" style="background: #fff3cd; border-left: 4px solid #ffc107;">
+            <h2>⚠️ Warnings & Issues</h2>
+            <p style="margin: 20px 0; color: #856404;">
+                {warning_count} warnings detected during processing. Review these for potential issues.
+            </p>
+            <ul style="list-style: none; padding: 0;">
+        """.format(warning_count=len(warnings))
+        for warning_path in warnings[:10]:  # Show first 10 warnings
+            report_sections += f"""
+                <li style="margin: 10px 0;">
+                    <a href="{warning_path}" style="color: #856404;">
+                        📄 {Path(warning_path).name}
+                    </a>
+                </li>
+            """
+        if len(warnings) > 10:
+            report_sections += f"""
+                <li style="margin: 10px 0; color: #856404;">
+                    ... and {len(warnings) - 10} more warnings
+                </li>
+            """
+        report_sections += "</ul></div>"
     
-    if report_files:
-        html.append('<div class="report-links">')
-        html.append('<h3>📊 Reports</h3>')
-        for report in report_files:
-            rel_path = report.relative_to(directory)
-            file_type = 'PDF' if str(report).endswith('.pdf') else 'HTML'
-            html.append(f'<a href="{rel_path}">{file_type} Report</a>')
-        html.append('</div>')
+    # Generate final HTML
+    html_content = html_template.format(
+        dataset_name=dataset_name,
+        timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        stats_cards=stats_cards,
+        report_sections=report_sections
+    )
     
-    # List subdirectories
-    subdirs = [d for d in Path(directory).iterdir() if d.is_dir() and d.name != '.nextflow']
-    if subdirs:
-        html.append('<h2>📁 Browse Results</h2>')
-        html.append('<div class="file-grid">')
-        
-        for subdir in sorted(subdirs):
-            # Count files in subdirectory
-            file_count = sum(1 for _ in subdir.rglob('*') if _.is_file())
-            
-            # Determine icon based on directory name
-            if 'chunk' in subdir.name:
-                icon = '🧩'
-            elif 'chromosome' in subdir.name:
-                icon = '🧬'
-            elif 'genome' in subdir.name:
-                icon = '🌍'
-            elif 'report' in subdir.name:
-                icon = '📊'
-            elif 'plot' in subdir.name:
-                icon = '📈'
-            else:
-                icon = '📁'
-            
-            html.append(f'''
-                <div class="file-card">
-                    <h3>{icon} <a href="{subdir.name}/index.html">{subdir.name}</a></h3>
-                    <p>{file_count} files</p>
-                </div>
-            ''')
-        
-        html.append('</div>')
+    # Write HTML file
+    with open(output_file, 'w') as f:
+        f.write(html_content)
     
-    # List files in current directory
-    files = [f for f in Path(directory).iterdir() if f.is_file() and f.name != 'index.html']
-    if files:
-        html.append('<h2>📄 Files</h2>')
-        html.append('<div class="file-grid">')
-        
-        for file in sorted(files):
-            size = os.path.getsize(file) / 1024  # KB
-            size_str = f"{size:.1f} KB" if size < 1024 else f"{size/1024:.1f} MB"
-            
-            # Determine icon based on file type
-            if file.suffix == '.pdf':
-                icon = '📑'
-            elif file.suffix == '.html':
-                icon = '🌐'
-            elif file.suffix in ['.png', '.jpg', '.jpeg']:
-                icon = '🖼️'
-            elif file.suffix == '.json':
-                icon = '📋'
-            else:
-                icon = '📄'
-            
-            html.append(f'''
-                <div class="file-card">
-                    <div>{icon} <a href="{file.name}">{file.name}</a></div>
-                    <div style="color: #718096; font-size: 0.9em;">{size_str}</div>
-                </div>
-            ''')
-        
-        html.append('</div>')
-    
-    html.append(generate_html_footer())
-    
-    # Write index.html
-    with open(index_path, 'w') as f:
-        f.write('\n'.join(html))
-    
-    print(f"Generated index: {index_path}")
-    
-    # Recursively generate for subdirectories
-    for subdir in subdirs:
-        if level == 'root':
-            next_level = 'dataset'
-        elif level == 'dataset':
-            next_level = 'refpanel'
-        else:
-            next_level = 'analysis'
-        
-        generate_index(subdir, base_path, next_level)
+    print(f"Report index generated: {output_file}")
+    return len(pdf_files), len(json_files)
 
 def main():
-    parser = argparse.ArgumentParser(description='Generate index.html files for organized results')
-    parser.add_argument('--results-dir', default='/scratch3/users/mamana/results_organized',
-                       help='Root directory of organized results')
+    parser = argparse.ArgumentParser(description='Generate HTML index for imputation reports')
+    parser.add_argument('reports_dir', help='Directory containing reports')
+    parser.add_argument('--output', default='report_index.html', help='Output HTML file')
+    parser.add_argument('--dataset', default='ChiPImputation', help='Dataset name')
     
     args = parser.parse_args()
     
-    if not os.path.exists(args.results_dir):
-        print(f"Results directory not found: {args.results_dir}")
-        return
+    pdf_count, json_count = generate_html_index(
+        args.reports_dir, 
+        args.output,
+        args.dataset
+    )
     
-    print(f"Generating index files for: {args.results_dir}")
-    generate_index(args.results_dir, args.results_dir, 'root')
-    print("Index generation complete!")
+    print(f"Indexed {pdf_count} PDF reports and {json_count} JSON summaries")
 
 if __name__ == "__main__":
     main()

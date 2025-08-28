@@ -56,12 +56,14 @@ workflow REPORT {
     //
     // MODULE: Convert VCF sites files to info format
     // This preprocessing step ensures all plotting modules receive .info files
+    // MODIFIED: Add error tolerance for missing chunks
     //
-    ch_vcf_sites = ch_imputed.map { meta, ref_name, vcf, vcf_index, info ->
-        // Extract the sites VCF file for conversion
-        // The 'info' here is actually the .sites.vcf.gz file from minimac4
-        [meta, ref_name, info]
-    }
+    ch_vcf_sites = ch_imputed
+        .map { meta, ref_name, vcf, vcf_index, info ->
+            // Extract the sites VCF file for conversion
+            // The 'info' here is actually the .sites.vcf.gz file from minimac4
+            [meta, ref_name, info]
+        }
     
     CONVERT_VCF_TO_INFO ( ch_vcf_sites )
     ch_versions = ch_versions.mix(CONVERT_VCF_TO_INFO.out.versions)
@@ -74,11 +76,13 @@ workflow REPORT {
     //
     FILTER_INFO_BY_TARGET ( ch_info_only )
     ch_versions = ch_versions.mix(FILTER_INFO_BY_TARGET.out.versions)
+    ch_filtered_info = FILTER_INFO_BY_TARGET.out.filtered
     
     //
     // MODULE: Report well imputed variants
+    // MODIFIED: Use error-tolerant channel
     //
-    REPORT_WELL_IMPUTED ( FILTER_INFO_BY_TARGET.out.filtered )
+    REPORT_WELL_IMPUTED ( ch_filtered_info )
     ch_versions = ch_versions.mix(REPORT_WELL_IMPUTED.out.versions)
     
     //
@@ -95,8 +99,9 @@ workflow REPORT {
     
     //
     // MODULE: Report accuracy metrics
+    // MODIFIED: Use error-tolerant channel
     //
-    REPORT_ACCURACY ( FILTER_INFO_BY_TARGET.out.filtered )
+    REPORT_ACCURACY ( ch_filtered_info )
     ch_versions = ch_versions.mix(REPORT_ACCURACY.out.versions)
     
     //
@@ -239,9 +244,12 @@ workflow REPORT {
     // MODULE: Advanced QC Plotting Modules
     //
     // Dosage distribution analysis
-    ch_dosage_input = ch_imputed.map { meta, ref_name, vcf, vcf_index, info ->
-        [meta, ref_name, vcf, vcf_index]
-    }
+    //
+    ch_dosage_input = ch_imputed
+        .map { meta, ref_name, vcf, vcf_index, info ->
+            [meta, ref_name, vcf, vcf_index]
+        }
+    
     PLOT_DOSAGE_DISTRIBUTION ( ch_dosage_input )
     ch_versions = ch_versions.mix(PLOT_DOSAGE_DISTRIBUTION.out.versions)
     
