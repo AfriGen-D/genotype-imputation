@@ -1,11 +1,12 @@
 # Nextflow runtime files
 .nextflow/
 .nextflow.log*
+.nextflow.pid
 work/
 output/
 results/
-/users/mamana/genotype-imputation/results/
 singularity_cache/
+nextflow_reports/
 
 # Container cache
 .docker/
@@ -59,19 +60,18 @@ sample_data/
 # Development directory (all development artifacts)
 dev/
 
-# Development files
-test_*.sh
-test_*.nf
-test_*.config
-*.log
-create_*.sh
-CLAUDE.md
-
-# SpecStory history (if not needed)
-.specstory/
-.history/*
-
-# GitHub specific  
-.github
-.claude
+# Workspace and IDE
 genotype-imputation.code-workspace
+*.code-workspace
+
+# SpecStory history
+.specstory/
+.history/
+
+# GitHub and CI/CD
+.github/
+.claude/
+
+# Scratch and local paths
+/scratch*/
+/cbio/
