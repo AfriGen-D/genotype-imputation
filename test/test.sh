@@ -33,8 +33,12 @@ fi
 # Set test parameters (using test directory files)
 INPUT="$SCRIPT_DIR/test_sample.csv"
 CONFIG="$SCRIPT_DIR/v6_chr21_phased_nfcore.config"
-OUTDIR="/scratch3/users/mamana/results/test_$(date +%Y%m%d_%H%M%S)"
+# Default output directory for resume (without timestamp)
+OUTDIR="/scratch3/users/mamana/results/test_run"
 PROFILE="singularity,slurm"
+
+# Set default resume behavior
+RESUME="-resume"
 
 # Parse command line options
 while [[ $# -gt 0 ]]; do
@@ -44,9 +48,11 @@ while [[ $# -gt 0 ]]; do
             echo -e "${YELLOW}Running in stub mode (no actual processing)${NC}"
             shift
             ;;
-        --resume)
-            RESUME="-resume"
-            echo -e "${YELLOW}Resuming from previous run${NC}"
+        --no-resume)
+            RESUME=""
+            # Create new timestamped directory for fresh run
+            OUTDIR="/scratch3/users/mamana/results/test_$(date +%Y%m%d_%H%M%S)"
+            echo -e "${YELLOW}Starting fresh run (resume disabled)${NC}"
             shift
             ;;
         --profile)
@@ -62,20 +68,20 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "Options:"
             echo "  --stub           Run in stub mode (for testing)"
-            echo "  --resume         Resume from previous run"
+            echo "  --no-resume      Start fresh run with new timestamped directory (default: resume in test_run dir)"
             echo "  --profile PROF   Execution profile (default: singularity,slurm)"
-            echo "  --outdir DIR     Output directory (default: /scratch3/users/mamana/results/test_TIMESTAMP)"
+            echo "  --outdir DIR     Output directory (default: test_run for resume, test_TIMESTAMP for fresh)"
             echo "  --help           Show this help message"
             echo ""
             echo "Examples:"
+            echo "  # Standard test run (with resume by default)"
+            echo "  test/test.sh"
+            echo ""
             echo "  # Quick test with stub mode"
             echo "  test/test.sh --stub"
             echo ""
-            echo "  # Full test run"
-            echo "  test/test.sh"
-            echo ""
-            echo "  # Resume a failed test"
-            echo "  test/test.sh --resume"
+            echo "  # Fresh run without resume"
+            echo "  test/test.sh --no-resume"
             exit 0
             ;;
         *)
@@ -94,6 +100,11 @@ echo "Input:    $INPUT"
 echo "Config:   $CONFIG"
 echo "Output:   $OUTDIR"
 echo "Profile:  $PROFILE"
+if [ -n "$RESUME" ]; then
+    echo "Resume:   Enabled (default)"
+else
+    echo "Resume:   Disabled (fresh run)"
+fi
 echo ""
 
 # Confirm before running
@@ -112,7 +123,7 @@ echo ""
 # Change to parent directory to run pipeline
 cd "$SCRIPT_DIR/.."
 
-nextflow run main_nfcore.nf \
+nextflow run main.nf \
     -c "$CONFIG" \
     --input "$INPUT" \
     --outdir "$OUTDIR" \
