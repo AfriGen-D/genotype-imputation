@@ -15,6 +15,7 @@ nextflow_reports/
 
 # IDE files
 .vscode/
+/users/mamana/genotype-imputation/.vscode/
 .idea/
 *.swp
 *.swo
@@ -62,7 +63,12 @@ dev/
 
 # Workspace and IDE
 genotype-imputation.code-workspace
+/users/mamana/genotype-imputation/genotype-imputation.code-workspace
 *.code-workspace
+
+# CLAUDE.md documentation
+CLAUDE.md
+/users/mamana/genotype-imputation/CLAUDE.md
 
 # SpecStory history
 .specstory/
@@ -71,7 +77,9 @@ genotype-imputation.code-workspace
 # GitHub and CI/CD
 .github/
 .claude/
+/users/mamana/genotype-imputation/.claude/
 
 # Scratch and local paths
 /scratch*/
 /cbio/
+/users/mamana/genotype-imputation/dev/
