@@ -1,8 +1,9 @@
 process PLOT_DOSAGE_DISTRIBUTION {
     tag "$meta.id"
-    label 'process_single'
+    label 'process_low'
+    memory 50.GB
     
-    container 'mamana/python-plotting:1.0.0'
+    container 'mamana/python-plotting:1.1.0'
     
     publishDir "${params.outdir}/plots/${meta.id}", mode: 'copy'
     
