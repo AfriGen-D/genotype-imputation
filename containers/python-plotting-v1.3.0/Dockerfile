@@ -35,15 +35,16 @@ RUN pip install --no-cache-dir \
 RUN pip install --no-cache-dir \
     matplotlib==3.7.1 \
     seaborn==0.12.2 \
-    plotly==5.15.0
+    plotly==5.15.0 \
+    Pillow==10.0.0
 
-# Install genomics packages (these need compilation)
+# Install utility packages
 RUN pip install --no-cache-dir \
-    pysam==0.21.0
+    psutil==5.9.5 \
+    PyYAML==6.0.1
 
-# Install cyvcf2 separately as it's most likely to fail
-RUN pip install --no-cache-dir \
-    cyvcf2==0.30.22
+# Note: Removed pysam and cyvcf2 as they're not used in the pipeline
+# If genomics packages are needed later, consider a separate container
 
 # Set working directory
 WORKDIR /work

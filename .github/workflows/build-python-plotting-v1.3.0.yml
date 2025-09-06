@@ -84,8 +84,9 @@ jobs:
           import scipy
           import sklearn
           import plotly
-          import pysam
-          import cyvcf2
+          from PIL import Image
+          import psutil
+          import yaml
           print('✓ NumPy version:', np.__version__)
           print('✓ Pandas version:', pd.__version__)
           print('✓ Matplotlib version:', matplotlib.__version__)
@@ -93,7 +94,8 @@ jobs:
           print('✓ SciPy version:', scipy.__version__)
           print('✓ Scikit-learn version:', sklearn.__version__)
           print('✓ Plotly version:', plotly.__version__)
-          print('✓ PySAM version:', pysam.__version__)
-          print('✓ cyvcf2 version:', cyvcf2.__version__)
+          print('✓ Pillow version:', Image.__version__ if hasattr(Image, '__version__') else 'installed')
+          print('✓ psutil version:', psutil.__version__)
+          print('✓ PyYAML version:', yaml.__version__)
           print('✓ All packages imported successfully!')
           "
